@@ -460,7 +460,7 @@
 
   <footer>
     <span>
-    <a href="https://replit.com/@familiarcow9r/RUNE-Tools" target="_blank" class="source-link">
+    <a href="https://github.com/cow9r/RUNE-Tools" target="_blank" class="source-link">
       <b>Source</b> 
     </a>
     {randomEmoji} <a href="https://x.com/familiarcow" target="_blank" class="source-link">familiarcow</a> {getRandomEmoji()}
