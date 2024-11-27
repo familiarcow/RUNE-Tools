@@ -1,0 +1,6 @@
+{
+	"/": [],
+	"/savers": [
+		"src/routes/savers/+page.js"
+	]
+}

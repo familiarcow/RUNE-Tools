@@ -1,0 +1,814 @@
+<script>
+  import { onMount, afterUpdate } from 'svelte';
+  import { fade, fly, crossfade } from 'svelte/transition';
+  import { quintOut, cubicInOut } from 'svelte/easing';
+  import WordPullUp from './lib/WordPullUp.svelte';  // Import the new component
+  import TerminalText from './lib/TerminalText.svelte';
+  import logo from "../public/assets/runetools-logo.svg";
+  import laserLogo from "../public/assets/runetools-laser-logo.svg";
+  import LendingEstimator from "./lib/LendingEstimator.svelte";
+  import PriceChecker from "./lib/PriceChecker.svelte";
+  import SaversTracker from "./lib/SaversTracker.svelte";
+  import TradeAssets from "./lib/TradeAssets.svelte";
+  import BondTracker from "./lib/BondTracker.svelte";
+  import RunePool from "./lib/RunePool.svelte";
+  import SwapEstimator from "./lib/SwapEstimator.svelte";
+  import Constants from "./lib/Constants.svelte";
+  import InboundAddresses from "./lib/InboundAddresses.svelte";
+  import LPChecker from "./lib/LPChecker.svelte";
+  import TxStatus from "./lib/TxStatus.svelte";
+  import SwapperClout from "./lib/SwapperClout.svelte";
+  import Version from "./lib/Version.svelte";
+  import Supply from "./lib/Supply.svelte";
+  import LiquidityProviders from './lib/LiquidityProviders.svelte';
+  import Affiliates from "./lib/Affiliates.svelte";
+  import Voting from "./lib/Voting.svelte";
+  import IncentivePendulum from "./lib/IncentivePendulum.svelte";
+  import Thorchad from "./lib/Thorchad.svelte";
+  import Vaults from "./lib/Vaults.svelte";
+  import Earnings from "./lib/Earnings.svelte";
+  import { writable } from 'svelte/store';
+  import WhaleWatching from "./lib/WhaleWatching.svelte";
+  
+  let selectedApp = null;
+  let addressParam = writable('');
+  let votingSearchTerm = writable('');
+
+  // Replace the existing apps array with categorized apps
+  const apps = [
+    { name: "Swap Quote", component: SwapEstimator, icon: "🔄", path: "swap", description: "Get real time quotes for THORChain swaps" },
+    { name: "Bond Tracker", component: BondTracker, icon: "🔗", path: "bond", description: "Monitor your THORChain node rewards" },
+    { name: "Voting", component: Voting, icon: "🗳️", path: "voting", description: "Check THORChain's active mimir votes" },
+    { name: "Earnings", component: Earnings, icon: "💰", path: "earnings", description: "Check the THORChain protocol's earnings" },
+    { name: "Constants and Mimirs", component: Constants, icon: "📚", path: "constants", description: "View THORChain's network parameters and settings" },
+    { name: "Incentive Pendulum", component: IncentivePendulum, icon: "⚖️", path: "pendulum", description: "Check THORChain's incentive pendulum balance" },
+    { name: "Supply Tracker", component: Supply, icon: "🔥", path: "supply", description: "Track RUNE supply and burned tokens" },
+    { name: "Price Checker", component: PriceChecker, icon: "🏷️", path: "prices", description: "Check pool prices and compare prices of similar assets" },
+    { name: "Vaults", component: Vaults, icon: "🔒", path: "vaults", description: "Inspect THORChain's native asset vaults" },
+    { name: "Whale Watching", component: WhaleWatching, icon: "🐋", path: "whales", description: "Monitor THORChain's largest swaps in the last week" },
+    { name: "Trade Assets", component: TradeAssets, icon: "💸", path: "trade", description: "Monitor THORChain Trade Asset adoption" },
+    { name: "Transaction Status", component: TxStatus, icon: "🔍", path: "tx", description: "Check THORChain Transaction status" },
+    { name: "Liquidity Providers", component: LiquidityProviders, icon: "👥", path: "lp", description: "Check liquidity providers and LP details for THORChain pools" },
+    { name: "Rune Pool", component: RunePool, icon: "🏊", path: "pool", description: "Explore RUNEPool and track your position" },
+    { name: "Lending Quote", component: LendingEstimator, icon: "⚡️", path: "lending", description: "Calculate current THORChain lending rates" },
+    { name: "Savers", component: SaversTracker, icon: "📈", path: "savers", description: "Track the Savers yield curve and Liquidity Provider rewards" },
+    { name: "Version", component: Version, icon: "🔧", path: "version", description: "Check the current THORNode version adoption" },
+    { name: "Inbound Addresses", component: InboundAddresses, icon: "📍", path: "inbound", description: "Find THORChain's inbound vault addresses" },
+    { name: "Swapper Clout", component: SwapperClout, icon: "🏆", path: "clout", description: "Check your Swapper Clout" },
+    { name: "Affiliates", component: Affiliates, icon: "🤝", path: "affiliate", description: "Track THORChain affiliate payout status" },
+    { name: "Thorchad", component: Thorchad, icon: "🧙‍♂️", path: "thorchad", description: "THORChad your profile picture" },
+    { name: "Shop", icon: "🏪", path: "shop", description: "Browse THORChain merchandise", externalUrl: "https://shop.rune.tools" },
+  ];
+
+  const [send, receive] = crossfade({
+    duration: 400,
+    fallback(node, params) {
+      const style = getComputedStyle(node);
+      const transform = style.transform === 'none' ? '' : style.transform;
+
+      return {
+        duration: 400,
+        easing: cubicInOut,
+        css: t => `
+          transform: ${transform} scale(${t});
+          opacity: ${t}
+        `
+      };
+    }
+  });
+
+  let hoveredApp = null;
+  let displayedDescription = "Welcome to RUNE Tools";
+  let descriptionTimer;
+  let isTyping = true;
+
+  function handleMouseEnter(app) {
+    if (!isMobile) {
+      hoveredApp = app;
+      clearTimeout(descriptionTimer);
+      isTyping = true;
+      displayedDescription = app.description;
+    }
+  }
+
+  function handleMouseLeave() {
+    if (!isMobile) {
+      clearTimeout(descriptionTimer);
+      descriptionTimer = setTimeout(() => {
+        isTyping = true;
+        displayedDescription = "Welcome to RUNE Tools";
+      }, 3000);
+    }
+  }
+
+  function selectApp(app) {
+    if (app.externalUrl) {
+      window.open(app.externalUrl, '_blank');
+    } else {
+      selectedApp = app;
+      const newUrl = `/${app.path}${getAppParams(app)}`;
+      history.pushState(null, '', newUrl);
+      menuOpen = false;
+
+      // Update addressParam if it's the SwapperClout component
+      if (app.name === "Swapper Clout") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const address = urlParams.get('address');
+        addressParam.set(address || '');
+      }
+    }
+  }
+
+  function getAppParams(app) {
+    if (app.name === "Bond Tracker") {
+      const bondAddress = new URLSearchParams(window.location.search).get("bond_address");
+      const nodeAddress = new URLSearchParams(window.location.search).get("node_address");
+      if (bondAddress && nodeAddress) {
+        return `?bond_address=${bondAddress}&node_address=${nodeAddress}`;
+      }
+    } else if (app.name === "Rune Pool") {
+      const address = new URLSearchParams(window.location.search).get("address");
+      if (address) {
+        return `?address=${address}`;
+      }
+    } else if (app.name === "Swapper Clout") {
+      const address = new URLSearchParams(window.location.search).get("address");
+      if (address) {
+        return `?address=${address}`;
+      }
+    } else if (app.name === "LP Checker") {
+      const pool = new URLSearchParams(window.location.search).get("pool");
+      const address = new URLSearchParams(window.location.search).get("address");
+      if (pool && address) {
+        return `?pool=${pool}&address=${address}`;
+      } else if (pool) {
+        return `?pool=${pool}`;
+      } else if (address) {
+        return `?address=${address}`;
+      }
+    } else if (app.name === "Affiliates") {
+      const thorname = new URLSearchParams(window.location.search).get("thorname");
+      if (thorname) {
+        return `?thorname=${thorname}`;
+      }
+    } else if (app.name === "Voting") {
+      const key = new URLSearchParams(window.location.search).get("key");
+      if (key) {
+        return `?key=${key}`;
+      }
+    }
+    return "";
+  }
+
+  function handlePopState() {
+    const path = window.location.pathname.slice(1).split('/')[0];
+    const app = apps.find(a => a.path === path);
+    selectedApp = app || null;
+
+    if (app) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (app.name === "Swapper Clout") {
+        const address = urlParams.get('address') || path.split('/')[1];
+        addressParam.set(address || '');
+      } else if (app.name === "Bond Tracker") {
+        const bondAddress = urlParams.get('bond_address');
+        const nodeAddress = urlParams.get('node_address');
+        // Handle Bond Tracker params if needed
+      } else if (app.name === "Rune Pool") {
+        const address = urlParams.get('address');
+        // Handle Rune Pool params if needed
+      } else if (app.name === "LP Checker") {
+        const pool = urlParams.get('pool');
+        const address = urlParams.get('address');
+        // Handle LP Checker params if needed
+      } else if (app.name === "Affiliates") {
+        const thorname = urlParams.get('thorname');
+        if (thorname) {
+          addressParam.set(thorname);
+        }
+      } else if (app.name === "Voting") {
+        const key = urlParams.get('key');
+        if (key) {
+          // You might need to create a store or prop to pass this to the Voting component
+          votingSearchTerm.set(key);
+        }
+      }
+    }
+  }
+
+  onMount(() => {
+    handlePopState();
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  });
+
+  afterUpdate(() => {
+    if (selectedApp && selectedApp.name === "Swapper Clout") {
+      const address = window.location.pathname.split('/')[2];
+      if (address) {
+        addressParam.set(address);
+      }
+    }
+  });
+
+  let menuOpen = false;
+
+  const houseIcon = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+      <polyline points="9 22 9 12 15 12 15 22"></polyline>
+    </svg>
+  `;
+
+  const hamburgerIcon = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  `;
+
+  function toggleMenu() {
+    menuOpen = !menuOpen;
+  }
+
+  function goHome() {
+    selectedApp = null;
+    history.pushState(null, '', '/');
+    menuOpen = false;
+  }
+
+  function handleDescriptionChange() {
+    isTyping = true;
+    setTimeout(() => {
+      isTyping = false;
+    }, 100); // Small delay to trigger re-render
+  }
+
+  $: {
+    displayedDescription; // This will trigger the handleDescriptionChange when displayedDescription changes
+    handleDescriptionChange();
+  }
+
+  let isMobile = false;
+
+  function checkMobile() {
+    isMobile = window.innerWidth <= 768;
+  }
+
+  onMount(() => {
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  });
+
+  function handleAppClick(app) {
+    selectApp(app);
+  }
+
+  let itemsPerRow = 5;
+  
+
+  function updateItemsPerRow() {
+    if (containerWidth <= 600) {
+      itemsPerRow = 2;
+    } else if (containerWidth <= 900) {
+      itemsPerRow = 3;
+    } else if (containerWidth <= 1200) {
+      itemsPerRow = 4;
+    } else {
+      itemsPerRow = 5;
+    }
+  }
+
+  function handleResize() {
+    checkMobile();
+    updateItemsPerRow();
+  }
+
+  onMount(() => {
+    checkMobile();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  });
+
+  $: if (containerWidth) {
+    updateItemsPerRow();
+  }
+
+  function groupAppsIntoRows(apps, itemsPerRow) {
+    const rows = [];
+    for (let i = 0; i < apps.length; i += itemsPerRow) {
+      rows.push(apps.slice(i, i + itemsPerRow));
+    }
+    return rows;
+  }
+
+  $: rows = groupAppsIntoRows(apps, itemsPerRow);
+
+  const emojis = ['🫡', '✍️', '💪', '🧙‍♂️', '🕺', '🏃‍♂️‍➡️', '🦅', '🐋', '🐉', '⚡️', '🌊', '🍷', '🍻', '🏄‍♂️', '🏆', '🎸', '🚀', '🗿', '🗽', '🏗️', '📠', '🔌', '🔮', '🔭', '💯', '🏴‍☠️', '🥷', '👑', '🪐', '🍦', '🍾', '🎯', '❤️', '☑️', '🆒'];
+
+  function getRandomEmoji() {
+    return emojis[Math.floor(Math.random() * emojis.length)];
+  }
+
+  let randomEmoji;
+
+  onMount(() => {
+    randomEmoji = getRandomEmoji();
+  });
+
+  function calculateOptimalLayout(totalItems, containerWidth) {
+    const minItemWidth = 120;
+    const gap = 24;
+    const maxColumns = Math.floor((containerWidth - 40) / (minItemWidth + gap));
+    
+    // Try different numbers of columns to find one that gives us balanced rows
+    for (let cols = maxColumns; cols >= 3; cols--) {
+      const rows = Math.ceil(totalItems / cols);
+      const lastRowItems = totalItems % cols;
+      
+      // If the last row has 3 or more items, or if it's perfectly divided
+      if (lastRowItems === 0 || lastRowItems >= 3) {
+        return cols;
+      }
+    }
+    
+    // If we couldn't find a perfect fit, default to 3 columns
+    return 3;
+  }
+
+  let containerWidth;
+  let optimalColumns = 3;
+
+  $: if (containerWidth) {
+    optimalColumns = calculateOptimalLayout(apps.length, containerWidth);
+  }
+
+  // Group apps into rows based on optimal columns
+  function groupIntoRows(apps, columns) {
+    const rows = [];
+    for (let i = 0; i < apps.length; i += columns) {
+      rows.push(apps.slice(i, Math.min(i + columns, apps.length)));
+    }
+    return rows;
+  }
+
+  $: appRows = groupIntoRows(apps, optimalColumns);
+</script>
+
+<svelte:head>
+  <link href="https://fonts.googleapis.com/css2?family=Exo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #1e1e1e;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</svelte:head>
+
+<main>
+  <header>
+    <div class="header-content">
+      <div class="logo-container">
+        <div class="logo-wrapper" on:click={goHome}>
+          <img src={logo} alt="THORChain Logo" class="logo original-logo" />
+          <img src={laserLogo} alt="THORChain Laser Logo" class="logo laser-logo" />
+        </div>
+      </div>
+      <div class="title-container">
+        {#if selectedApp}
+          <h2 class="rune-tools-title">
+            {selectedApp.name}
+          </h2>
+          
+        {/if}
+      </div>
+      <nav>
+        {#if selectedApp}
+          <button 
+            class="nav-button menu-button" 
+            on:click={toggleMenu}
+            in:fly={{ y: -20, duration: 300, delay: 200, easing: cubicInOut }}
+            out:fly={{ y: -20, duration: 300, easing: cubicInOut }}
+          >
+            {@html hamburgerIcon}
+          </button>
+        {/if}
+      </nav>
+    </div>
+  </header>
+
+  {#if menuOpen}
+    <div class="menu-overlay" on:click|self={toggleMenu} in:fade={{ duration: 200 }} out:fade={{ duration: 200 }}>
+      <div class="menu-content" in:fly={{ x: 300, duration: 300, easing: cubicInOut }} out:fly={{ x: 300, duration: 300, easing: cubicInOut }}>
+        {#each apps as app}
+          <button class="menu-item" on:click={() => selectApp(app)}>
+            <span class="app-icon">{app.icon}</span>
+            <span class="app-name">{app.name}</span>
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <div class="content">
+    <div class="scrollable-container">
+      {#if !selectedApp}
+        <div class="description-container">
+          {#if isMobile}
+            <p>Welcome to RUNE Tools</p>
+          {:else}
+            {#key displayedDescription}
+              <TerminalText text={displayedDescription} />
+            {/key}
+          {/if}
+        </div>
+        <div 
+          class="app-grid-container" 
+          bind:clientWidth={containerWidth}
+        >
+          {#each appRows as row}
+            <div class="app-row">
+              {#each row as app, i}
+                <button 
+                  class="app-button"
+                  on:click={() => handleAppClick(app)}
+                  on:mouseenter={() => handleMouseEnter(app)}
+                  on:mouseleave={handleMouseLeave}
+                  in:fly={{ y: 20, duration: 300, delay: 100 + i * 50, easing: quintOut }}
+                >
+                  <span class="app-icon">{app.icon}</span>
+                  <span class="app-name">{app.name}</span>
+                </button>
+              {/each}
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <svelte:component this={selectedApp.component} address={$addressParam} searchTerm={votingSearchTerm} />
+      {/if}
+    </div>
+  </div>
+
+  <footer>
+    <span>
+    <a href="https://replit.com/@familiarcow9r/RUNE-Tools" target="_blank" class="source-link">
+      <b>Source</b> 
+    </a>
+    {randomEmoji} <a href="https://x.com/familiarcow" target="_blank" class="source-link">familiarcow</a> {getRandomEmoji()}
+    
+    <a href="https://forms.gle/145LjEVxa9ecSYqd9" target="_blank" class="source-link">
+      Feedback
+    </a>
+    </span>
+  </footer>
+</main>
+
+<style>
+  :global(*) {
+    font-family: 'Exo', sans-serif;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --primary-color: #ff3e00;
+    --secondary-color: #4a90e2;
+    --background-color: #1e1e1e;
+    --surface-color: #2c2c2c;
+    --text-color: #e0e0e0;
+    --text-muted: #a0a0a0;
+  }
+
+  main {
+    text-align: center;
+    margin: 0 auto;
+    max-width: 100%;
+    background-color: var(--background-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: var(--text-color);
+    padding-top: 60px; /* Adjust this value based on your header height */
+  }
+
+  header {
+    background-color: var(--surface-color);
+    padding: 0.5rem 1rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+  }
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .logo-container {
+    flex: 0 0 auto;
+    width: 33.33%;
+    text-align: left;
+  }
+
+  .logo-wrapper {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+  }
+
+  .logo {
+    height: 2rem;
+    width: auto;
+    max-width: 100%;
+
+  }
+
+  .original-logo {
+    position: relative;
+    z-index: 2;
+  }
+
+  .laser-logo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    opacity: 0;
+  }
+
+  .logo-wrapper:hover .original-logo {
+    opacity: 0;
+  }
+
+  .logo-wrapper:hover .laser-logo {
+    opacity: 1;
+  }
+
+  .title-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 33.33%;
+  }
+
+  .rune-tools-title {
+    color: var(--text-color);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .app-title {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 400;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  nav {
+    flex: 0 0 auto;
+    width: 33.33%;
+    text-align: right;
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding-top: 20px; /* Add padding to the top of the content area */
+  }
+
+  .scrollable-container {
+    padding-top: 20px; /* Add additional padding for the app components */
+  }
+
+  .description-container {
+    color: var(--text-color);
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-color: var(--background-color);
+    border-radius: 8px;
+    font-size: 1.5rem;
+  }
+
+  .description-container :global(p) {
+    margin: 0;
+    text-align: center;
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+
+  .app-grid-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .app-row {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+
+  .app-button {
+    width: 120px;
+    height: 120px;
+    padding: 0.75rem;
+    background-color: var(--surface-color);
+    border: none;
+    border-radius: 22px;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .app-button:hover {
+    transform: scale(1.05) translateY(-3px);
+    background-color: #3a3a3a; /* Lighter color on hover */
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Add active state for click feedback */
+  .app-button:active {
+    transform: scale(1.02) translateY(-1px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .app-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .app-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: center;
+    width: 100%;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  footer {
+    padding: 1.5rem;
+    background-color: var(--surface-color);
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .source-link {
+    color: var(--secondary-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+  }
+
+  .source-link:hover {
+    color: var(--primary-color);
+  }
+
+  footer a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .home-button, .menu-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    color: var(--text-color);
+    transition: color 0.3s ease;
+  }
+
+  .home-button:hover, .menu-button:hover {
+    color: var(--primary-color);
+  }
+
+  .menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: flex-end;
+    z-index: 1000;
+  }
+
+  .menu-content {
+    background-color: var(--surface-color);
+    width: 300px;
+    height: 100%;
+    padding: 2rem;
+    overflow-y: auto;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .menu-item .app-icon {
+    margin-right: 1rem;
+    font-size: 1.5rem;
+  }
+
+  .menu-item .app-name {
+    font-size: 1rem;
+  }
+
+  .clickable-logo {
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+
+  .clickable-logo:hover {
+    opacity: 0.8;
+  }
+
+  @media (max-width: 1200px) {
+    .app-grid-container {
+      max-width: 1000px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .app-grid-container {
+      max-width: 800px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .app-row {
+      gap: 1rem;
+    }
+    
+    .app-button {
+      width: 100px;
+      height: 100px;
+    }
+  }
+
+  .category-section {
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+  }
+
+  .category-title {
+    text-align: left;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0.5rem 0;
+    padding-left: 0.5rem;
+  }
+</style>
+

@@ -1,0 +1,16 @@
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1351.74 290.5">
+  <defs>
+    <style>
+      .cls-1{fill:url(#linear-gradient);}
+      .cls-2{fill:#fff;}
+      .cls-3{font-family:Arial-BoldMT, Arial; font-weight:700; font-size:120px;}
+    </style>
+    <linearGradient id="linear-gradient" y1="145.25" x2="253.26" y2="145.25" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0cf"/>
+      <stop offset="1" stop-color="#3f9"/>
+    </linearGradient>
+  </defs>
+  <title>RUNE Tools</title>
+  <path class="cls-1" d="M0,290.5l202.81-85.41L138.65,140ZM74.49,75,138.65,140,253.26,0Z"/>
+  <text x="300" y="180" class="cls-2 cls-3">RUNE Tools</text>
+</svg>

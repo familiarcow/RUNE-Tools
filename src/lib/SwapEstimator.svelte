@@ -1,0 +1,1024 @@
+<script>
+    // Swap estimator created by FamiliarCow for the THORChain community under MIT license
+    // Utilizing Nine Realms public infrastructure and THORNode quote endpoint
+    
+        import { onMount } from 'svelte';
+        import { slide } from 'svelte/transition';
+        import Settings from '../../public/assets/Settings.svelte';
+  
+          
+        let amount = null; //random starting swap
+        let from_asset = 'ETH.ETH'; //set default from_asset
+        let to_asset = 'BTC.BTC'; //set default to_asset
+        let destination = '';
+        let expectedAmountOut = '';
+        let expectedAmountOutStreaming = '';
+        let assetPriceUSD = 0;
+        let expectedAmountOutUSD = 0;
+        let inbound_confirmation_seconds = 0;
+        let outbound_delay_blocks = 0;
+        let total_swap_seconds = 0;
+        let streaming_total_swap_seconds = 0;
+        let slippage_bps = 0;
+        let estimated_swap_time = 0;
+        let showLogos = false;  
+        let estimatedValue = '';
+        let fromDropdownOpen = false;
+        let toDropdownOpen = false;
+        let isLoading = false;
+        let affiliate_fee = 0;
+        let affiliate_fee_usd = 0;
+        let outboundFee = 0;
+        let liquidityFee = 0;
+        let totalFee = 0;
+        let totalFeeBps = 0;
+        let feeAsset = '';
+        let streaming_interval = 1;
+        let streaming_quantity = 0;
+        let showEstimatedTime = false;
+        let showSettings = false;
+        let showFeeBreakdown = false;
+        let affiliateAddress = '';
+        let affiliateFeeBps = '';
+        let enableAffiliateSettings = false;
+        let affiliateEarningsUSD = 0;
+        let outboundFeeUSD = 0;
+        let liquidityFeeUSD = 0;
+        let totalFeeUSD = 0;
+        let showInboundDelay = false;
+        let showOutboundDelay = false;
+        let inboundConfirmationBlocks = 0;
+        let inboundConfirmationSeconds = 0;
+        let outboundDelayBlocks = 0;
+        let outboundDelaySeconds = 0;
+        let showStreamingDetails = false;
+        let maxStreamingQuantity = 0;
+        let streamingSwapBlocks = 0;
+        let streamingSwapSeconds = 0;
+        let toggleAll = false;
+        let showHeightField = false;
+        let height = '';
+  
+  function changellyAssetFormat(asset) {
+    // Splits the string into two at the period, takes the second piece
+    let afterPeriod = asset.split('.')[1];
+  
+    // If there is a hyphen, split the string into two at the hyphen, takes the first piece
+    if (afterPeriod.includes('-')) {
+      return afterPeriod.split('-')[0];
+    }
+  
+    return afterPeriod;
+  }
+  
+  function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+  }
+      
+        function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes} min ${remainingSeconds} sec`;
+      }
+          
+        function formatNumber(number) {
+          return number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }        
+      
+      // Valid assets to swap to or from
+        const assets = [
+          'BTC.BTC',
+          'ETH.ETH',
+          'BSC.BNB',
+          'THOR.RUNE',
+          'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48',
+          'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7',
+          'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599',
+          'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F',
+          'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD',
+          'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0',
+          'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1',
+          'BCH.BCH',
+          'LTC.LTC',
+          'AVAX.AVAX',
+          'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E',
+          'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7',
+          'GAIA.ATOM',
+          'DOGE.DOGE',
+          'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D',
+          'BSC.USDT-0X55D398326F99059FF775485246999027B3197955'
+        ];
+      
+      // Map asset names to pool abbreviations
+      const assetNames = {
+          'BTC.BTC': 'Bitcoin',
+          'ETH.ETH': 'Ethereum',
+          'BSC.BNB': 'BNB',
+          'BCH.BCH': 'Bitcoin Cash',
+          'LTC.LTC': 'Litecoin',
+          'AVAX.AVAX': 'Avalanche',
+          'GAIA.ATOM': 'Cosmos',
+          'DOGE.DOGE': 'Dogecoin',
+          'THOR.RUNE': 'RUNE',
+          'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': "USDC (ETH)",
+          'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': "USDT (ETH)",
+          'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': "WBTC (ETH)",
+          'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': "DAI (ETH)",
+          'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': "GUSD (ETH)",
+          'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': "LUSD (ETH)",
+          'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': "USDP (ETH)",
+          'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': "USDC (BSC)",
+          'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': "USDT (BSC)",
+          'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': "USDC (AVAX)",
+          'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': "USDT (AVAX)"
+      };
+      
+      // Dummy destinations from the chains to pull a valid quote from thornode
+      const destinations = {
+          'BTC.BTC': 'bc1qdvxpt06ulfk5gm5p52wa4mrt6e887wkmvc4xxw',
+          'ETH.ETH': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'BSC.BNB': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'BCH.BCH': 'pqvm5jv4zhy38dkzrx0md73c3sujhkmg4yhlmhhmfm',
+          'LTC.LTC': 'ltc1qzvcgmntglcuv4smv3lzj6k8szcvsrmvk0phrr9wfq8w493r096ssm2fgsw',
+          'AVAX.AVAX': '0x66153cf0e164bc9bdae88fb36fc5b92dc63a79d6',
+          'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': '0x66153cf0e164bc9bdae88fb36fc5b92dc63a79d6',
+          'GAIA.ATOM': 'cosmos1rdly788mpmwvemd5yr8wu0499zs4v4qnaptum4',
+          'DOGE.DOGE': 'DLmW4rFuPqR3cUyqJiBqjho2CtHMC12bFt',
+          'THOR.RUNE': 'thor1505gp5h48zd24uexrfgka70fg8ccedafsnj0e3',
+          'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7'
+        };
+    
+      // Asset svg logos for display
+      const assetLogos = {
+      'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
+      'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
+      'BSC.BNB': 'assets/coins/binance-coin-bnb-logo.svg',
+      'BCH.BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
+      'LTC.LTC': 'assets/coins/litecoin-ltc-logo.svg',
+      'AVAX.AVAX': 'assets/coins/avalanche-avax-logo.svg',
+      'GAIA.ATOM': 'assets/coins/cosmos-atom-logo.svg',
+      'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
+      'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
+      'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'assets/coins/usd-coin-usdc-logo.svg',
+      'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'assets/coins/tether-usdt-logo.svg',
+      'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': 'assets/coins/wrapped-bitcoin-wbtc-logo.svg',
+      'BNB.BUSD-BD1': 'assets/coins/binance-usd-busd-logo.svg',
+      'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': 'assets/coins/usd-coin-usdc-logo.svg',
+      'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': 'assets/coins/multi-collateral-dai-dai-logo.svg',
+      'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': 'assets/coins/gemini-dollar-gusd-logo.svg',
+      'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': 'assets/coins/liquity-usd-logo.svg',
+      'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': 'assets/coins/paxos-standard-usdp-logo.svg',
+      'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'assets/coins/usd-coin-usdc-logo.svg',
+      'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'assets/coins/tether-usdt-logo.svg',
+      'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg'
+      };
+    
+      let assetPrices = {};
+      let estimatedValueUSD = '';
+
+      async function fetchAssetPrices() {
+        try {
+          const priceUrl = `https://midgard.ninerealms.com/v2/pools`;
+          const priceResponse = await fetch(priceUrl);
+          const priceResult = await priceResponse.json();
+          
+          assetPrices = priceResult.reduce((acc, pool) => {
+            acc[pool.asset] = parseFloat(pool.assetPriceUSD);
+            return acc;
+          }, {});
+
+          // Special case for RUNE
+          const runePool = priceResult.find(pool => pool.asset === 'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48');
+          assetPrices['THOR.RUNE'] = parseFloat(runePool.assetDepth) / parseFloat(runePool.runeDepth);
+        } catch (error) {
+          console.error('Error fetching asset prices:', error);
+        }
+      }
+
+      onMount(fetchAssetPrices);
+
+      $: {
+        if (amount && from_asset && assetPrices[from_asset]) {
+          const usdValue = amount * assetPrices[from_asset];
+          estimatedValueUSD = `≈ $${formatNumber(usdValue)}`;
+        } else {
+          estimatedValueUSD = '';
+        }
+      }
+
+      // Function is called when swap button is pressed to fetch the quote from thornode
+      async function fetchQuote() {
+      try {
+        if (!amount || amount <= 0) {
+          alert("Please enter a valid swap amount.");
+          return;
+        }
+        if (from_asset === to_asset) {
+          alert("From asset and To asset must be different.");
+          return;
+        }
+        isLoading = true;
+        destination = destinations[to_asset];
+        const amountToSend = amount * 1e8;
+    
+        // Use the already fetched prices
+        const assetInPriceUSD = assetPrices[from_asset];
+        const assetOutPriceUSD = assetPrices[to_asset];
+        
+        //estimate swap output value in USD
+        const estimatedValueUSD = amount * assetInPriceUSD;
+    
+        // Fetch the streaming swap quote from thornode
+        let url_stream = `https://thornode.ninerealms.com/thorchain/quote/swap?`;
+        
+        // Add height parameter if provided
+        if (height) {
+            url_stream += `height=${height}&`; 
+        }
+        
+        // Add the rest of the parameters
+        url_stream += `amount=${amountToSend}&from_asset=${from_asset}&to_asset=${to_asset}&destination=${destination}&streaming_interval=${streaming_interval}&streaming_quantity=${streaming_quantity}`;
+
+        // Add affiliate parameters if enabled
+        if (enableAffiliateSettings && affiliateAddress && affiliateFeeBps) {
+            url_stream += `&affiliate=${affiliateAddress}&affiliate_bps=${affiliateFeeBps}`;
+        }
+
+        const response_stream = await fetch(url_stream);
+        const result_stream = await response_stream.json();
+    
+        if (result_stream.error) {
+          throw new Error(result_stream.error);
+        }
+    
+        expectedAmountOutStreaming = result_stream.expected_amount_out / 1e8; //get expected amount out for streaming
+        expectedAmountOutUSD = expectedAmountOutStreaming * assetOutPriceUSD;
+    
+        // Get total swap time
+        streaming_total_swap_seconds = formatTime(result_stream.total_swap_seconds) || 0; //get streaming swap total seconds
+      
+        // Set the estimated value in the UI
+        estimatedValue = `≈ $${formatNumber(estimatedValueUSD)}`;
+  
+        //Show result
+        showLogos = true;
+  
+        // Calculate affiliate earnings if enabled
+        if (enableAffiliateSettings && result_stream.fees && result_stream.fees.affiliate) {
+            const affiliateFeeAsset = result_stream.fees.affiliate / 1e8; // Convert from sats to whole units
+            const feeAsset = result_stream.fees.asset;
+            const feeAssetPrice = feeAsset === from_asset ? assetInPriceUSD : assetOutPriceUSD;
+            affiliateEarningsUSD = affiliateFeeAsset * feeAssetPrice;
+        } else {
+            affiliateEarningsUSD = 0;
+        }
+  
+        // Extract fee information
+        if (result_stream.fees) {
+          outboundFee = result_stream.fees.outbound / 1e8;
+          liquidityFee = result_stream.fees.liquidity / 1e8;
+          totalFee = result_stream.fees.total / 1e8;
+          totalFeeBps = result_stream.fees.total_bps;
+          feeAsset = result_stream.fees.asset.split('.')[1];
+
+          // Calculate USD values for fees
+          const feeAssetPrice = result_stream.fees.asset === from_asset ? assetInPriceUSD : assetOutPriceUSD;
+          outboundFeeUSD = outboundFee * feeAssetPrice;
+          liquidityFeeUSD = liquidityFee * feeAssetPrice;
+          totalFeeUSD = totalFee * feeAssetPrice;
+        }
+  
+        if (result_stream) {
+          inboundConfirmationBlocks = result_stream.inbound_confirmation_blocks;
+          inboundConfirmationSeconds = result_stream.inbound_confirmation_seconds;
+          outboundDelayBlocks = result_stream.outbound_delay_blocks;
+          outboundDelaySeconds = result_stream.outbound_delay_seconds;
+          maxStreamingQuantity = result_stream.max_streaming_quantity;
+          streamingSwapBlocks = result_stream.streaming_swap_blocks;
+          streamingSwapSeconds = result_stream.streaming_swap_seconds;
+        }
+  
+      } catch (error) {
+        alert(`Error fetching quote: ${error.message}`);
+      } finally {
+        isLoading = false;
+      }
+    }
+    
+      
+      
+      
+      
+      
+          
+          
+        $: {
+          if (from_asset || to_asset || amount) {
+            resetResponse();
+          }
+        }
+      
+        function resetResponse() {
+          expectedAmountOut = '';
+          expectedAmountOutUSD = 0;
+          expectedAmountOutStreaming = 0;
+          inbound_confirmation_seconds = 0;
+          outbound_delay_blocks = 0;
+          slippage_bps = 0;
+          estimated_swap_time = 0;
+          estimatedValue = '';
+          outboundFee = 0;
+          liquidityFee = 0;
+          totalFee = 0;
+          totalFeeBps = 0;
+          feeAsset = '';
+          outboundFeeUSD = 0;
+          liquidityFeeUSD = 0;
+          totalFeeUSD = 0;
+        }
+              
+        function handleFocus(node) {
+    node.addEventListener('focus', (event) => {
+      if (event.target.value == 1) {
+        event.target.value = '';
+      }
+    });
+  
+    return {
+      destroy() {
+        node.removeEventListener('focus', handleFocus);
+      },
+    };
+  }   
+          
+      function toggleSettings() {
+        showSettings = !showSettings;
+    }
+
+    function toggleEstimatedTime() {
+        showEstimatedTime = !showEstimatedTime;
+    }
+          
+      function handleFromAssetSelect(asset) {
+        if (asset === to_asset) {
+          // Swap the assets
+          to_asset = from_asset;
+        }
+        from_asset = asset;
+        fromDropdownOpen = false;
+      }
+
+      function handleToAssetSelect(asset) {
+        if (asset === from_asset) {
+          // Swap the assets
+          from_asset = to_asset;
+        }
+        to_asset = asset;
+        toDropdownOpen = false;
+      }
+
+      function handleToggleAll() {
+        toggleAll = !toggleAll;
+        showEstimatedTime = toggleAll;
+        enableAffiliateSettings = toggleAll;
+        showFeeBreakdown = toggleAll;
+        showInboundDelay = toggleAll;
+        showOutboundDelay = toggleAll;
+        showStreamingDetails = toggleAll;
+      }
+          
+      </script>
+      
+      
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      
+      
+      .swap-container {
+        max-width: 500px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 5px;
+        background-color: rgba(0, 0, 0, 0.8);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        font-family: 'Exo 2', sans-serif;
+      }
+      
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      
+      input,
+      select {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 15px;
+        border: none;
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      
+      input:focus,
+      select:focus {
+        outline: none;
+        box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.1);
+      }
+      
+      button {
+        width: 100%;
+        padding: 10px;
+        background-color: #2cbe8c;
+        border: none;
+        border-radius: 5px;
+        color: #fff;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+      }
+      
+      button:hover {
+        background-color: #3DA17E;
+      }
+      
+      .result {
+        margin-top: 20px;
+        font-size: 18px;
+      }
+      
+      .info-icon {
+        display: inline-block;
+        margin-left: 5px;
+        cursor: pointer;
+        position: relative;
+      }
+      
+      .tooltip {
+      display: none;
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+      left: 50%;
+      transform: translateX(-85%); 
+      top: 25px; 
+      opacity: 100; 
+      }
+      
+      .info-icon:hover .tooltip {
+        display: block;
+      }
+      
+      .result {
+        display: flex;
+        align-items: center;
+        margin-top: 20px;
+        font-size: 18px;
+        transition: opacity 0.5s ease-in-out;
+      }
+      
+      .result-content {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        font-size: 0.9rem;
+        white-space: nowrap;
+      }
+      
+      .asset-selection {
+        display: flex;
+        justify-content: space-between;
+      }
+      
+      .asset-label {
+        flex: 1;
+        margin-right: 10px;
+      }
+      
+      .asset-label:last-child {
+        margin-right: 0;
+      }
+      
+    
+    
+        .swap-container {
+      color: #fff;
+    }
+    
+    .asset-logo {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+    
+    .green-text-bold {
+      color: #2cbe8c;
+      font-weight: bold;
+    }
+    
+    .asset-label {
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+    
+    .custom-select {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .selected,
+    .options div {
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .selected {
+      background-color: #2e2e2e;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+    
+    .options {
+      position: absolute;
+      background-color: #2e2e2e;
+      border: 1px solid #444;
+      border-radius: 4px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+      z-index: 1;
+      max-height: 384px;
+      overflow-y: auto;
+    }
+    
+    .options div:hover {
+      background-color: #3c3c3c;
+    }
+    
+    img {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+    }
+    
+    input[type="number"] {
+      background-color: #3c3c3c;
+      color: #ffffff;
+      border: 1px solid #444;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .asset-selection {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .asset-label-container,
+    .asset-select-container {
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .asset-select-container {
+      margin-top: -4px;
+    
+    }
+    
+    .asset-label {
+      flex: 1;
+      margin-right: 10px;
+    }
+    
+    .asset-label:last-child {
+      margin-right: 0;
+    }
+    
+    .asset-selection {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .asset-label-container {
+      display: flex;
+    }
+    
+    .asset-select-container {
+      display: flex;
+      margin-top: 4px;
+    }
+    
+    .asset-label {
+      margin-right: 10px;
+    }
+    
+    .custom-select {
+      flex: 1;
+      margin-right: 10px;
+    }
+    
+    .custom-select:last-child {
+      margin-right: 0;
+    }
+    
+    .loader {
+        display: inline-block;
+        border: 2px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 2px solid #3498db;
+        width: 14px;
+        height: 14px;
+        margin-left: 5px;
+        animation: spin 2s linear infinite;
+      }
+    
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    
+    .app-container {
+        position: relative;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .settings-icon {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        cursor: pointer;
+        font-size: 24px;
+        line-height: 1;
+    }
+
+    .affiliate-settings {
+        margin-top: 10px;
+    }
+
+    .affiliate-input-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .affiliate-input {
+        flex: 1;
+    }
+
+    .affiliate-input label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .affiliate-input input {
+        width: 100%;
+    }
+
+    .settings-modal {
+      position: absolute;
+      top: 40px;
+      right: 0;
+      background-color: #2e2e2e;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 20px;
+      z-index: 10;
+      width: 300px;
+      color: #ffffff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #444;
+    }
+
+    .settings-header h3 {
+      margin: 0;
+    }
+
+    .toggle-all-btn {
+      background-color: #3c3c3c;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      border: 1px solid #555;
+    }
+
+    .toggle-all-btn:hover {
+      background-color: #444;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #3a3a3c;
+    }
+
+    .setting-item:last-child {
+      border-bottom: none;
+    }
+
+    .setting-item input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+</style>
+    
+      
+    <div class="app-container">
+        <div class="settings-icon" on:click={toggleSettings}>
+            <Settings />
+        </div>
+
+        {#if showSettings}
+            <div class="settings-modal" transition:slide>
+                <div class="settings-header">
+                    <h3>Settings</h3>
+                    <button class="toggle-all-btn" on:click={handleToggleAll}>
+                        {toggleAll ? 'Disable All' : 'Enable All'}
+                    </button>
+                </div>
+                
+                <div class="setting-item">
+                    <span>Show Estimated Time</span>
+                    <input type="checkbox" bind:checked={showEstimatedTime}>
+                </div>
+                <div class="setting-item">
+                    <span>Show Affiliate</span>
+                    <input type="checkbox" bind:checked={enableAffiliateSettings}>
+                </div>
+                <div class="setting-item">
+                    <span>Show Fee Breakdown</span>
+                    <input type="checkbox" bind:checked={showFeeBreakdown}>
+                </div>
+                <div class="setting-item">
+                    <span>Show Inbound Delay</span>
+                    <input type="checkbox" bind:checked={showInboundDelay}>
+                </div>
+                <div class="setting-item">
+                    <span>Show Outbound Delay</span>
+                    <input type="checkbox" bind:checked={showOutboundDelay}>
+                </div>
+                <div class="setting-item">
+                    <span>Show Streaming Details</span>
+                    <input type="checkbox" bind:checked={showStreamingDetails}>
+                </div>
+                <div class="setting-item">
+                    <span>Show Height Field</span>
+                    <input type="checkbox" bind:checked={showHeightField}>
+                </div>
+            </div>
+        {/if}
+
+        <div class="swap-container">
+          
+          <div style="display: flex; align-items: center; justify-content: center; margin-bottom:10px; ">
+            <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo" style="margin-right: 15px;">
+            <div style="text-align: center; font-size: 20px; font-weight: 600; text-shadow: 2px 2px 4px #000000; color: #f8f8f8; font-family: 'Exo 2', sans-serif;">
+              <b>THORChain Quote Estimator</b>
+            </div>    
+          </div>
+          
+          
+          <div style="height: 1px; background-color: #3a3a3c"></div>
+          <div style="height: 10px"></div>
+          
+          
+          <div class="asset-selection">
+            <div class="asset-label-container">
+              <label class="asset-label" for="from_asset">From:</label>
+              <label class="asset-label" for="to_asset">To:</label>
+            </div>
+        
+            <!-- asset selection container -->
+            <div class="asset-select-container">
+              <div class="custom-select" id="from_asset">
+                <div class="selected" on:click={() => (fromDropdownOpen = !fromDropdownOpen)}>
+                  <img 
+                    src={assetLogos[from_asset]} 
+                    alt={assetNames[from_asset]} 
+                    on:error={(e) => {
+                      e.target.onerror = null; // Prevent further error callbacks
+                      e.target.src = 'assets/coins/fallback-logo.svg';
+                    }}
+                  />
+                  <span>{assetNames[from_asset]}</span>
+                </div>
+                {#if fromDropdownOpen}
+                  <div class="options" in:slide={{ duration: 1000 }} out:slide={{ duration: 333 }}>
+                    {#each assets as asset}
+                      <div on:click={() => handleFromAssetSelect(asset)}>
+                        <img 
+                          src={assetLogos[asset]} 
+                          alt={assetNames[asset]} 
+                          on:error={(e) => {
+                            e.target.onerror = null; // Prevent further error callbacks
+                            e.target.src = 'assets/coins/fallback-logo.svg';
+                          }}
+                        />
+                        <span>{assetNames[asset]}</span>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+          
+              <div class="custom-select" id="to_asset">
+                <div class="selected" on:click={() => (toDropdownOpen = !toDropdownOpen)}>
+                  <img 
+                    src={assetLogos[to_asset]} 
+                    alt={assetNames[to_asset]} 
+                    on:error={(e) => {
+                      e.target.onerror = null; // Prevent further error callbacks
+                      e.target.src = 'assets/coins/fallback-logo.svg';
+                    }}
+                  />
+                  <span>{assetNames[to_asset]}</span>
+                </div>
+                {#if toDropdownOpen}
+                  <div class="options" in:slide={{ duration: 1000 }} out:slide={{ duration: 333 }}>
+                    {#each assets as asset}
+                      <div on:click={() => handleToAssetSelect(asset)}>
+                        <img 
+                          src={assetLogos[asset]} 
+                          alt={assetNames[asset]} 
+                          on:error={(e) => {
+                            e.target.onerror = null; // Prevent further error callbacks
+                            e.target.src = 'assets/coins/fallback-logo.svg';
+                          }}
+                        />
+                        <span>{assetNames[asset]}</span>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            </div>
+      
+            <div>&nbsp;</div>
+        
+            <!-- swap amount input and display -->
+            <div class="expand" in:slide={{ duration: 1000 }} out:slide={{ duration: 333 }}>
+              <label>Swap Amount ({from_asset.split('.')[1].split('-')[0]}):</label>
+              <input type="number" style="width: 50%;" bind:value={amount} use:handleFocus />
+              <span>{estimatedValueUSD}</span>
+            </div>
+
+            {#if showHeightField}
+                <div class="expand" in:slide={{ duration: 500 }} out:slide={{ duration: 500 }}>
+                    <label>Block Height:</label>
+                    <input 
+                        type="number" 
+                        style="width: 50%;" 
+                        bind:value={height} 
+                        placeholder="Optional block height"
+                    />
+                </div>
+            {/if}
+
+            {#if enableAffiliateSettings}
+                <div class="expand affiliate-settings" in:slide={{ duration: 500 }} out:slide={{ duration: 500 }}>
+                    <div class="affiliate-input-container">
+                        <div class="affiliate-input">
+                            <label for="affiliate">Affiliate Address:</label>
+                            <input type="text" id="affiliate" bind:value={affiliateAddress} placeholder="Enter affiliate address" />
+                        </div>
+                        <div class="affiliate-input">
+                            <label for="affiliateFee">Affiliate Fee (bps):</label>
+                            <input type="number" id="affiliateFee" bind:value={affiliateFeeBps} placeholder="Enter fee in bps" />
+                        </div>
+                    </div>
+                </div>
+            {/if}
+
+            <!-- estimate swap button -->
+            <button  on:click={fetchQuote}>
+              Get Quote
+              {#if isLoading}
+                <span class="loader"></span>
+              {/if}
+            </button>
+        
+            <!-- swap result -->
+            {#if expectedAmountOutStreaming}
+              <div class="expand" in:slide={{ duration: 1000 }} out:slide={{ duration: 1000 }}>
+              
+                {#if showLogos}
+              <!--Streaming Swap-->
+              <div>
+                <div style="display: flex; justify-content: center; align-items: center; margin: 10px 0;"> <b>THORChain Streaming Swap</b> </div>
+                <div style="display: flex; justify-content: center; align-items: center; margin: 10px 0;">
+                  <img class="asset-logo" src="{assetLogos[from_asset]}" alt="From Asset Logo" />
+                  <span class="green-text-bold">{amount} {from_asset.split('.')[1].split('-')[0]}</span>
+                  <span style="font-size: 20px; margin: 0 10px;">→</span>
+                  <img class="asset-logo" src="{assetLogos[to_asset]}" alt="To Asset Logo" />
+                  <span class="green-text-bold">{expectedAmountOutStreaming.toFixed(4)} {to_asset.split('.')[1].split('-')[0]}</span>
+                </div>
+                {#if showEstimatedTime}
+                  <div class="result-content" style="display: flex; justify-content: center; align-items: center; margin: 10px 0;">Estimated Time: {streaming_total_swap_seconds}</div>          
+                {/if}
+
+                {#if showFeeBreakdown}
+                  <div class="fee-breakdown">
+                    <div class="fee-item">
+                      <span>Outbound Fee:</span>
+                      <span>{outboundFee.toFixed(8)} {feeAsset} (${Math.floor(outboundFeeUSD)})</span>
+                    </div>
+                    <div class="fee-item">
+                      <span>Liquidity Fee:</span>
+                      <span>{liquidityFee.toFixed(8)} {feeAsset} (${Math.floor(liquidityFeeUSD)})</span>
+                    </div>
+                    <div class="fee-item">
+                      <span>Total Fee:</span>
+                      <span>{totalFee.toFixed(8)} {feeAsset} (${Math.floor(totalFeeUSD)})</span>
+                    </div>
+                    <div class="fee-item">
+                      <span>Total Fee:</span>
+                      <span>{(totalFeeBps / 100).toFixed(1)}%</span>
+                    </div>
+                  </div>
+                {/if}
+
+                {#if enableAffiliateSettings && affiliateEarningsUSD > 0}
+                    <div class="result-content" style="display: flex; justify-content: center; align-items: center; margin: 10px 0;">
+                        Affiliate Earnings: ${affiliateEarningsUSD.toFixed(2)}
+                    </div>
+                {/if}
+
+                {#if showInboundDelay}
+                  <div class="delay-info">
+                    <div class="delay-item">
+                      <span>Inbound Confirmation Blocks:</span>
+                      <span>{inboundConfirmationBlocks}</span>
+                    </div>
+                    <div class="delay-item">
+                      <span>Inbound Confirmation Time:</span>
+                      <span>{formatTime(inboundConfirmationSeconds)}</span>
+                    </div>
+                  </div>
+                {/if}
+
+                {#if showOutboundDelay}
+                  <div class="delay-info">
+                    <div class="delay-item">
+                      <span>Outbound Delay Blocks:</span>
+                      <span>{outboundDelayBlocks}</span>
+                    </div>
+                    <div class="delay-item">
+                      <span>Outbound Delay Time:</span>
+                      <span>{formatTime(outboundDelaySeconds)}</span>
+                    </div>
+                  </div>
+                {/if}
+
+                {#if showStreamingDetails}
+                  <div class="streaming-details">
+                    <div class="streaming-item">
+                      <span>Max Streaming Quantity:</span>
+                      <span>{maxStreamingQuantity}</span>
+                    </div>
+                    <div class="streaming-item">
+                      <span>Streaming Swap Blocks:</span>
+                      <span>{streamingSwapBlocks}</span>
+                    </div>
+                    <div class="streaming-item">
+                      <span>Streaming Swap Time:</span>
+                      <span>{formatTime(streamingSwapSeconds)}</span>
+                    </div>
+                  </div>
+                {/if}
+              </div>
+              <!--End Streaming Swap-->
+        
+                {/if}
+              </div>
+            {/if}
+          </div>
+        </div>
+    </div>
