@@ -1,0 +1,23 @@
+:root {
+    --header-background: #000000; /* Pure black */
+}
+
+/* Add support for dark mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --header-background: #000000; /* Keep it black for dark mode */
+    }
+}
+
+/* Add padding for iOS status bar */
+@supports (-webkit-touch-callout: none) {
+    .header {
+        padding-top: env(safe-area-inset-top);
+        background-color: var(--header-background);
+    }
+
+    /* Force dark mode for iOS status bar area */
+    body {
+        background-color: var(--header-background);
+    }
+} 
