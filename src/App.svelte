@@ -29,6 +29,7 @@
   import Earnings from "./lib/Earnings.svelte";
   import { writable } from 'svelte/store';
   import WhaleWatching from "./lib/WhaleWatching.svelte";
+  import Growth from "./lib/Growth.svelte";
   
   let selectedApp = null;
   let addressParam = writable('');
@@ -40,12 +41,13 @@
     { name: "Bond Tracker", component: BondTracker, icon: "🔗", path: "bond", description: "Monitor your THORChain node rewards" },
     { name: "Voting", component: Voting, icon: "🗳️", path: "voting", description: "Check THORChain's active mimir votes" },
     { name: "Earnings", component: Earnings, icon: "💰", path: "earnings", description: "Check the THORChain protocol's earnings" },
+    { name: "Growth", component: Growth, icon: "🌱", path: "growth", description: "Track THORChain's growth metrics" },
     { name: "Constants and Mimirs", component: Constants, icon: "📚", path: "constants", description: "View THORChain's network parameters and settings" },
     { name: "Incentive Pendulum", component: IncentivePendulum, icon: "⚖️", path: "pendulum", description: "Check THORChain's incentive pendulum balance" },
     { name: "Supply Tracker", component: Supply, icon: "🔥", path: "supply", description: "Track RUNE supply and burned tokens" },
     { name: "Price Checker", component: PriceChecker, icon: "🏷️", path: "prices", description: "Check pool prices and compare prices of similar assets" },
     { name: "Vaults", component: Vaults, icon: "🔒", path: "vaults", description: "Inspect THORChain's native asset vaults" },
-    { name: "Whale Watching", component: WhaleWatching, icon: "🐋", path: "whales", description: "Monitor THORChain's largest swaps in the last week" },
+  //  { name: "Whale Watching", component: WhaleWatching, icon: "🐋", path: "whales", description: "Monitor THORChain's largest swaps in the last week" },
     { name: "Trade Assets", component: TradeAssets, icon: "💸", path: "trade", description: "Monitor THORChain Trade Asset adoption" },
     { name: "Transaction Status", component: TxStatus, icon: "🔍", path: "tx", description: "Check THORChain Transaction status" },
     { name: "Liquidity Providers", component: LiquidityProviders, icon: "👥", path: "lp", description: "Check liquidity providers and LP details for THORChain pools" },
