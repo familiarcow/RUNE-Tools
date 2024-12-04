@@ -115,21 +115,21 @@
           mode: 'index'
         },
         animation: {
-          duration: 750,
-          easing: 'easeOutQuart',
-          animations: {
-            y: {
-              duration: 750,
-              easing: 'easeOutQuart',
-              from: (ctx) => {
-                if (ctx.type === 'data') {
-                  const prevIndex = ctx.dataIndex - 1;
-                  if (prevIndex >= 0) {
-                    return ctx.dataset.data[prevIndex];
-                  }
-                }
-                return ctx.dataset.data[ctx.dataIndex];
-              }
+          duration: 400,
+          easing: 'easeOutExpo',
+          x: {
+            duration: 400,
+            easing: 'easeOutExpo'
+          },
+          y: {
+            duration: 0
+          }
+        },
+        transitions: {
+          active: {
+            animation: {
+              duration: 400,
+              easing: 'easeOutExpo'
             }
           }
         },
@@ -319,21 +319,21 @@
           mode: 'index'
         },
         animation: {
-          duration: 750,
-          easing: 'easeOutQuart',
-          animations: {
-            y: {
-              duration: 750,
-              easing: 'easeOutQuart',
-              from: (ctx) => {
-                if (ctx.type === 'data') {
-                  const prevIndex = ctx.dataIndex - 1;
-                  if (prevIndex >= 0) {
-                    return ctx.dataset.data[prevIndex];
-                  }
-                }
-                return ctx.dataset.data[ctx.dataIndex];
-              }
+          duration: 400,
+          easing: 'easeOutExpo',
+          x: {
+            duration: 400,
+            easing: 'easeOutExpo'
+          },
+          y: {
+            duration: 0
+          }
+        },
+        transitions: {
+          active: {
+            animation: {
+              duration: 400,
+              easing: 'easeOutExpo'
             }
           }
         },
