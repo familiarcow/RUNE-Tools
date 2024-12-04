@@ -220,6 +220,15 @@
     const labels = priceHistory.map(entry => entry.timestamp);
     const prices = priceHistory.map(entry => entry.price);
 
+    // Check if there's a price change
+    const hasChange = Math.abs(latestChange.absolute) >= 0.000001;
+
+    // Update animation configuration based on price change
+    chartInstance.options.animation.y = {
+      duration: hasChange ? 400 : 0,
+      easing: 'easeOutExpo'
+    };
+
     chartInstance.data.labels = labels;
     chartInstance.data.datasets[0].data = prices;
     
@@ -418,6 +427,15 @@
     const labels = btcPriceHistory.map(entry => entry.timestamp);
     const prices = btcPriceHistory.map(entry => entry.price);
 
+    // Check if there's a price change
+    const hasChange = Math.abs(btcLatestChange.absolute) >= 0.01;
+
+    // Update animation configuration based on price change
+    btcChartInstance.options.animation.y = {
+      duration: hasChange ? 400 : 0,
+      easing: 'easeOutExpo'
+    };
+
     btcChartInstance.data.labels = labels;
     btcChartInstance.data.datasets[0].data = prices;
     
@@ -530,44 +548,41 @@
     <canvas bind:this={chartCanvas}></canvas>
   </div>
 
-  <div class="pool-charts">
-    <div class="pool-chart">
-      <div class="price-display">
-        <div class="price">
-          <img src="/assets/coins/bitcoin-btc-logo.svg" alt="BTC" class="btc-icon" />
-          <span class="price-value btc-price">${$tweenedBtcPrice.toFixed(2)}</span>
-          {#if showBtcLatestChange}
-            <span 
-              class="change-notification" 
-              data-change-type={
-                Math.abs(btcLatestChange.absolute) < 0.01 ? 'neutral' :
-                btcLatestChange.absolute > 0 ? 'positive' : 'negative'
-              }
-              in:fly={{ y: 10, duration: 400 }}
-              out:fly={{ y: -10, duration: 400 }}
-            >
-              <span class="change-bubble">
-                {#if Math.abs(btcLatestChange.absolute) < 0.01}
-                  -
-                {:else}
-                  <span class="value">
-                    {btcLatestChange.absolute > 0 ? '+' : '-'}
-                    ${Math.abs(btcLatestChange.absolute).toFixed(2)}
-                  </span>
-                  <span class="percent">
-                    ({btcLatestChange.absolute > 0 ? '+' : '-'}
-                    {Math.abs(btcLatestChange.percentage).toFixed(2)}%)
-                  </span>
-                {/if}
+  <div class="price-display">
+    <div class="price">
+      <img src="/assets/coins/bitcoin-btc-logo.svg" alt="BTC" class="btc-icon" />
+      <span class="price-value btc-price">${$tweenedBtcPrice.toFixed(2)}</span>
+      {#if showBtcLatestChange}
+        <span 
+          class="change-notification" 
+          data-change-type={
+            Math.abs(btcLatestChange.absolute) < 0.01 ? 'neutral' :
+            btcLatestChange.absolute > 0 ? 'positive' : 'negative'
+          }
+          in:fly={{ y: 10, duration: 400 }}
+          out:fly={{ y: -10, duration: 400 }}
+        >
+          <span class="change-bubble">
+            {#if Math.abs(btcLatestChange.absolute) < 0.01}
+              -
+            {:else}
+              <span class="value">
+                {btcLatestChange.absolute > 0 ? '+' : '-'}
+                ${Math.abs(btcLatestChange.absolute).toFixed(2)}
               </span>
-            </span>
-          {/if}
-        </div>
-      </div>
-      <div class="btc-chart-container">
-        <canvas bind:this={btcChartCanvas}></canvas>
-      </div>
+              <span class="percent">
+                ({btcLatestChange.absolute > 0 ? '+' : '-'}
+                {Math.abs(btcLatestChange.percentage).toFixed(2)}%)
+              </span>
+            {/if}
+          </span>
+        </span>
+      {/if}
     </div>
+  </div>
+
+  <div class="chart-container">
+    <canvas bind:this={btcChartCanvas}></canvas>
   </div>
 </div>
 
@@ -644,6 +659,7 @@
     border-radius: 8px;
     padding: 10px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
   }
 
   .chart-container:hover {
@@ -665,7 +681,7 @@
       gap: 8px;
     }
 
-    .rune-icon {
+    .rune-icon, .btc-icon {
       width: 24px;
       height: 24px;
     }
@@ -673,6 +689,15 @@
     .chart-container {
       height: 250px;
       padding: 15px;
+    }
+
+    .change-notification {
+      left: calc(100% + 10px);
+    }
+
+    .change-bubble {
+      padding: 4px 12px;
+      font-size: 0.8em;
     }
   }
 
@@ -689,14 +714,14 @@
 
   .change-notification {
     position: absolute;
-    left: calc(100% + 40px);
-    top: 50%;
-    transform: translateY(-50%);
+    left: 50%;
+    top: calc(100% + 50px);
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
     height: auto;
     white-space: nowrap;
-    z-index: 10;
+    z-index: 100;
   }
 
   .change-bubble {
@@ -778,28 +803,28 @@
     }
   }
 
-  .pool-charts {
-    margin-top: 20px;
-    display: grid;
-    gap: 20px;
+  /* Add a margin-top to create space between RUNE chart and BTC price */
+  .chart-container + .price-display {
+    margin-top: 40px;  /* Adjust this value to get the desired spacing */
   }
 
-  .pool-chart h3 {
-    color: #F7931A;
-    margin: 0 0 10px 0;
-    font-size: 18px;
+  @media (max-width: 600px) {
+    .chart-container + .price-display {
+      margin-top: 30px;  /* Slightly less spacing on mobile */
+    }
   }
 
-  .pool-chart .btc-chart-container {
-    height: 200px;
-    background: #2c2c2c;
-    border-radius: 8px;
-    padding: 10px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
+  /* Update mobile styles */
+  @media (max-width: 600px) {
+    .change-notification {
+      left: 50%;  /* Keep centered on mobile */
+      top: calc(100% + 40px);  /* Changed from 10px to 40px */
+      transform: translateX(-50%);
+    }
 
-  .pool-chart .btc-chart-container:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    /* Remove this */
+    /* .price-display {
+      margin-bottom: 60px;
+    } */
   }
 </style>
