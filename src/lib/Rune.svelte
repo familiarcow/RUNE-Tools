@@ -19,6 +19,9 @@
   let btcChartInstance;
   let btcChartCanvas;
 
+  let thorNodePriceHistory = [];
+  let thorNodeBTCPriceHistory = [];
+
   // Add tweened value for smooth price updates
   const tweenedPrice = tweened(0, {
     duration: 1000,
@@ -36,7 +39,6 @@
         const priceChange = newPrice - runePrice;
         const percentChange = (priceChange / runePrice) * 100;
         
-        // Only show change notification if there's a meaningful change
         if (Math.abs(priceChange) >= 0.0000001) {
           latestChange = {
             absolute: priceChange,
@@ -49,44 +51,17 @@
         }
       }
       
-      // Update current price with tweening
       tweenedPrice.set(newPrice);
       runePrice = newPrice;
       
-      // If this is the first fetch, create initial points
-      if (priceHistory.length === 0) {
-        const now = new Date();
-        const previousTime = new Date(now.getTime() - 300000); // 5 minutes ago
-        priceHistory = [
-          { price: newPrice, timestamp: previousTime },
-          { price: newPrice, timestamp: now }
-        ];
-      } else {
-        // Update or add price point based on 5-minute intervals
-        const timestamp = new Date();
-        const lastPoint = priceHistory[priceHistory.length - 1];
-        
-        // If we're in the same 5-minute interval as the last point, update it
-        if (lastPoint && 
-            Math.floor(lastPoint.timestamp.getMinutes() / 5) === Math.floor(timestamp.getMinutes() / 5) &&
-            lastPoint.timestamp.getHours() === timestamp.getHours()) {
-          priceHistory = priceHistory.map((point, index) => {
-            if (index === priceHistory.length - 1) {
-              return { ...point, price: newPrice };
-            }
-            return point;
-          });
-        } else {
-          // If it's a new 5-minute interval, add a new point and remove old points
-          priceHistory = [...priceHistory, { price: newPrice, timestamp }];
-          
-          // Keep only the last hour of data (12 five-minute intervals)
-          const oneHourAgo = new Date(timestamp.getTime() - 3600000);
-          priceHistory = priceHistory.filter(point => point.timestamp > oneHourAgo);
-        }
-      }
+      const timestamp = new Date();
+      thorNodePriceHistory = [...thorNodePriceHistory, { price: newPrice, timestamp }];
       
-      // Update chart if it exists
+      // Keep only the last hour of data points (600 points at 6-second intervals)
+      const oneHourAgo = new Date(timestamp.getTime() - 3600000);
+      thorNodePriceHistory = thorNodePriceHistory.filter(point => point.timestamp > oneHourAgo);
+      priceHistory = thorNodePriceHistory;
+      
       if (chartInstance) {
         updateChart();
       }
@@ -253,101 +228,23 @@
     return `${prefix}$${absValue} <span class="percent">(${prefix}${absPercent}%)</span>`;
   }
 
-  async function fetchInitialHistory() {
-    try {
-      // Get last hour of minute-by-minute data from CoinGecko
-      const response = await fetch(
-        'https://api.coingecko.com/api/v3/coins/thorchain/market_chart?vs_currency=usd&days=0.042&interval=minutely'
-      );
-      const data = await response.json();
-      
-      // Transform CoinGecko data to our format
-      // CoinGecko returns [timestamp, price] pairs
-      const initialHistory = data.prices.map(([timestamp, price]) => ({
-        timestamp: new Date(timestamp),
-        price: price
-      }));
-
-      // Set our price history with this data
-      priceHistory = initialHistory;
-      
-      // Set initial price for delta calculations
-      if (initialHistory.length > 0) {
-        runePrice = initialHistory[initialHistory.length - 1].price;
-      }
-
-      return initialHistory;
-    } catch (err) {
-      console.error('Error fetching historical data:', err);
-      return null;
-    }
-  }
-
-  async function fetchInitialBTCHistory() {
-    try {
-      console.log('Fetching initial BTC history...');
-      const response = await fetch(
-        'https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=0.042&interval=minutely'
-      );
-      const data = await response.json();
-      
-      // Check if we got an error response
-      if (data.status?.error_code) {
-        console.log('CoinGecko API error:', data.status.error_message);
-        return null; // Return null to allow retry on next update
-      }
-
-      // Validate that we have the prices array
-      if (!data.prices || !Array.isArray(data.prices)) {
-        console.error('Invalid data format from CoinGecko');
-        return null;
-      }
-
-      const initialHistory = data.prices.map(([timestamp, price]) => ({
-        timestamp: new Date(timestamp),
-        price: price
-      }));
-
-      console.log('Initial BTC history loaded:', initialHistory.length, 'points');
-      btcPriceHistory = initialHistory;
-      return initialHistory;
-    } catch (err) {
-      console.error('Error fetching BTC historical data:', err);
-      return null;
-    }
-  }
-
   async function fetchPoolsData() {
     try {
       const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/pools');
       const data = await response.json();
       poolsData = data;
 
-      // Update BTC price from pools data
       const btcPool = data.find(pool => pool.asset === 'BTC.BTC');
       if (btcPool) {
         const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
         const timestamp = new Date();
         
-        // Update or add BTC price point based on 5-minute intervals
-        const lastPoint = btcPriceHistory[btcPriceHistory.length - 1];
+        thorNodeBTCPriceHistory = [...thorNodeBTCPriceHistory, { price: btcPrice, timestamp }];
         
-        if (lastPoint && 
-            Math.floor(lastPoint.timestamp.getMinutes() / 5) === Math.floor(timestamp.getMinutes() / 5) &&
-            lastPoint.timestamp.getHours() === timestamp.getHours()) {
-          btcPriceHistory = btcPriceHistory.map((point, index) => {
-            if (index === btcPriceHistory.length - 1) {
-              return { ...point, price: btcPrice };
-            }
-            return point;
-          });
-        } else {
-          btcPriceHistory = [...btcPriceHistory, { price: btcPrice, timestamp }];
-          
-          // Keep only the last hour of data
-          const oneHourAgo = new Date(timestamp.getTime() - 3600000);
-          btcPriceHistory = btcPriceHistory.filter(point => point.timestamp > oneHourAgo);
-        }
+        // Keep only the last hour of data
+        const oneHourAgo = new Date(timestamp.getTime() - 3600000);
+        thorNodeBTCPriceHistory = thorNodeBTCPriceHistory.filter(point => point.timestamp > oneHourAgo);
+        btcPriceHistory = thorNodeBTCPriceHistory;
         
         updateBTCChart();
       }
@@ -502,41 +399,46 @@
   onMount(async () => {
     try {
       console.log('Starting initialization...');
-      
-      // First try to get historical data for both RUNE and BTC
-      const [runeHistory, btcHistory] = await Promise.all([
-        fetchInitialHistory(),
-        fetchInitialBTCHistory()
+      isLoading = false;
+
+      // Get initial price data
+      await Promise.all([
+        fetchRunePrice(),
+        fetchPoolsData()
       ]);
+
+      // Create initial data points for RUNE
+      const currentTime = new Date();
+      const sixSecondsAgo = new Date(currentTime - 6000);
+      const twelveSecondsAgo = new Date(currentTime - 12000);
       
-      if (!runeHistory) {
-        await fetchRunePrice();
-      } else {
-        const latestPrice = runeHistory[runeHistory.length - 1].price;
-        tweenedPrice.set(latestPrice);
-        runePrice = latestPrice;
-        isLoading = false;
+      priceHistory = [
+        { price: runePrice, timestamp: twelveSecondsAgo },
+        { price: runePrice, timestamp: sixSecondsAgo },
+        { price: runePrice, timestamp: currentTime }
+      ];
+      thorNodePriceHistory = [...priceHistory];
+
+      // Create initial data points for BTC
+      const btcPool = poolsData.find(pool => pool.asset === 'BTC.BTC');
+      if (btcPool) {
+        const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
+        btcPriceHistory = [
+          { price: btcPrice, timestamp: twelveSecondsAgo },
+          { price: btcPrice, timestamp: sixSecondsAgo },
+          { price: btcPrice, timestamp: currentTime }
+        ];
+        thorNodeBTCPriceHistory = [...btcPriceHistory];
       }
 
-      // Initialize BTC chart if we have data, otherwise it will be initialized after successful retry
-      if (btcHistory) {
-        btcPriceHistory = btcHistory;
-        initBTCChart();
-      }
       initChart();
+      initBTCChart();
       
       // Set up interval for updates
       const interval = setInterval(async () => {
         await Promise.all([
           fetchRunePrice(),
-          fetchPoolsData(),
-          // If we don't have BTC history yet, try to fetch it again
-          !btcPriceHistory.length ? fetchInitialBTCHistory().then(history => {
-            if (history) {
-              btcPriceHistory = history;
-              initBTCChart();
-            }
-          }) : Promise.resolve()
+          fetchPoolsData()
         ]);
       }, 6000);
 
