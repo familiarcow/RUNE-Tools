@@ -631,7 +631,7 @@
   .rune-container {
     background: #1a1a1a;
     border-radius: 12px;
-    padding: 20px;
+    padding: 15px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 800px;
@@ -641,13 +641,13 @@
   .price-display {
     background: #2c2c2c;
     border-radius: 8px;
-    padding: 15px 20px;
+    padding: 10px 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     position: relative;
-    margin: 0 auto 20px;
+    margin: 0 auto 15px;
     width: fit-content;
   }
 
@@ -695,7 +695,7 @@
   }
 
   .chart-container {
-    height: 300px;
+    height: 200px;
     background: #2c2c2c;
     border-radius: 8px;
     padding: 10px;
@@ -714,7 +714,7 @@
     }
 
     .price-display {
-      padding: 12px 15px;
+      padding: 10px 15px;
     }
 
     .price, .loading, .error {
@@ -728,7 +728,7 @@
     }
 
     .chart-container {
-      height: 250px;
+      height: 200px;
       padding: 15px;
     }
 
@@ -769,9 +769,11 @@
     padding: 6px 16px;
     font-size: 0.9em;
     font-weight: bold;
-    background-color: #2c2c2c;
+    background-color: rgba(44, 44, 44, 0);
     border-radius: 12px;
     white-space: nowrap;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 
   .price-value + .change-notification .change-bubble {
@@ -790,10 +792,10 @@
 
   @keyframes glowBtc {
     from {
-      box-shadow: 0 0 5px #F7931A, 0 0 10px #F7931A;
+      box-shadow: 0 0 5px rgba(247, 147, 26, 0.5), 0 0 10px rgba(247, 147, 26, 0.3);
     }
     to {
-      box-shadow: 0 0 10px #F7931A, 0 0 20px #F7931A;
+      box-shadow: 0 0 10px rgba(247, 147, 26, 0.5), 0 0 20px rgba(247, 147, 26, 0.3);
     }
   }
 
@@ -819,39 +821,39 @@
 
   @keyframes glow {
     from {
-      box-shadow: 0 0 5px #4A90E2, 0 0 10px #4A90E2;
+      box-shadow: 0 0 5px rgba(74, 144, 226, 0.5), 0 0 10px rgba(74, 144, 226, 0.3);
     }
     to {
-      box-shadow: 0 0 10px #4A90E2, 0 0 20px #4A90E2;
+      box-shadow: 0 0 10px rgba(74, 144, 226, 0.5), 0 0 20px rgba(74, 144, 226, 0.3);
     }
   }
 
   @keyframes glowRed {
     from {
-      box-shadow: 0 0 5px #FF6B6B, 0 0 10px #FF6B6B;
+      box-shadow: 0 0 5px rgba(255, 107, 107, 0.5), 0 0 10px rgba(255, 107, 107, 0.3);
     }
     to {
-      box-shadow: 0 0 10px #FF6B6B, 0 0 20px #FF6B6B;
+      box-shadow: 0 0 10px rgba(255, 107, 107, 0.5), 0 0 20px rgba(255, 107, 107, 0.3);
     }
   }
 
   @keyframes glowNeutral {
     from {
-      box-shadow: 0 0 5px #888, 0 0 10px #888;
+      box-shadow: 0 0 5px rgba(136, 136, 136, 0.5), 0 0 10px rgba(136, 136, 136, 0.3);
     }
     to {
-      box-shadow: 0 0 10px #888, 0 0 20px #888;
+      box-shadow: 0 0 10px rgba(136, 136, 136, 0.5), 0 0 20px rgba(136, 136, 136, 0.3);
     }
   }
 
   /* Add a margin-top to create space between RUNE chart and BTC price */
   .chart-container + .price-display {
-    margin-top: 40px;  /* Adjust this value to get the desired spacing */
+    margin-top: 20px;  /* Adjust this value to get the desired spacing */
   }
 
   @media (max-width: 600px) {
     .chart-container + .price-display {
-      margin-top: 30px;  /* Slightly less spacing on mobile */
+      margin-top: 15px;  /* Slightly less spacing on mobile */
     }
   }
 
@@ -859,7 +861,7 @@
   @media (max-width: 600px) {
     .change-notification {
       left: 50%;  /* Keep centered on mobile */
-      top: calc(100% + 40px);  /* Changed from 10px to 40px */
+      top: calc(100% + 30px);  /* Changed from 10px to 40px */
       transform: translateX(-50%);
     }
 
@@ -874,7 +876,7 @@
     align-items: center;
     width: 100%;
     position: relative;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
   }
 
   .rank-container {
@@ -911,11 +913,32 @@
 
   /* Add margin between BTC price and chart */
   .price-display + .chart-container {
-    margin-top: 20px;
+    margin-top: 15px;
   }
 
   @media (max-width: 600px) {
     .price-display + .chart-container {
+      margin-top: 15px;
+    }
+  }
+
+  /* Add responsive height adjustments */
+  @media (min-height: 800px) {
+    .chart-container {
+      height: 250px; /* Larger height for taller screens */
+    }
+  }
+
+  @media (max-height: 700px) {
+    .chart-container {
+      height: 180px; /* Even smaller for shorter screens */
+    }
+    
+    .price-display {
+      padding: 8px 20px;
+    }
+    
+    .chart-container + .price-display {
       margin-top: 15px;
     }
   }
