@@ -14,6 +14,11 @@
   let showLatestChange = false;
   let isChartReady = false;
 
+  let poolsData = [];
+  let btcPriceHistory = [];
+  let btcChartInstance;
+  let btcChartCanvas;
+
   // Add tweened value for smooth price updates
   const tweenedPrice = tweened(0, {
     duration: 1000,
@@ -22,19 +27,23 @@
 
   async function fetchRunePrice() {
     try {
+      isLoading = true;
       const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/network');
       const data = await response.json();
       const newPrice = Number(data.rune_price_in_tor) / 1e8;
       
+      // Update current price with tweening immediately
+      tweenedPrice.set(newPrice);
+      runePrice = newPrice;
+      
       // If this is the first fetch, create two initial points
       if (priceHistory.length === 0) {
         const now = new Date();
-        const previousTime = new Date(now.getTime() - 6000); // 6 seconds ago
+        const previousTime = new Date(now.getTime() - 6000);
         priceHistory = [
           { price: newPrice, timestamp: previousTime },
           { price: newPrice, timestamp: now }
         ];
-        console.log('Price history after initialization:', priceHistory);
       } else {
         // Calculate price change if we have a previous price
         if (runePrice !== null) {
@@ -57,10 +66,6 @@
         priceHistory = [...priceHistory, { price: newPrice, timestamp }];
         console.log('Price history after update:', priceHistory);
       }
-      
-      // Update current price with tweening
-      tweenedPrice.set(newPrice);
-      runePrice = newPrice;
       
       // Update chart if it exists
       if (chartInstance) {
@@ -96,7 +101,7 @@
           backgroundColor: 'rgba(74, 144, 226, 0.05)',
           borderWidth: 3,
           fill: true,
-          tension: 0.2,
+          tension: 0.1,
           pointRadius: 0,
           pointHoverRadius: 0,
         }]
@@ -109,26 +114,21 @@
           mode: 'index'
         },
         animation: {
-          duration: 600,
+          duration: 750,
           easing: 'easeOutQuart',
           animations: {
             y: {
-              duration: 600,
+              duration: 750,
               easing: 'easeOutQuart',
               from: (ctx) => {
                 if (ctx.type === 'data') {
-                  if (ctx.mode === 'default' && !ctx.dropped) {
-                    ctx.dropped = true;
-                    const prevValue = ctx.dataset.data[ctx.dataIndex - 1];
-                    // For first point, use the same value
-                    return prevValue ?? ctx.dataset.data[ctx.dataIndex];
+                  const prevIndex = ctx.dataIndex - 1;
+                  if (prevIndex >= 0) {
+                    return ctx.dataset.data[prevIndex];
                   }
                 }
-                return ctx.chart.scales.y.getPixelForValue(ctx.dataset.data[ctx.dataIndex]);
+                return ctx.dataset.data[ctx.dataIndex];
               }
-            },
-            x: {
-              duration: 0  // Instant x-axis update for clearer movement
             }
           }
         },
@@ -222,11 +222,7 @@
     chartInstance.data.labels = labels;
     chartInstance.data.datasets[0].data = prices;
     
-    // Update with directional animation
-    chartInstance.update({
-      duration: 600,
-      easing: 'easeOutQuart'
-    });
+    chartInstance.update('active');
   }
 
   // Helper function to format the change display
@@ -270,29 +266,243 @@
     }
   }
 
+  async function fetchInitialBTCHistory() {
+    try {
+      console.log('Fetching initial BTC history...');
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=0.042&interval=minutely'
+      );
+      const data = await response.json();
+      
+      // Check if we got an error response
+      if (data.status && data.status.error_code) {
+        console.error('CoinGecko error:', data.status.error_message);
+        return null; // Return null to trigger retry on next update
+      }
+
+      const initialHistory = data.prices.map(([timestamp, price]) => ({
+        timestamp: new Date(timestamp),
+        price: price
+      }));
+
+      console.log('Initial BTC history:', initialHistory);
+      btcPriceHistory = initialHistory;
+      return initialHistory;
+    } catch (err) {
+      console.error('Error fetching BTC historical data:', err);
+      return null;
+    }
+  }
+
+  async function fetchPoolsData() {
+    try {
+      console.log('Fetching pools data...');
+      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/pools');
+      const data = await response.json();
+      poolsData = data;
+
+      // Update BTC price from pools data
+      const btcPool = data.find(pool => pool.asset === 'BTC.BTC');
+      if (btcPool) {
+        const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
+        const timestamp = new Date();
+        console.log('New BTC price from pools:', btcPrice);
+        btcPriceHistory = [...btcPriceHistory, { price: btcPrice, timestamp }];
+        updateBTCChart();
+      } else {
+        console.log('BTC pool not found in pools data');
+      }
+    } catch (err) {
+      console.error('Error fetching pools data:', err);
+    }
+  }
+
+  function initBTCChart() {
+    console.log('Initializing BTC chart...', { btcChartCanvas, historyLength: btcPriceHistory.length });
+    if (!btcChartCanvas || btcPriceHistory.length < 2) {
+      console.log('Skipping BTC chart initialization - missing requirements');
+      return;
+    }
+    
+    const ctx = btcChartCanvas.getContext('2d');
+    if (btcChartInstance) {
+      btcChartInstance.destroy();
+    }
+    
+    const labels = btcPriceHistory.map(entry => entry.timestamp);
+    const prices = btcPriceHistory.map(entry => entry.price);
+    
+    btcChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: prices,
+          borderColor: '#F7931A', // Bitcoin orange
+          backgroundColor: 'rgba(247, 147, 26, 0.05)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.1,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        animation: {
+          duration: 750,
+          easing: 'easeOutQuart',
+          animations: {
+            y: {
+              duration: 750,
+              easing: 'easeOutQuart',
+              from: (ctx) => {
+                if (ctx.type === 'data') {
+                  const prevIndex = ctx.dataIndex - 1;
+                  if (prevIndex >= 0) {
+                    return ctx.dataset.data[prevIndex];
+                  }
+                }
+                return ctx.dataset.data[ctx.dataIndex];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            grid: {
+              display: false
+            },
+            ticks: {
+              maxTicksLimit: 4,
+              color: '#666',
+              font: {
+                size: 11
+              },
+              callback: function(value, index) {
+                const time = this.getLabelForValue(value);
+                if (!time) return '';
+                return new Date(time).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  second: '2-digit'
+                });
+              }
+            }
+          },
+          y: {
+            display: true,
+            position: 'right',
+            grid: {
+              display: false
+            },
+            ticks: {
+              maxTicksLimit: 5,
+              color: '#666',
+              font: {
+                size: 11
+              },
+              callback: function(value) {
+                return '$' + Number(value.toFixed(2)).toString();
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            enabled: true,
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(44, 44, 44, 0.9)',
+            titleColor: '#888',
+            bodyColor: '#F7931A',
+            borderColor: '#F7931A',
+            borderWidth: 1,
+            padding: 10,
+            displayColors: false,
+            callbacks: {
+              title: function(tooltipItems) {
+                const time = new Date(tooltipItems[0].label);
+                return time.toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                });
+              },
+              label: function(context) {
+                return '$' + Number(context.raw.toFixed(2)).toString();
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function updateBTCChart() {
+    if (!btcChartInstance) return;
+
+    const labels = btcPriceHistory.map(entry => entry.timestamp);
+    const prices = btcPriceHistory.map(entry => entry.price);
+
+    btcChartInstance.data.labels = labels;
+    btcChartInstance.data.datasets[0].data = prices;
+    
+    btcChartInstance.update('active');
+  }
+
   onMount(async () => {
     try {
-      // First try to get historical data
-      const history = await fetchInitialHistory();
+      console.log('Starting initialization...');
       
-      if (!history) {
-        // If historical data fails, fallback to our original two-point initialization
+      // First try to get historical data for both RUNE and BTC
+      const [runeHistory, btcHistory] = await Promise.all([
+        fetchInitialHistory(),
+        fetchInitialBTCHistory()
+      ]);
+      
+      if (!runeHistory) {
         await fetchRunePrice();
+      } else {
+        const latestPrice = runeHistory[runeHistory.length - 1].price;
+        tweenedPrice.set(latestPrice);
+        runePrice = latestPrice;
+        isLoading = false;
       }
-      
-      // Initialize chart
+
+      // Initialize both charts after we have data
+      if (btcHistory) {
+        btcPriceHistory = btcHistory;
+        initBTCChart();
+      }
       initChart();
       
-      // Set up interval for updates
-      const interval = setInterval(fetchRunePrice, 6000);
+      // Set up interval for updates - will retry failed BTC fetch
+      const interval = setInterval(async () => {
+        await Promise.all([
+          fetchRunePrice(),
+          fetchPoolsData()
+        ]);
+      }, 6000);
+
       return () => {
         clearInterval(interval);
-        if (chartInstance) {
-          chartInstance.destroy();
-        }
+        if (chartInstance) chartInstance.destroy();
+        if (btcChartInstance) btcChartInstance.destroy();
       };
     } catch (err) {
       console.error('Error during mount:', err);
+      error = err.message;
+      isLoading = false;
     }
   });
 </script>
@@ -345,6 +555,15 @@
 
   <div class="chart-container">
     <canvas bind:this={chartCanvas}></canvas>
+  </div>
+
+  <div class="pool-charts">
+    <div class="pool-chart">
+      <h3>BTC.BTC</h3>
+      <div class="btc-chart-container">
+        <canvas bind:this={btcChartCanvas}></canvas>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -523,5 +742,30 @@
     to {
       box-shadow: 0 0 10px #888, 0 0 20px #888;
     }
+  }
+
+  .pool-charts {
+    margin-top: 20px;
+    display: grid;
+    gap: 20px;
+  }
+
+  .pool-chart h3 {
+    color: #F7931A;
+    margin: 0 0 10px 0;
+    font-size: 18px;
+  }
+
+  .pool-chart .btc-chart-container {
+    height: 200px;
+    background: #2c2c2c;
+    border-radius: 8px;
+    padding: 10px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .pool-chart .btc-chart-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
   }
 </style>
