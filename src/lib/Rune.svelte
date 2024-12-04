@@ -27,44 +27,63 @@
 
   async function fetchRunePrice() {
     try {
-      isLoading = true;
       const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/network');
       const data = await response.json();
       const newPrice = Number(data.rune_price_in_tor) / 1e8;
       
-      // Update current price with tweening immediately
+      // Calculate price change if we have a previous price
+      if (runePrice !== null) {
+        const priceChange = newPrice - runePrice;
+        const percentChange = (priceChange / runePrice) * 100;
+        
+        // Only show change notification if there's a meaningful change
+        if (Math.abs(priceChange) >= 0.0000001) {
+          latestChange = {
+            absolute: priceChange,
+            percentage: percentChange
+          };
+          showLatestChange = true;
+          setTimeout(() => {
+            showLatestChange = false;
+          }, 3000);
+        }
+      }
+      
+      // Update current price with tweening
       tweenedPrice.set(newPrice);
       runePrice = newPrice;
       
-      // If this is the first fetch, create two initial points
+      // If this is the first fetch, create initial points
       if (priceHistory.length === 0) {
         const now = new Date();
-        const previousTime = new Date(now.getTime() - 6000);
+        const previousTime = new Date(now.getTime() - 300000); // 5 minutes ago
         priceHistory = [
           { price: newPrice, timestamp: previousTime },
           { price: newPrice, timestamp: now }
         ];
       } else {
-        // Calculate price change if we have a previous price
-        if (runePrice !== null) {
-          latestChange = newPrice - runePrice;
-          const percentChange = (latestChange / runePrice) * 100;
-          showLatestChange = true;
-          
-          latestChange = {
-            absolute: latestChange,
-            percentage: percentChange
-          };
-          
-          setTimeout(() => {
-            showLatestChange = false;
-          }, 3000);
-        }
-        
-        // Add new data point
+        // Update or add price point based on 5-minute intervals
         const timestamp = new Date();
-        priceHistory = [...priceHistory, { price: newPrice, timestamp }];
-        console.log('Price history after update:', priceHistory);
+        const lastPoint = priceHistory[priceHistory.length - 1];
+        
+        // If we're in the same 5-minute interval as the last point, update it
+        if (lastPoint && 
+            Math.floor(lastPoint.timestamp.getMinutes() / 5) === Math.floor(timestamp.getMinutes() / 5) &&
+            lastPoint.timestamp.getHours() === timestamp.getHours()) {
+          priceHistory = priceHistory.map((point, index) => {
+            if (index === priceHistory.length - 1) {
+              return { ...point, price: newPrice };
+            }
+            return point;
+          });
+        } else {
+          // If it's a new 5-minute interval, add a new point and remove old points
+          priceHistory = [...priceHistory, { price: newPrice, timestamp }];
+          
+          // Keep only the last hour of data (12 five-minute intervals)
+          const oneHourAgo = new Date(timestamp.getTime() - 3600000);
+          priceHistory = priceHistory.filter(point => point.timestamp > oneHourAgo);
+        }
       }
       
       // Update chart if it exists
@@ -72,11 +91,9 @@
         updateChart();
       }
       
-      isLoading = false;
     } catch (err) {
       console.error('Error fetching rune price:', err);
       error = err.message;
-      isLoading = false;
     }
   }
 
@@ -102,7 +119,12 @@
           borderWidth: 3,
           fill: true,
           tension: 0.1,
-          pointRadius: 0,
+          pointRadius: (ctx) => {
+            return ctx.dataIndex === ctx.dataset.data.length - 1 ? 4 : 0;
+          },
+          pointBackgroundColor: '#4A90E2',
+          pointBorderColor: '#2c2c2c',
+          pointBorderWidth: 2,
           pointHoverRadius: 0,
         }]
       },
@@ -296,7 +318,6 @@
 
   async function fetchPoolsData() {
     try {
-      console.log('Fetching pools data...');
       const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/pools');
       const data = await response.json();
       poolsData = data;
@@ -306,11 +327,28 @@
       if (btcPool) {
         const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
         const timestamp = new Date();
-        console.log('New BTC price from pools:', btcPrice);
-        btcPriceHistory = [...btcPriceHistory, { price: btcPrice, timestamp }];
+        
+        // Update or add BTC price point based on 5-minute intervals
+        const lastPoint = btcPriceHistory[btcPriceHistory.length - 1];
+        
+        if (lastPoint && 
+            Math.floor(lastPoint.timestamp.getMinutes() / 5) === Math.floor(timestamp.getMinutes() / 5) &&
+            lastPoint.timestamp.getHours() === timestamp.getHours()) {
+          btcPriceHistory = btcPriceHistory.map((point, index) => {
+            if (index === btcPriceHistory.length - 1) {
+              return { ...point, price: btcPrice };
+            }
+            return point;
+          });
+        } else {
+          btcPriceHistory = [...btcPriceHistory, { price: btcPrice, timestamp }];
+          
+          // Keep only the last hour of data
+          const oneHourAgo = new Date(timestamp.getTime() - 3600000);
+          btcPriceHistory = btcPriceHistory.filter(point => point.timestamp > oneHourAgo);
+        }
+        
         updateBTCChart();
-      } else {
-        console.log('BTC pool not found in pools data');
       }
     } catch (err) {
       console.error('Error fetching pools data:', err);
@@ -343,7 +381,12 @@
           borderWidth: 3,
           fill: true,
           tension: 0.1,
-          pointRadius: 0,
+          pointRadius: (ctx) => {
+            return ctx.dataIndex === ctx.dataset.data.length - 1 ? 4 : 0;
+          },
+          pointBackgroundColor: '#F7931A',
+          pointBorderColor: '#2c2c2c',
+          pointBorderWidth: 2,
           pointHoverRadius: 0,
         }]
       },
@@ -509,12 +552,7 @@
 
 <div class="rune-container">
   <div class="price-display">
-    {#if isLoading}
-      <div class="loading">
-        <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-        <span>Loading...</span>
-      </div>
-    {:else if error}
+    {#if error}
       <div class="error">
         <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
         <span>Error: {error}</span>
@@ -527,14 +565,14 @@
           <span 
             class="change-notification" 
             data-change-type={
-              Math.abs(latestChange.absolute) < 0.000001 ? 'neutral' :
+              Math.abs(latestChange.absolute) < 0.0000001 ? 'neutral' :
               latestChange.absolute > 0 ? 'positive' : 'negative'
             }
             in:fly={{ y: 10, duration: 400 }}
             out:fly={{ y: -10, duration: 400 }}
           >
             <span class="change-bubble">
-              {#if Math.abs(latestChange.absolute) < 0.000001}
+              {#if Math.abs(latestChange.absolute) < 0.0000001}
                 -
               {:else}
                 <span class="value">
