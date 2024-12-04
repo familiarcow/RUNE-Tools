@@ -22,10 +22,20 @@
   let thorNodePriceHistory = [];
   let thorNodeBTCPriceHistory = [];
 
+  let btcLatestChange = 0;
+  let showBtcLatestChange = false;
+  let lastBtcPrice = null;
+
   // Add tweened value for smooth price updates
   const tweenedPrice = tweened(0, {
     duration: 1000,
     easing: t => t * (2 - t) // Ease out quad
+  });
+
+  // Add another tweened value for BTC
+  const tweenedBtcPrice = tweened(0, {
+    duration: 1000,
+    easing: t => t * (2 - t)
   });
 
   async function fetchRunePrice() {
@@ -39,16 +49,15 @@
         const priceChange = newPrice - runePrice;
         const percentChange = (priceChange / runePrice) * 100;
         
-        if (Math.abs(priceChange) >= 0.0000001) {
-          latestChange = {
-            absolute: priceChange,
-            percentage: percentChange
-          };
-          showLatestChange = true;
-          setTimeout(() => {
-            showLatestChange = false;
-          }, 3000);
-        }
+        // Always show change notification, even for zero change
+        latestChange = {
+          absolute: priceChange,
+          percentage: percentChange
+        };
+        showLatestChange = true;
+        setTimeout(() => {
+          showLatestChange = false;
+        }, 3000);
       }
       
       tweenedPrice.set(newPrice);
@@ -237,8 +246,27 @@
       const btcPool = data.find(pool => pool.asset === 'BTC.BTC');
       if (btcPool) {
         const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
-        const timestamp = new Date();
         
+        // Calculate price change if we have a previous price
+        if (lastBtcPrice !== null) {
+          const priceChange = btcPrice - lastBtcPrice;
+          const percentChange = (priceChange / lastBtcPrice) * 100;
+          
+          // Always show change notification, even for zero change
+          btcLatestChange = {
+            absolute: priceChange,
+            percentage: percentChange
+          };
+          showBtcLatestChange = true;
+          setTimeout(() => {
+            showBtcLatestChange = false;
+          }, 3000);
+        }
+        
+        tweenedBtcPrice.set(btcPrice);
+        lastBtcPrice = btcPrice;
+        
+        const timestamp = new Date();
         thorNodeBTCPriceHistory = [...thorNodeBTCPriceHistory, { price: btcPrice, timestamp }];
         
         // Keep only the last hour of data
@@ -440,13 +468,15 @@
           fetchRunePrice(),
           fetchPoolsData()
         ]);
+        
+        // Reset both notifications after 3 seconds
+        setTimeout(() => {
+          showLatestChange = false;
+          showBtcLatestChange = false;
+        }, 3000);
       }, 6000);
 
-      return () => {
-        clearInterval(interval);
-        if (chartInstance) chartInstance.destroy();
-        if (btcChartInstance) btcChartInstance.destroy();
-      };
+      return () => clearInterval(interval);
     } catch (err) {
       console.error('Error during mount:', err);
       error = err.message;
@@ -470,14 +500,14 @@
           <span 
             class="change-notification" 
             data-change-type={
-              Math.abs(latestChange.absolute) < 0.0000001 ? 'neutral' :
+              Math.abs(latestChange.absolute) < 0.000001 ? 'neutral' :
               latestChange.absolute > 0 ? 'positive' : 'negative'
             }
             in:fly={{ y: 10, duration: 400 }}
             out:fly={{ y: -10, duration: 400 }}
           >
             <span class="change-bubble">
-              {#if Math.abs(latestChange.absolute) < 0.0000001}
+              {#if Math.abs(latestChange.absolute) < 0.000001}
                 -
               {:else}
                 <span class="value">
@@ -502,7 +532,38 @@
 
   <div class="pool-charts">
     <div class="pool-chart">
-      <h3>BTC.BTC</h3>
+      <div class="price-display">
+        <div class="price">
+          <img src="/assets/coins/bitcoin-btc-logo.svg" alt="BTC" class="btc-icon" />
+          <span class="price-value btc-price">${$tweenedBtcPrice.toFixed(2)}</span>
+          {#if showBtcLatestChange}
+            <span 
+              class="change-notification" 
+              data-change-type={
+                Math.abs(btcLatestChange.absolute) < 0.01 ? 'neutral' :
+                btcLatestChange.absolute > 0 ? 'positive' : 'negative'
+              }
+              in:fly={{ y: 10, duration: 400 }}
+              out:fly={{ y: -10, duration: 400 }}
+            >
+              <span class="change-bubble">
+                {#if Math.abs(btcLatestChange.absolute) < 0.01}
+                  -
+                {:else}
+                  <span class="value">
+                    {btcLatestChange.absolute > 0 ? '+' : '-'}
+                    ${Math.abs(btcLatestChange.absolute).toFixed(2)}
+                  </span>
+                  <span class="percent">
+                    ({btcLatestChange.absolute > 0 ? '+' : '-'}
+                    {Math.abs(btcLatestChange.percentage).toFixed(2)}%)
+                  </span>
+                {/if}
+              </span>
+            </span>
+          {/if}
+        </div>
+      </div>
       <div class="btc-chart-container">
         <canvas bind:this={btcChartCanvas}></canvas>
       </div>
@@ -525,11 +586,13 @@
     background: #2c2c2c;
     border-radius: 8px;
     padding: 15px 20px;
-    margin-bottom: 20px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     position: relative;
+    margin: 0 auto 20px;
+    width: fit-content;
   }
 
   .price-display:hover {
@@ -537,12 +600,19 @@
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
   }
 
-  .price, .loading, .error {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 24px;
-    font-weight: 600;
+  .btc-icon {
+    width: 28px;
+    height: 28px;
+    transition: transform 0.3s ease;
+  }
+
+  .price-display:hover .btc-icon {
+    transform: rotate(360deg);
+  }
+
+  .btc-price {
+    color: #F7931A;
+    text-shadow: 0 0 20px rgba(247, 147, 26, 0.3);
   }
 
   .rune-icon {
@@ -610,14 +680,16 @@
     position: relative;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
     font-size: 24px;
     font-weight: 600;
+    margin: 0 auto;
   }
 
   .change-notification {
     position: absolute;
-    left: calc(100% + 30px);
+    left: calc(100% + 40px);
     top: 50%;
     transform: translateY(-50%);
     display: flex;
@@ -632,12 +704,31 @@
     font-size: 0.9em;
     font-weight: bold;
     background-color: #2c2c2c;
-    color: #4A90E2;
-    border: 1px solid #4A90E2;
     border-radius: 12px;
     white-space: nowrap;
+  }
+
+  .price-value + .change-notification .change-bubble {
+    color: #4A90E2;
+    border: 1px solid #4A90E2;
     box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
     animation: glow 1s ease-in-out infinite alternate;
+  }
+
+  .btc-price + .change-notification .change-bubble {
+    color: #F7931A;
+    border: 1px solid #F7931A;
+    box-shadow: 0 0 10px rgba(247, 147, 26, 0.3);
+    animation: glowBtc 1s ease-in-out infinite alternate;
+  }
+
+  @keyframes glowBtc {
+    from {
+      box-shadow: 0 0 5px #F7931A, 0 0 10px #F7931A;
+    }
+    to {
+      box-shadow: 0 0 10px #F7931A, 0 0 20px #F7931A;
+    }
   }
 
   .change-notification[data-change-type="negative"] .change-bubble {
