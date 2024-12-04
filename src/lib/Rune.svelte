@@ -26,6 +26,9 @@
   let showBtcLatestChange = false;
   let lastBtcPrice = null;
 
+  let marketCapRank = null;
+  let isLoadingRank = true;
+
   // Add tweened value for smooth price updates
   const tweenedPrice = tweened(0, {
     duration: 1000,
@@ -37,6 +40,10 @@
     duration: 1000,
     easing: t => t * (2 - t)
   });
+
+  // Add refresh counter
+  let refreshCount = 0;
+  const REFRESH_THRESHOLD = 20;  // Changed from 10 to 20
 
   async function fetchRunePrice() {
     try {
@@ -442,15 +449,31 @@
     btcChartInstance.update('active');
   }
 
+  async function fetchMarketCapRank() {
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/coins/thorchain?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false');
+      const data = await response.json();
+      console.log('CoinGecko response:', data); // Debug log
+      marketCapRank = data.market_cap_rank;
+      console.log('Market cap rank:', marketCapRank); // Debug log
+      isLoadingRank = false;
+    } catch (err) {
+      console.error('Error fetching market cap rank:', err);
+      isLoadingRank = false;
+    }
+  }
+
   onMount(async () => {
     try {
       console.log('Starting initialization...');
-      isLoading = false;
-
-      // Get initial price data
+      isLoading = true;
+      isLoadingRank = true;
+      
+      // Initial fetch of all data
       await Promise.all([
         fetchRunePrice(),
-        fetchPoolsData()
+        fetchPoolsData(),
+        fetchMarketCapRank()
       ]);
 
       // Create initial data points for RUNE
@@ -480,21 +503,32 @@
       initChart();
       initBTCChart();
       
-      // Set up interval for updates
+      // Set up interval for price updates
       const interval = setInterval(async () => {
         await Promise.all([
           fetchRunePrice(),
           fetchPoolsData()
         ]);
         
-        // Reset both notifications after 3 seconds
+        // Increment refresh counter and check if we should fetch rank
+        refreshCount++;
+        if (refreshCount >= REFRESH_THRESHOLD) {
+          fetchMarketCapRank();
+          refreshCount = 0;  // Reset counter
+        }
+        
+        // Reset notifications
         setTimeout(() => {
           showLatestChange = false;
           showBtcLatestChange = false;
         }, 3000);
       }, 6000);
 
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        if (chartInstance) chartInstance.destroy();
+        if (btcChartInstance) btcChartInstance.destroy();
+      };
     } catch (err) {
       console.error('Error during mount:', err);
       error = err.message;
@@ -504,44 +538,51 @@
 </script>
 
 <div class="rune-container">
-  <div class="price-display">
-    {#if error}
-      <div class="error">
-        <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-        <span>Error: {error}</span>
-      </div>
-    {:else}
-      <div class="price">
-        <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-        <span class="price-value">${$tweenedPrice.toFixed(6)}</span>
-        {#if showLatestChange}
-          <span 
-            class="change-notification" 
-            data-change-type={
-              Math.abs(latestChange.absolute) < 0.000001 ? 'neutral' :
-              latestChange.absolute > 0 ? 'positive' : 'negative'
-            }
-            in:fly={{ y: 10, duration: 400 }}
-            out:fly={{ y: -10, duration: 400 }}
-          >
-            <span class="change-bubble">
-              {#if Math.abs(latestChange.absolute) < 0.000001}
-                -
-              {:else}
-                <span class="value">
-                  {latestChange.absolute > 0 ? '+' : '-'}
-                  ${Math.abs(latestChange.absolute).toFixed(6)}
-                </span>
-                <span class="percent">
-                  ({latestChange.absolute > 0 ? '+' : '-'}
-                  {Math.abs(latestChange.percentage).toFixed(2)}%)
-                </span>
-              {/if}
+  <div class="top-line">
+    <div class="rank-container">
+      {#if !isLoadingRank && marketCapRank}
+        <span class="rank-bubble">#{marketCapRank}</span>
+      {/if}
+    </div>
+    <div class="price-display">
+      {#if error}
+        <div class="error">
+          <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+          <span>Error: {error}</span>
+        </div>
+      {:else}
+        <div class="price">
+          <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+          <span class="price-value">${$tweenedPrice.toFixed(6)}</span>
+          {#if showLatestChange}
+            <span 
+              class="change-notification" 
+              data-change-type={
+                Math.abs(latestChange.absolute) < 0.000001 ? 'neutral' :
+                latestChange.absolute > 0 ? 'positive' : 'negative'
+              }
+              in:fly={{ y: 10, duration: 400 }}
+              out:fly={{ y: -10, duration: 400 }}
+            >
+              <span class="change-bubble">
+                {#if Math.abs(latestChange.absolute) < 0.000001}
+                  -
+                {:else}
+                  <span class="value">
+                    {latestChange.absolute > 0 ? '+' : '-'}
+                    ${Math.abs(latestChange.absolute).toFixed(6)}
+                  </span>
+                  <span class="percent">
+                    ({latestChange.absolute > 0 ? '+' : '-'}
+                    {Math.abs(latestChange.percentage).toFixed(2)}%)
+                  </span>
+                {/if}
+              </span>
             </span>
-          </span>
-        {/if}
-      </div>
-    {/if}
+          {/if}
+        </div>
+      {/if}
+    </div>
   </div>
 
   <div class="chart-container">
@@ -826,5 +867,56 @@
     /* .price-display {
       margin-bottom: 60px;
     } */
+  }
+
+  .top-line {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .rank-container {
+    position: absolute;
+    left: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .rank-bubble {
+    background: #2c2c2c;
+    color: #4A90E2;
+    border: 1px solid #4A90E2;
+    border-radius: 12px;
+    padding: 4px 12px;
+    font-size: 0.9em;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(74, 144, 226, 0.1);
+    min-width: 44px;
+    text-align: center;
+  }
+
+  .price-display {
+    margin: 0 auto;  /* This centers the price display */
+  }
+
+  @media (max-width: 600px) {
+    .rank-bubble {
+      font-size: 0.8em;
+      padding: 3px 8px;
+      min-width: 36px;
+    }
+  }
+
+  /* Add margin between BTC price and chart */
+  .price-display + .chart-container {
+    margin-top: 20px;
+  }
+
+  @media (max-width: 600px) {
+    .price-display + .chart-container {
+      margin-top: 15px;
+    }
   }
 </style>
