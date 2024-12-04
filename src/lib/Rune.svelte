@@ -119,12 +119,7 @@
           borderWidth: 3,
           fill: true,
           tension: 0.1,
-          pointRadius: (ctx) => {
-            return ctx.dataIndex === ctx.dataset.data.length - 1 ? 4 : 0;
-          },
-          pointBackgroundColor: '#4A90E2',
-          pointBorderColor: '#2c2c2c',
-          pointBorderWidth: 2,
+          pointRadius: 0,
           pointHoverRadius: 0,
         }]
       },
@@ -297,9 +292,15 @@
       const data = await response.json();
       
       // Check if we got an error response
-      if (data.status && data.status.error_code) {
-        console.error('CoinGecko error:', data.status.error_message);
-        return null; // Return null to trigger retry on next update
+      if (data.status?.error_code) {
+        console.log('CoinGecko API error:', data.status.error_message);
+        return null; // Return null to allow retry on next update
+      }
+
+      // Validate that we have the prices array
+      if (!data.prices || !Array.isArray(data.prices)) {
+        console.error('Invalid data format from CoinGecko');
+        return null;
       }
 
       const initialHistory = data.prices.map(([timestamp, price]) => ({
@@ -307,7 +308,7 @@
         price: price
       }));
 
-      console.log('Initial BTC history:', initialHistory);
+      console.log('Initial BTC history loaded:', initialHistory.length, 'points');
       btcPriceHistory = initialHistory;
       return initialHistory;
     } catch (err) {
@@ -381,12 +382,7 @@
           borderWidth: 3,
           fill: true,
           tension: 0.1,
-          pointRadius: (ctx) => {
-            return ctx.dataIndex === ctx.dataset.data.length - 1 ? 4 : 0;
-          },
-          pointBackgroundColor: '#F7931A',
-          pointBorderColor: '#2c2c2c',
-          pointBorderWidth: 2,
+          pointRadius: 0,
           pointHoverRadius: 0,
         }]
       },
@@ -522,18 +518,25 @@
         isLoading = false;
       }
 
-      // Initialize both charts after we have data
+      // Initialize BTC chart if we have data, otherwise it will be initialized after successful retry
       if (btcHistory) {
         btcPriceHistory = btcHistory;
         initBTCChart();
       }
       initChart();
       
-      // Set up interval for updates - will retry failed BTC fetch
+      // Set up interval for updates
       const interval = setInterval(async () => {
         await Promise.all([
           fetchRunePrice(),
-          fetchPoolsData()
+          fetchPoolsData(),
+          // If we don't have BTC history yet, try to fetch it again
+          !btcPriceHistory.length ? fetchInitialBTCHistory().then(history => {
+            if (history) {
+              btcPriceHistory = history;
+              initBTCChart();
+            }
+          }) : Promise.resolve()
         ]);
       }, 6000);
 
