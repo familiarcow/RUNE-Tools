@@ -47,7 +47,18 @@
 
   async function fetchRunePrice() {
     try {
-      const response = await fetch('http://thornode.thorchain.liquify.com/thorchain/network');
+      console.log('Fetching RUNE price...');
+      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/network', {
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       const newPrice = Number(data.rune_price_in_tor) / 1e8;
       
@@ -84,7 +95,8 @@
       
     } catch (err) {
       console.error('Error fetching rune price:', err);
-      error = err.message;
+      error = `Failed to fetch RUNE price: ${err.message}`;
+      throw err;
     }
   }
 
@@ -473,23 +485,29 @@
       console.log('Starting initialization...');
       isLoading = true;
       isLoadingRank = true;
+      error = null;
       
-      // Remove duplicate initialization block and simplify the flow
-      await Promise.all([
-        fetchRunePrice(),
-        fetchPoolsData(),
-        fetchMarketCapRank()
-      ]).catch(err => {
-        console.error('Initial data fetch failed:', err);
-        throw err;
-      });
-
-      // Only proceed if we have valid RUNE price
-      if (!runePrice) {
-        throw new Error('Failed to load initial RUNE price');
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          await Promise.all([
+            fetchRunePrice(),
+            fetchPoolsData(),
+            fetchMarketCapRank()
+          ]);
+          break;
+        } catch (err) {
+          retryCount++;
+          console.error(`Attempt ${retryCount} failed:`, err);
+          if (retryCount === maxRetries) {
+            throw new Error(`Failed after ${maxRetries} attempts: ${err.message}`);
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
-
-      // Create initial data points for RUNE
+      
       const currentTime = new Date();
       const sixSecondsAgo = new Date(currentTime - 6000);
       const twelveSecondsAgo = new Date(currentTime - 12000);
@@ -500,8 +518,7 @@
         { price: runePrice, timestamp: currentTime }
       ];
       thorNodePriceHistory = [...priceHistory];
-
-      // Create initial data points for BTC if available
+      
       const btcPool = poolsData.find(pool => pool.asset === 'BTC.BTC');
       if (btcPool) {
         const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
@@ -512,8 +529,7 @@
         ];
         thorNodeBTCPriceHistory = [...btcPriceHistory];
       }
-
-      // Initialize charts after ensuring we have data
+      
       await Promise.all([
         new Promise(resolve => setTimeout(() => {
           initChart();
@@ -527,7 +543,6 @@
 
       isLoading = false;
       
-      // Set up interval for price updates
       const interval = setInterval(async () => {
         try {
           await Promise.all([
@@ -543,7 +558,6 @@
           }, 3000);
         } catch (err) {
           console.error('Update interval error:', err);
-          // Don't set error state here to allow recovery
         }
       }, 6000);
 
@@ -554,9 +568,8 @@
       };
     } catch (err) {
       console.error('Error during mount:', err);
-      error = `Failed to initialize: ${err.message}`;
+      error = `Failed to initialize: ${err.message}. Please check your connection and refresh.`;
       isLoading = false;
-      runeError = error;
     }
   });
 </script>
