@@ -11,9 +11,10 @@
 
   let randomEmoji;
   let currentPage = 0;
+  let startX = 0;
   let startY = 0;
   let isDragging = false;
-  const totalPages = 2;
+  const totalPages = 3;
   let autoScrollTimer;
   let isUserInteracting = false;
 
@@ -29,7 +30,7 @@
           { text: " by " },
           { href: "https://x.com/familiarcow", text: "familiarcow" },
           { emoji: true },
-          { href: "https://forms.gle/145LjEVxa9ecSYqd9", text: "Feedback" }
+          { href: "https://x.com/RuneDotTools", text: "Follow on 𝕏" }
         ]
       }
     },
@@ -37,7 +38,14 @@
       content: {
         type: 'vultisig',
         href: "https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a",
-        text: "Secure your RUNE & register for Vultisig's airdrop campaign"
+        text: "Secure your RUNE & register for the Vultisig airdrop campaign"
+      }
+    },
+    {
+      content: {
+        type: 'feedback',
+        href: "https://forms.gle/145LjEVxa9ecSYqd9",
+        text: "Feedback"
       }
     }
   ];
@@ -71,6 +79,7 @@
   }
 
   function handleTouchStart(e) {
+    startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     isDragging = true;
     handleUserInteraction();
@@ -79,14 +88,30 @@
   function handleTouchMove(e) {
     if (!isDragging) return;
     
+    const currentX = e.touches[0].clientX;
     const currentY = e.touches[0].clientY;
-    const diff = startY - currentY;
+    const diffX = startX - currentX;
+    const diffY = startY - currentY;
     
-    if (Math.abs(diff) > 20) {
-      if (diff > 0) {
+    // If horizontal movement is greater than vertical, handle as horizontal swipe
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      if (Math.abs(diffX) > 20) {
+        if (diffX > 0) {
+          // Swipe left - next page
+          currentPage = (currentPage + 1) % totalPages;
+          isDragging = false;
+        } else {
+          // Swipe right - previous page
+          currentPage = currentPage === 0 ? totalPages - 1 : currentPage - 1;
+          isDragging = false;
+        }
+      }
+    } else if (Math.abs(diffY) > 20) {
+      // Handle vertical swipe as before
+      if (diffY > 0) {
         currentPage = (currentPage + 1) % totalPages;
         isDragging = false;
-      } else if (diff < 0) {
+      } else if (diffY < 0) {
         currentPage = currentPage === 0 ? totalPages - 1 : currentPage - 1;
         isDragging = false;
       }
@@ -143,13 +168,8 @@
       <div 
         class="page"
         in:slide={{ 
-          duration: 400, 
-          easing: x => x,  /* Linear easing */
-          axis: 'y'
-        }}
-        out:slide={{ 
-          duration: 400, 
-          easing: x => x,  /* Linear easing */
+          duration: 300,
+          easing: cubicInOut,
           axis: 'y'
         }}
       >
@@ -168,6 +188,16 @@
             {/each}
           </span>
         {:else if pages[currentPage].content.type === 'vultisig'}
+          <span>
+            <a 
+              href={pages[currentPage].content.href}
+              target="_blank" 
+              class="source-link"
+            >
+              {pages[currentPage].content.text}
+            </a>
+          </span>
+        {:else if pages[currentPage].content.type === 'feedback'}
           <span>
             <a 
               href={pages[currentPage].content.href}
@@ -207,7 +237,7 @@
     align-items: center;
     gap: 0.25rem;
     user-select: none;
-    touch-action: pan-y;
+    touch-action: pan-x pan-y;
     position: relative;
     min-height: 40px;
   }
@@ -230,6 +260,29 @@
     white-space: nowrap;
     overflow: hidden;
     color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Add media query for smaller screens */
+  @media (max-width: 600px) {
+    .page {
+      font-size: 0.8rem;  /* Smaller font size for mobile */
+    }
+    
+    /* Adjust container height for smaller text */
+    .page-container {
+      height: 20px;
+    }
+    
+    /* Adjust line height to match new container height */
+    .page {
+      line-height: 20px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .page {
+      font-size: 0.75rem;
+    }
   }
 
   /* Reset all link styles in footer */
