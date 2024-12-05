@@ -41,9 +41,9 @@
     easing: t => t * (2 - t)
   });
 
-  // Add refresh counter
-  let refreshCount = 0;
-  const REFRESH_THRESHOLD = 20;  // Changed from 10 to 20
+  // Add this new variable
+  let lastRankFetch = 0;
+  const RANK_FETCH_INTERVAL = 120000; // 2 minutes in milliseconds
 
   async function fetchRunePrice() {
     try {
@@ -450,16 +450,21 @@
   }
 
   async function fetchMarketCapRank() {
+    // Check if enough time has passed since last fetch
+    const now = Date.now();
+    if (now - lastRankFetch < RANK_FETCH_INTERVAL) {
+        return;
+    }
+    
     try {
-      const response = await fetch('https://api.coingecko.com/api/v3/coins/thorchain?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false');
-      const data = await response.json();
-      console.log('CoinGecko response:', data); // Debug log
-      marketCapRank = data.market_cap_rank;
-      console.log('Market cap rank:', marketCapRank); // Debug log
-      isLoadingRank = false;
+        const response = await fetch('https://api.coingecko.com/api/v3/coins/thorchain?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false');
+        const data = await response.json();
+        marketCapRank = data.market_cap_rank;
+        lastRankFetch = now;
+        isLoadingRank = false;
     } catch (err) {
-      console.error('Error fetching market cap rank:', err);
-      isLoadingRank = false;
+        console.error('Error fetching market cap rank:', err);
+        isLoadingRank = false;
     }
   }
 
@@ -510,12 +515,8 @@
           fetchPoolsData()
         ]);
         
-        // Increment refresh counter and check if we should fetch rank
-        refreshCount++;
-        if (refreshCount >= REFRESH_THRESHOLD) {
-          fetchMarketCapRank();
-          refreshCount = 0;  // Reset counter
-        }
+        // Fetch rank if needed
+        fetchMarketCapRank();
         
         // Reset notifications
         setTimeout(() => {
