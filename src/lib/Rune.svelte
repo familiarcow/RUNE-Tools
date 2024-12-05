@@ -47,7 +47,7 @@
 
   async function fetchRunePrice() {
     try {
-      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/network');
+      const response = await fetch('http://thornode.thorchain.liquify.com/thorchain/network');
       const data = await response.json();
       const newPrice = Number(data.rune_price_in_tor) / 1e8;
       
