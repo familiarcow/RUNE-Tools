@@ -50,13 +50,16 @@
       console.log('Fetching RUNE price...');
       const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/network', {
         mode: 'cors',
+        credentials: 'omit',
         headers: {
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Origin': window.location.origin
         }
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error('RUNE price fetch failed:', response.status, response.statusText);
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -94,7 +97,11 @@
       }
       
     } catch (err) {
-      console.error('Error fetching rune price:', err);
+      console.error('Error fetching RUNE price:', {
+        message: err.message,
+        type: err.name,
+        stack: err.stack
+      });
       error = `Failed to fetch RUNE price: ${err.message}`;
       throw err;
     }
@@ -267,7 +274,20 @@
 
   async function fetchPoolsData() {
     try {
-      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/pools');
+      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/pools', {
+        mode: 'cors',
+        credentials: 'omit',
+        headers: {
+          'Accept': 'application/json',
+          'Origin': window.location.origin
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Pools fetch failed:', response.status, response.statusText);
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       poolsData = data;
 
@@ -305,7 +325,12 @@
         updateBTCChart();
       }
     } catch (err) {
-      console.error('Error fetching pools data:', err);
+      console.error('Error fetching pools data:', {
+        message: err.message,
+        type: err.name,
+        stack: err.stack
+      });
+      throw err;
     }
   }
 
@@ -482,7 +507,12 @@
 
   onMount(async () => {
     try {
-      console.log('Starting initialization...');
+      console.log('Starting initialization...', {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        vendor: navigator.vendor
+      });
+      
       isLoading = true;
       isLoadingRank = true;
       error = null;
@@ -492,19 +522,37 @@
       
       while (retryCount < maxRetries) {
         try {
-          await Promise.all([
-            fetchRunePrice(),
-            fetchPoolsData(),
-            fetchMarketCapRank()
-          ]);
+          // Add delay between retries that increases with each attempt
+          if (retryCount > 0) {
+            const delay = retryCount * 2000; // 2s, 4s, 6s
+            console.log(`Retry ${retryCount + 1}/${maxRetries} after ${delay}ms delay`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+
+          // Try fetching RUNE price first since it's most critical
+          await fetchRunePrice();
+          console.log('RUNE price fetched successfully');
+          
+          // Then fetch pools data
+          await fetchPoolsData();
+          console.log('Pools data fetched successfully');
+          
+          // Finally fetch rank which is least critical
+          await fetchMarketCapRank();
+          console.log('All data fetched successfully');
+          
           break;
         } catch (err) {
           retryCount++;
-          console.error(`Attempt ${retryCount} failed:`, err);
+          console.error(`Attempt ${retryCount} failed:`, {
+            message: err.message,
+            type: err.name,
+            stack: err.stack
+          });
+          
           if (retryCount === maxRetries) {
             throw new Error(`Failed after ${maxRetries} attempts: ${err.message}`);
           }
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         }
       }
       
@@ -567,7 +615,12 @@
         if (btcChartInstance) btcChartInstance.destroy();
       };
     } catch (err) {
-      console.error('Error during mount:', err);
+      console.error('Error during mount:', {
+        message: err.message,
+        type: err.name,
+        stack: err.stack,
+        userAgent: navigator.userAgent
+      });
       error = `Failed to initialize: ${err.message}. Please check your connection and refresh.`;
       isLoading = false;
     }
