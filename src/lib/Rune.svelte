@@ -744,7 +744,7 @@
   .rune-container {
     background: #1a1a1a;
     border-radius: 12px;
-    padding: 15px;
+    padding: 8px 15px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 800px;
@@ -989,7 +989,7 @@
     align-items: center;
     width: 100%;
     position: relative;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
   }
 
   .rank-container {
