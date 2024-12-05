@@ -474,12 +474,20 @@
       isLoading = true;
       isLoadingRank = true;
       
-      // Initial fetch of all data
+      // Remove duplicate initialization block and simplify the flow
       await Promise.all([
         fetchRunePrice(),
         fetchPoolsData(),
         fetchMarketCapRank()
-      ]);
+      ]).catch(err => {
+        console.error('Initial data fetch failed:', err);
+        throw err;
+      });
+
+      // Only proceed if we have valid RUNE price
+      if (!runePrice) {
+        throw new Error('Failed to load initial RUNE price');
+      }
 
       // Create initial data points for RUNE
       const currentTime = new Date();
@@ -493,7 +501,7 @@
       ];
       thorNodePriceHistory = [...priceHistory];
 
-      // Create initial data points for BTC
+      // Create initial data points for BTC if available
       const btcPool = poolsData.find(pool => pool.asset === 'BTC.BTC');
       if (btcPool) {
         const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
@@ -505,24 +513,38 @@
         thorNodeBTCPriceHistory = [...btcPriceHistory];
       }
 
-      initChart();
-      initBTCChart();
+      // Initialize charts after ensuring we have data
+      await Promise.all([
+        new Promise(resolve => setTimeout(() => {
+          initChart();
+          resolve();
+        }, 100)),
+        new Promise(resolve => setTimeout(() => {
+          initBTCChart();
+          resolve();
+        }, 100))
+      ]);
+
+      isLoading = false;
       
       // Set up interval for price updates
       const interval = setInterval(async () => {
-        await Promise.all([
-          fetchRunePrice(),
-          fetchPoolsData()
-        ]);
-        
-        // Fetch rank if needed
-        fetchMarketCapRank();
-        
-        // Reset notifications
-        setTimeout(() => {
-          showLatestChange = false;
-          showBtcLatestChange = false;
-        }, 3000);
+        try {
+          await Promise.all([
+            fetchRunePrice(),
+            fetchPoolsData()
+          ]);
+          
+          fetchMarketCapRank();
+          
+          setTimeout(() => {
+            showLatestChange = false;
+            showBtcLatestChange = false;
+          }, 3000);
+        } catch (err) {
+          console.error('Update interval error:', err);
+          // Don't set error state here to allow recovery
+        }
       }, 6000);
 
       return () => {
@@ -532,8 +554,9 @@
       };
     } catch (err) {
       console.error('Error during mount:', err);
-      error = err.message;
+      error = `Failed to initialize: ${err.message}`;
       isLoading = false;
+      runeError = error;
     }
   });
 </script>
