@@ -45,25 +45,75 @@
   let lastRankFetch = 0;
   const RANK_FETCH_INTERVAL = 120000; // 2 minutes in milliseconds
 
-  async function fetchRunePrice() {
+  // Add fallback endpoints
+  const API_ENDPOINTS = {
+    primary: 'https://thornode.thorchain.liquify.com',
+    fallback: 'https://thornode.ninerealms.com'
+  };
+
+  async function fetchWithFallback(endpoint, path) {
+    const errors = [];
+    
+    // Try primary endpoint first (Liquify)
     try {
-      console.log('Fetching RUNE price...');
-      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/network', {
+      console.log(`Attempting primary endpoint: ${API_ENDPOINTS.primary}${path}`);
+      const response = await fetch(`${API_ENDPOINTS.primary}${path}`, {
         mode: 'cors',
-        credentials: 'omit',
         headers: {
           'Accept': 'application/json',
-          'Origin': window.location.origin
-        }
+          'Cache-Control': 'no-cache'
+        },
+        timeout: 5000
       });
       
       if (!response.ok) {
-        console.error('RUNE price fetch failed:', response.status, response.statusText);
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        throw new Error(`Server responded with ${response.status}`);
       }
       
-      const data = await response.json();
+      return await response.json();
+    } catch (primaryErr) {
+      console.error('Primary endpoint failed:', {
+        error: primaryErr.message,
+        type: primaryErr.name
+      });
+      errors.push(`Primary: ${primaryErr.message}`);
+      
+      // If primary fails, try fallback (Nine Realms)
+      try {
+        console.log(`Attempting fallback endpoint: ${API_ENDPOINTS.fallback}${path}`);
+        const response = await fetch(`${API_ENDPOINTS.fallback}${path}`, {
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'x-client-id': 'RuneTools'  // Only include x-client-id for Nine Realms
+          },
+          timeout: 5000
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (fallbackErr) {
+        console.error('Fallback endpoint failed:', {
+          error: fallbackErr.message,
+          type: fallbackErr.name
+        });
+        errors.push(`Fallback: ${fallbackErr.message}`);
+        throw new Error(`All endpoints failed: ${errors.join(', ')}`);
+      }
+    }
+  }
+
+  async function fetchRunePrice() {
+    try {
+      console.log('Fetching RUNE price...');
+      const data = await fetchWithFallback('', '/thorchain/network');
+      
       const newPrice = Number(data.rune_price_in_tor) / 1e8;
+      console.log('RUNE price fetch successful:', { price: newPrice });
       
       // Calculate price change if we have a previous price
       if (runePrice !== null) {
@@ -97,12 +147,7 @@
       }
       
     } catch (err) {
-      console.error('Error fetching RUNE price:', {
-        message: err.message,
-        type: err.name,
-        stack: err.stack
-      });
-      error = `Failed to fetch RUNE price: ${err.message}`;
+      console.error('RUNE price fetch error:', err);
       throw err;
     }
   }
@@ -274,23 +319,10 @@
 
   async function fetchPoolsData() {
     try {
-      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/pools', {
-        mode: 'cors',
-        credentials: 'omit',
-        headers: {
-          'Accept': 'application/json',
-          'Origin': window.location.origin
-        }
-      });
-
-      if (!response.ok) {
-        console.error('Pools fetch failed:', response.status, response.statusText);
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      console.log('Fetching pools data...');
+      const data = await fetchWithFallback('', '/thorchain/pools');
       poolsData = data;
-
+      
       const btcPool = data.find(pool => pool.asset === 'BTC.BTC');
       if (btcPool) {
         const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
@@ -325,11 +357,7 @@
         updateBTCChart();
       }
     } catch (err) {
-      console.error('Error fetching pools data:', {
-        message: err.message,
-        type: err.name,
-        stack: err.stack
-      });
+      console.error('Pools data fetch error:', err);
       throw err;
     }
   }
@@ -507,12 +535,7 @@
 
   onMount(async () => {
     try {
-      console.log('Starting initialization...', {
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        vendor: navigator.vendor
-      });
-      
+      console.log('Starting initialization...');
       isLoading = true;
       isLoadingRank = true;
       error = null;
@@ -615,7 +638,7 @@
         if (btcChartInstance) btcChartInstance.destroy();
       };
     } catch (err) {
-      console.error('Error during mount:', {
+      console.error('Mount error:', {
         message: err.message,
         type: err.name,
         stack: err.stack,
