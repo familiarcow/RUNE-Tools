@@ -31,6 +31,7 @@
   import WhaleWatching from "./lib/WhaleWatching.svelte";
   import Growth from "./lib/Growth.svelte";
   import Rune from "./lib/Rune.svelte";
+  import Footer from './lib/Footer.svelte';
   
   let selectedApp = null;
   let addressParam = writable('');
@@ -316,18 +317,6 @@
 
   $: rows = groupAppsIntoRows(apps, itemsPerRow);
 
-  const emojis = ['🫡', '✍️', '💪', '🧙‍♂️', '🕺', '🏃‍♂️‍➡️', '🦅', '🐋', '🐉', '⚡️', '🌊', '🍷', '🍻', '🏄‍♂️', '🏆', '🎸', '🚀', '🗿', '🗽', '🏗️', '📠', '🔌', '🔮', '🔭', '💯', '🏴‍☠️', '🥷', '👑', '🪐', '🍦', '🍾', '🎯', '❤️', '☑️', '🆒'];
-
-  function getRandomEmoji() {
-    return emojis[Math.floor(Math.random() * emojis.length)];
-  }
-
-  let randomEmoji;
-
-  onMount(() => {
-    randomEmoji = getRandomEmoji();
-  });
-
   function calculateOptimalLayout(totalItems, containerWidth) {
     const minItemWidth = 120;
     const gap = 24;
@@ -462,18 +451,7 @@
     </div>
   </div>
 
-  <footer>
-    <span>
-    <a href="https://github.com/cow9r/RUNE-Tools" target="_blank" class="source-link">
-      <b>Source</b> 
-    </a>
-    {randomEmoji} <a href="https://x.com/familiarcow" target="_blank" class="source-link">familiarcow</a> {getRandomEmoji()}
-    
-    <a href="https://forms.gle/145LjEVxa9ecSYqd9" target="_blank" class="source-link">
-      Feedback
-    </a>
-    </span>
-  </footer>
+  <Footer />
 </main>
 
 <style>
@@ -683,32 +661,6 @@
     width: 100%;
     white-space: normal;
     line-height: 1.2;
-  }
-
-  footer {
-    padding: 1.5rem;
-    background-color: var(--surface-color);
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .source-link {
-    color: var(--secondary-color);
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s ease;
-  }
-
-  .source-link:hover {
-    color: var(--primary-color);
-  }
-
-  footer a {
-    color: var(--text-muted);
-    text-decoration: none;
   }
 
   .home-button, .menu-button {
