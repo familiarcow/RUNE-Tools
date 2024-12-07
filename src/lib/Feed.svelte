@@ -134,16 +134,18 @@
     if (!match) return '0 UNKNOWN';
     
     const [_, value, denom] = match;
-    // Always normalize to 1e8 decimals
+    
+    // Special case for RUNE - it's always in 1e8 format
+    if (denom.toLowerCase().includes('rune')) {
+      const numericValue = Number(value) / 1e8;
+      return `${numericValue.toFixed(8).replace(/\.?0+$/, '')} ${denom.toUpperCase()}`;
+    }
+    
+    // For other assets, normalize to 1e8 decimals
     const numericValue = (Number(value) * 1e8) / Math.pow(10, decimals);
     
     // Process the denomination
     let formattedDenom = denom.toUpperCase();
-    
-    // Handle rune denomination
-    if (formattedDenom === 'RUNE') {
-      formattedDenom = 'THOR.RUNE';
-    }
     
     // Handle complex asset names with / or ~
     if (formattedDenom.includes('/') || formattedDenom.includes('~')) {
