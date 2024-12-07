@@ -376,9 +376,17 @@
       const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/tx/status/${txid}`);
       const data = await response.json();
       
-      // Keep raw amount in 1e8 format
+      // Clean and normalize the asset name
+      let cleanAsset = data.tx.coins[0].asset;
+      if (cleanAsset.includes('-')) {
+        cleanAsset = cleanAsset.split('-')[0];
+      }
+      if (cleanAsset.includes('~')) {
+        cleanAsset = cleanAsset.split('~')[0] + '.' + cleanAsset.split('~')[1];
+      }
+      
       const result = {
-        inAsset: data.tx.coins[0].asset,
+        inAsset: cleanAsset,
         inAmount: Number(data.tx.coins[0].amount)  // Keep raw amount
       };
       
@@ -699,6 +707,52 @@
             {:else if tx.type === 'observed'}
               <div class="swap-details">
                 <div class="asset-container">
+                  {#if tx.txType === '/types.MsgObservedTxOut' && tx.memo && getTxIdFromMemo(tx.memo)}
+                    {#await fetchTxStatus(getTxIdFromMemo(tx.memo)) then status}
+                      {#if status?.inAsset && status?.inAmount}
+                        <div class="asset-icon-container">
+                          <img 
+                            src={getAssetIcon(status.inAsset)} 
+                            alt={status.inAsset}
+                            class="asset-icon"
+                            on:error={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = '/assets/coins/fallback-logo.svg';
+                            }}
+                          />
+                          {#if isERC20(status.inAsset)}
+                            <img 
+                              src={chainIcons[status.inAsset.split('.')[0]]} 
+                              alt={status.inAsset.split('.')[0]}
+                              class="chain-icon"
+                              on:error={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = '/assets/coins/fallback-logo.svg';
+                              }}
+                            />
+                          {/if}
+                        </div>
+                        <div class="asset-info">
+                          <div class="asset-amount">
+                            <span class="amount">{(status.inAmount / 1e8).toFixed(4)} {formatAssetName(status.inAsset)}</span>
+                          </div>
+                          {#if getAssetPrice(status.inAsset)}
+                            <span class="usd-value">
+                              {formatUSD((status.inAmount * (getAssetPrice(status.inAsset) / 1e8)) / 1e8)}
+                            </span>
+                          {/if}
+                        </div>
+                        <div class="swap-arrow">→</div>
+                      {:else}
+                        <div class="loading-indicator">
+                          <span class="dot"></span>
+                          <span class="dot"></span>
+                          <span class="dot"></span>
+                        </div>
+                      {/if}
+                    {/await}
+                  {/if}
+
                   {#each tx.coins as coin}
                     <div class="asset-icon-container">
                       <img 
@@ -776,52 +830,6 @@
                         <span class="amount">{formatAssetName(getOutAssetFromMemo(tx.memo))}</span>
                       </div>
                     </div>
-                  {/if}
-
-                  {#if tx.txType === '/types.MsgObservedTxOut' && tx.memo && getTxIdFromMemo(tx.memo)}
-                    {#await fetchTxStatus(getTxIdFromMemo(tx.memo)) then status}
-                      {#if status?.inAsset && status?.inAmount}
-                        <div class="swap-arrow">→</div>
-                        <div class="asset-icon-container">
-                          <img 
-                            src={getAssetIcon(status.inAsset)} 
-                            alt={status.inAsset}
-                            class="asset-icon"
-                            on:error={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = '/assets/coins/fallback-logo.svg';
-                            }}
-                          />
-                          {#if isERC20(status.inAsset)}
-                            <img 
-                              src={chainIcons[status.inAsset.split('.')[0]]} 
-                              alt={status.inAsset.split('.')[0]}
-                              class="chain-icon"
-                              on:error={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = '/assets/coins/fallback-logo.svg';
-                              }}
-                            />
-                          {/if}
-                        </div>
-                        <div class="asset-info">
-                          <div class="asset-amount">
-                            <span class="amount">{(status.inAmount / 1e8).toFixed(4)} {formatAssetName(status.inAsset)}</span>
-                          </div>
-                          {#if getAssetPrice(status.inAsset)}
-                            <span class="usd-value">
-                              {formatUSD((status.inAmount * (getAssetPrice(status.inAsset) / 1e8)) / 1e8)}
-                            </span>
-                          {/if}
-                        </div>
-                      {:else}
-                        <div class="loading-indicator">
-                          <span class="dot"></span>
-                          <span class="dot"></span>
-                          <span class="dot"></span>
-                        </div>
-                      {/if}
-                    {/await}
                   {/if}
                 </div>
                 
