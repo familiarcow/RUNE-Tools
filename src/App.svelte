@@ -51,7 +51,7 @@
     { name: "Supply Tracker", component: Supply, icon: "🔥", path: "supply", description: "Track RUNE supply and burned tokens" },
     { name: "Price Checker", component: PriceChecker, icon: "🏷️", path: "prices", description: "Check pool prices and compare prices of similar assets" },
     { name: "Vaults", component: Vaults, icon: "🔒", path: "vaults", description: "Inspect THORChain's native asset vaults" },
-    { name: "Whale Watching", component: WhaleWatching, icon: "🐋", path: "whales", description: "Monitor THORChain's largest swaps in the last week" },
+//    { name: "Whale Watching", component: WhaleWatching, icon: "🐋", path: "whales", description: "Monitor THORChain's largest swaps in the last week" },
     { name: "Rune", component: Rune, icon: "🌙", path: "rune", description: "Check RUNE price" },
     { name: "Trade Assets", component: TradeAssets, icon: "💸", path: "trade", description: "Monitor THORChain Trade Asset adoption" },
     { name: "Transaction Status", component: TxStatus, icon: "🔍", path: "tx", description: "Check THORChain Transaction status" },
