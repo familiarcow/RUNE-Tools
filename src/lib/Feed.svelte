@@ -387,7 +387,8 @@
       
       const result = {
         inAsset: cleanAsset,
-        inAmount: Number(data.tx.coins[0].amount)  // Keep raw amount
+        inAmount: Number(data.tx.coins[0].amount),  // Keep raw amount
+        memo: data.tx.memo  // Add memo to the result
       };
       
       // Cache the result
@@ -521,9 +522,29 @@
     const parts = memo.split(':');
     if (parts.length < 2) return null;
     
-    // Return the asset part regardless of format
-    const assetPart = parts[1];
-    return assetPart || null;
+    // Get the asset part
+    let assetPart = parts[1];
+    
+    // Handle short codes
+    const shortCodes = {
+      'r': 'THOR.RUNE',
+      'a': 'AVAX.AVAX',
+      'b': 'BTC.BTC',
+      'c': 'BCH.BCH',
+      'e': 'ETH.ETH',
+      'g': 'GAIA.ATOM',
+      's': 'BSC.BNB',
+      'd': 'DOGE.DOGE',
+      'l': 'LTC.LTC'
+    };
+    
+    // If the asset part is a single letter that matches a short code, replace it
+    if (shortCodes[assetPart]) {
+      return shortCodes[assetPart];
+    }
+    
+    // Otherwise return the original asset part
+    return assetPart;
   }
 
   // Update the formatAssetName function to handle unknown formats
@@ -575,6 +596,20 @@
     
     return cleanAsset;
   }
+
+  // Add this new helper function
+  function formatMemoDisplay(memo) {
+    if (!memo) return '';
+    
+    const parts = memo.split(':');
+    return parts.map(part => {
+      // If part is longer than 12 characters, truncate it
+      if (part.length > 12) {
+        return part.slice(0, 6) + '...' + part.slice(-4);
+      }
+      return part;
+    }).join(':');
+  }
 </script>
 
 <div 
@@ -582,7 +617,6 @@
   bind:this={feedContainer}
   on:scroll={handleScroll}
 >
-  <h2>Transaction Feed</h2>
   
   {#if isPaused}
     <div class="pause-indicator" on:click={() => isPaused = false}>
@@ -614,6 +648,10 @@
                 <div class="info-pill type" class:inbound={tx.txType === '/types.MsgObservedTxIn'} class:outbound={tx.txType === '/types.MsgObservedTxOut'}>
                   {getTransactionTypeName(tx.txType)}
                 </div>
+              {:else if tx.type === 'transfer'}
+                <div class="info-pill type send">
+                  Send
+                </div>
               {/if}
               {#if tx.memo && getAffiliateFromMemo(tx.memo)}
                 {#if affiliateInfo[getAffiliateFromMemo(tx.memo)]}
@@ -635,9 +673,33 @@
                   </div>
                 {/if}
               {/if}
+              {#if tx.txType === '/types.MsgObservedTxOut' && tx.memo && getTxIdFromMemo(tx.memo)}
+                {#await fetchTxStatus(getTxIdFromMemo(tx.memo)) then status}
+                  {#if status?.memo && getAffiliateFromMemo(status.memo)}
+                    {#if affiliateInfo[getAffiliateFromMemo(status.memo)]}
+                      <div class="info-pill affiliate">
+                        <img 
+                          src={affiliateInfo[getAffiliateFromMemo(status.memo)].logo} 
+                          alt={affiliateInfo[getAffiliateFromMemo(status.memo)].name}
+                          class="affiliate-icon"
+                          on:error={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/assets/coins/fallback-logo.svg';
+                          }}
+                        />
+                        <span class="affiliate-name">{affiliateInfo[getAffiliateFromMemo(status.memo)].name}</span>
+                      </div>
+                    {:else}
+                      <div class="info-pill affiliate">
+                        <span>{getAffiliateFromMemo(status.memo)}</span>
+                      </div>
+                    {/if}
+                  {/if}
+                {/await}
+              {/if}
             </div>
-            <div class="info-pill">
-              {#if tx.type === 'observed'}
+            {#if tx.type === 'observed'}
+              <div class="info-pill">
                 <span 
                   class="txid clickable" 
                   on:click={() => navigator.clipboard.writeText(tx.txid)}
@@ -651,33 +713,14 @@
                 >
                   <LinkOutIcon size={16} color="#4a90e2" />
                 </a>
-              {/if}
-            </div>
+              </div>
+            {/if}
           </div>
 
           <!-- Transaction details will go here -->
           <div class="transaction-details">
             {#if tx.type === 'transfer'}
               <div class="transfer-info">
-                <div class="transfer-addresses">
-                  <div class="address">
-                    <span class="label">From:</span>
-                    <span 
-                      class="value" 
-                      title="Click to copy address"
-                      on:click={() => navigator.clipboard.writeText(tx.sender)}
-                    >{formatAddress(tx.sender)}</span>
-                  </div>
-                  <div class="arrow">→</div>
-                  <div class="address">
-                    <span class="label">To:</span>
-                    <span 
-                      class="value" 
-                      title="Click to copy address"
-                      on:click={() => navigator.clipboard.writeText(tx.recipient)}
-                    >{formatAddress(tx.recipient)}</span>
-                  </div>
-                </div>
                 <div class="swap-details">
                   <div class="asset-container">
                     <div class="asset-icon-container">
@@ -700,6 +743,25 @@
                           {formatUSD((Number(tx.amount.split('rune')[0]) / 1e8) * (getAssetPrice('THOR.RUNE') / 1e8))}
                         </span>
                       {/if}
+                    </div>
+                  </div>
+                  
+                  <div class="transfer-addresses">
+                    <div class="address">
+                      <span class="label">From:</span>
+                      <span 
+                        class="value clickable" 
+                        title="Click to copy address"
+                        on:click={() => navigator.clipboard.writeText(tx.sender)}
+                      >{formatAddress(tx.sender)}</span>
+                    </div>
+                    <div class="address">
+                      <span class="label">To:</span>
+                      <span 
+                        class="value clickable" 
+                        title="Click to copy address"
+                        on:click={() => navigator.clipboard.writeText(tx.recipient)}
+                      >{formatAddress(tx.recipient)}</span>
                     </div>
                   </div>
                 </div>
@@ -743,12 +805,6 @@
                           {/if}
                         </div>
                         <div class="swap-arrow">→</div>
-                      {:else}
-                        <div class="loading-indicator">
-                          <span class="dot"></span>
-                          <span class="dot"></span>
-                          <span class="dot"></span>
-                        </div>
                       {/if}
                     {/await}
                   {/if}
@@ -837,10 +893,10 @@
                   <div 
                     class="memo clickable" 
                     on:click={() => navigator.clipboard.writeText(tx.memo)}
-                    title="Click to copy memo"
+                    title="Click to copy full memo"
                   >
                     <span class="label">Memo:</span>
-                    <span class="value">{tx.memo}</span>
+                    <span class="value">{formatMemoDisplay(tx.memo)}</span>
                   </div>
                 {/if}
               </div>
@@ -855,10 +911,11 @@
 <style>
   .feed {
     padding: 20px;
-    width: fit-content;
+    width: 100%;
+    max-width: 600px;
     min-width: 300px;
     margin: 0 auto;
-    height: calc(100vh - 140px); /* Increased space for footer */
+    height: calc(100vh - 140px);
     overflow-y: auto;
     position: relative;
     
@@ -992,64 +1049,49 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 8px;
   }
 
   .transfer-addresses {
+    width: 100%;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    color: #a0a0a0;
-    font-family: monospace;
-    font-size: 0.9em;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .address {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
+    font-family: monospace;
+    font-size: 0.9em;
   }
 
-  .label {
+  .address .label {
     color: #808080;
+    flex-shrink: 0;
+    width: 45px;
   }
 
-  .value {
+  .address .value {
     color: #e0e0e0;
+  }
+
+  .address .value.clickable {
     cursor: pointer;
     transition: color 0.2s;
-    user-select: none; /* Prevents text selection on click */
   }
 
-  .value:hover {
+  .address .value.clickable:hover {
     color: #4a90e2;
   }
 
-  .value:active {
-    color: #2d5f9e; /* Darker blue when clicked */
-  }
-
-  .arrow {
-    color: #4a90e2;
-  }
-
-  .amount {
-    font-family: monospace;
-    color: #4a90e2;
-    font-size: 1.1em;
-    text-align: right;
+  .address .value.clickable:active {
+    color: #2d5f9e;
   }
 
   @media (max-width: 600px) {
     .transfer-addresses {
       font-size: 0.8em;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .arrow {
-      transform: rotate(90deg);
-      margin: 4px 0;
     }
   }
 
@@ -1120,7 +1162,7 @@
     border-radius: 8px;
     font-family: monospace;
     font-size: 0.9em;
-    word-break: break-all;
+    word-break: break-word;
     transition: background-color 0.2s;
   }
 
@@ -1137,11 +1179,26 @@
   }
 
   .memo .label {
+    color: #808080;
     flex-shrink: 0;
+    width: 45px;
   }
 
   .memo .value {
     color: #e0e0e0;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .memo .value:hover {
+    color: #4a90e2;
+  }
+
+  .memo .value:active {
+    color: #2d5f9e;
   }
 
   .amount-container {
@@ -1357,5 +1414,11 @@
     .feed {
       height: calc(100vh - 100px);
     }
+  }
+
+  /* Add style for send pill */
+  .info-pill.type.send {
+    background: #00F9BB;
+    color: #000000;
   }
 </style>
