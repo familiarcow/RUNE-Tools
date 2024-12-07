@@ -14,7 +14,7 @@
   let startX = 0;
   let startY = 0;
   let isDragging = false;
-  const totalPages = 3;
+  const totalPages = 2;
   let autoScrollTimer;
   let isUserInteracting = false;
 
@@ -39,13 +39,6 @@
         type: 'vultisig',
         href: "https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a",
         text: "Secure your RUNE & register for the Vultisig airdrop campaign"
-      }
-    },
-    {
-      content: {
-        type: 'feedback',
-        href: "https://forms.gle/145LjEVxa9ecSYqd9",
-        text: "Feedback"
       }
     }
   ];
