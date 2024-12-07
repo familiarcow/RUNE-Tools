@@ -32,6 +32,7 @@
   import Growth from "./lib/Growth.svelte";
   import Rune from "./lib/Rune.svelte";
   import Footer from './lib/Footer.svelte';
+  import Feed from './lib/Feed.svelte';
   
   let selectedApp = null;
   let addressParam = writable('');
@@ -44,12 +45,13 @@
     { name: "Voting", component: Voting, icon: "🗳️", path: "voting", description: "Check THORChain's active mimir votes" },
     { name: "Earnings", component: Earnings, icon: "💰", path: "earnings", description: "Check the THORChain protocol's earnings" },
     { name: "Growth", component: Growth, icon: "🌱", path: "growth", description: "Track THORChain's growth metrics" },
+    { name: "Feed", component: Feed, icon: "📰", path: "feed", description: "THORChain network transaction feed" },
     { name: "Constants and Mimirs", component: Constants, icon: "📚", path: "constants", description: "View THORChain's network parameters and settings" },
     { name: "Incentive Pendulum", component: IncentivePendulum, icon: "⚖️", path: "pendulum", description: "Check THORChain's incentive pendulum balance" },
     { name: "Supply Tracker", component: Supply, icon: "🔥", path: "supply", description: "Track RUNE supply and burned tokens" },
     { name: "Price Checker", component: PriceChecker, icon: "🏷️", path: "prices", description: "Check pool prices and compare prices of similar assets" },
     { name: "Vaults", component: Vaults, icon: "🔒", path: "vaults", description: "Inspect THORChain's native asset vaults" },
-  //  { name: "Whale Watching", component: WhaleWatching, icon: "🐋", path: "whales", description: "Monitor THORChain's largest swaps in the last week" },
+    { name: "Whale Watching", component: WhaleWatching, icon: "🐋", path: "whales", description: "Monitor THORChain's largest swaps in the last week" },
     { name: "Rune", component: Rune, icon: "🌙", path: "rune", description: "Check RUNE price" },
     { name: "Trade Assets", component: TradeAssets, icon: "💸", path: "trade", description: "Monitor THORChain Trade Asset adoption" },
     { name: "Transaction Status", component: TxStatus, icon: "🔍", path: "tx", description: "Check THORChain Transaction status" },
