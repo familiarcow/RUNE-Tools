@@ -522,9 +522,29 @@
     const parts = memo.split(':');
     if (parts.length < 2) return null;
     
-    // Return the asset part regardless of format
-    const assetPart = parts[1];
-    return assetPart || null;
+    // Get the asset part
+    let assetPart = parts[1];
+    
+    // Handle short codes
+    const shortCodes = {
+      'r': 'THOR.RUNE',
+      'a': 'AVAX.AVAX',
+      'b': 'BTC.BTC',
+      'c': 'BCH.BCH',
+      'e': 'ETH.ETH',
+      'g': 'GAIA.ATOM',
+      's': 'BSC.BNB',
+      'd': 'DOGE.DOGE',
+      'l': 'LTC.LTC'
+    };
+    
+    // If the asset part is a single letter that matches a short code, replace it
+    if (shortCodes[assetPart]) {
+      return shortCodes[assetPart];
+    }
+    
+    // Otherwise return the original asset part
+    return assetPart;
   }
 
   // Update the formatAssetName function to handle unknown formats
