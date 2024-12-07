@@ -39,7 +39,7 @@
 
   // Replace the existing apps array with categorized apps
   const apps = [
-    { name: "Swap Quote", component: SwapEstimator, icon: "🔄", path: "swap", description: "Get real time quotes for THORChain swaps" },
+    { name: "Swap Quote", component: SwapEstimator, icon: "🔄", path: "swap", description: "Get real time THORChain swap quotes" },
     { name: "Bond Tracker", component: BondTracker, icon: "🔗", path: "bond", description: "Monitor your THORChain node rewards" },
     { name: "Voting", component: Voting, icon: "🗳️", path: "voting", description: "Check THORChain's active mimir votes" },
     { name: "Earnings", component: Earnings, icon: "💰", path: "earnings", description: "Check the THORChain protocol's earnings" },
