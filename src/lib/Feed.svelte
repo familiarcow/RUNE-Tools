@@ -596,6 +596,20 @@
     
     return cleanAsset;
   }
+
+  // Add this new helper function
+  function formatMemoDisplay(memo) {
+    if (!memo) return '';
+    
+    const parts = memo.split(':');
+    return parts.map(part => {
+      // If part is longer than 12 characters, truncate it
+      if (part.length > 12) {
+        return part.slice(0, 6) + '...' + part.slice(-4);
+      }
+      return part;
+    }).join(':');
+  }
 </script>
 
 <div 
@@ -876,10 +890,10 @@
                   <div 
                     class="memo clickable" 
                     on:click={() => navigator.clipboard.writeText(tx.memo)}
-                    title="Click to copy memo"
+                    title="Click to copy full memo"
                   >
                     <span class="label">Memo:</span>
-                    <span class="value">{tx.memo}</span>
+                    <span class="value">{formatMemoDisplay(tx.memo)}</span>
                   </div>
                 {/if}
               </div>
@@ -894,10 +908,11 @@
 <style>
   .feed {
     padding: 20px;
-    width: fit-content;
+    width: 100%;
+    max-width: 600px;
     min-width: 300px;
     margin: 0 auto;
-    height: calc(100vh - 140px); /* Increased space for footer */
+    height: calc(100vh - 140px);
     overflow-y: auto;
     position: relative;
     
@@ -1137,14 +1152,14 @@
   .memo {
     width: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     padding: 4px 8px;
     background: #3a3a3a;
     border-radius: 8px;
     font-family: monospace;
     font-size: 0.9em;
-    word-break: break-all;
+    word-break: break-word;
     transition: background-color 0.2s;
   }
 
@@ -1162,10 +1177,14 @@
 
   .memo .label {
     flex-shrink: 0;
+    padding-top: 2px;
   }
 
   .memo .value {
     color: #e0e0e0;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
   }
 
   .amount-container {
