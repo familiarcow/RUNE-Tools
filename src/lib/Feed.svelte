@@ -343,7 +343,7 @@
       // Get RUNE price from network endpoint
       const networkResponse = await fetch('https://thornode.ninerealms.com/thorchain/network');
       const networkData = await networkResponse.json();
-      const runePrice = Number(networkData.rune_price_in_tor) / 1e8;
+      const runePrice = Number(networkData.rune_price_in_tor);  // Keep as 1e8
       
       // Get pool prices
       const poolsResponse = await fetch('https://thornode.thorchain.liquify.com/thorchain/pools');
@@ -355,12 +355,10 @@
       // Update price map with pool prices
       pools.forEach(pool => {
         const normalizedAsset = normalizeAssetName(pool.asset);
-        // asset_tor_price is in 1e8 format
-        const assetPriceInRune = Number(pool.asset_tor_price) / 1e8;
-        assetPrices.set(normalizedAsset, assetPriceInRune * runePrice);
+        // Keep asset_tor_price in 1e8 format
+        assetPrices.set(normalizedAsset, Number(pool.asset_tor_price));
       });
       
-      // Force Svelte reactivity
       assetPrices = assetPrices;
       
     } catch (err) {
@@ -378,10 +376,10 @@
       const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/tx/status/${txid}`);
       const data = await response.json();
       
-      // Extract relevant information
+      // Keep raw amount in 1e8 format
       const result = {
         inAsset: data.tx.coins[0].asset,
-        inAmount: Number(data.tx.coins[0].amount) / 1e8
+        inAmount: Number(data.tx.coins[0].amount)  // Keep raw amount
       };
       
       // Cache the result
@@ -446,7 +444,16 @@
   // Update the coin display components to show prices
   function getAssetPrice(asset) {
     const normalizedAsset = normalizeAssetName(asset);
-    return assetPrices.get(normalizedAsset) || 0;
+    const price = assetPrices.get(normalizedAsset);
+    
+    console.log('Price Lookup:', {
+      originalAsset: asset,
+      normalizedAsset,
+      rawPrice: price,
+      usdPrice: price ? price / 1e8 : null
+    });
+    
+    return price || 0;
   }
 
   function isERC20(asset) {
@@ -682,7 +689,7 @@
                       </div>
                       {#if tx.amount.includes('rune')}
                         <span class="usd-value">
-                          {formatUSD(Number(tx.amount.split('rune')[0]) / 1e8 * getAssetPrice('THOR.RUNE'))}
+                          {formatUSD((Number(tx.amount.split('rune')[0]) / 1e8) * (getAssetPrice('THOR.RUNE') / 1e8))}
                         </span>
                       {/if}
                     </div>
@@ -723,7 +730,7 @@
                       </div>
                       {#if getAssetPrice(coin.asset)}
                         <span class="usd-value">
-                          {formatUSD((Number(coin.amount) * 1e8 / Math.pow(10, coin.decimals || 8)) * getAssetPrice(coin.asset))}
+                          {formatUSD((Number(coin.amount) * getAssetPrice(coin.asset)) / 1e8)}
                         </span>
                       {/if}
                     </div>
@@ -799,11 +806,11 @@
                         </div>
                         <div class="asset-info">
                           <div class="asset-amount">
-                            <span class="amount">{status.inAmount.toFixed(4)} {formatAssetName(status.inAsset)}</span>
+                            <span class="amount">{(status.inAmount / 1e8).toFixed(4)} {formatAssetName(status.inAsset)}</span>
                           </div>
                           {#if getAssetPrice(status.inAsset)}
                             <span class="usd-value">
-                              {formatUSD(status.inAmount * getAssetPrice(status.inAsset))}
+                              {formatUSD((status.inAmount * (getAssetPrice(status.inAsset) / 1e8)) / 1e8)}
                             </span>
                           {/if}
                         </div>
