@@ -128,24 +128,21 @@
     return `${address.slice(0, 8)}...${address.slice(-4)}`;
   }
 
-  function formatAmount(amount, decimals = 8) {
+  function formatAmount(amount) {
     // Extract numeric value and denomination
     const match = amount.match(/^(\d+)(.+)$/);
     if (!match) return '0 UNKNOWN';
     
     const [_, value, denom] = match;
-    
-    // Special case for RUNE - it's always in 1e8 format
-    if (denom.toLowerCase().includes('rune')) {
-      const numericValue = Number(value) / 1e8;
-      return `${numericValue.toFixed(8).replace(/\.?0+$/, '')} ${denom.toUpperCase()}`;
-    }
-    
-    // For other assets, normalize to 1e8 decimals
-    const numericValue = (Number(value) * 1e8) / Math.pow(10, decimals);
+    const numericValue = Number(value) / 1e8;
     
     // Process the denomination
     let formattedDenom = denom.toUpperCase();
+    
+    // Handle rune denomination
+    if (formattedDenom === 'RUNE') {
+      formattedDenom = 'THOR.RUNE';
+    }
     
     // Handle complex asset names with / or ~
     if (formattedDenom.includes('/') || formattedDenom.includes('~')) {
@@ -343,7 +340,7 @@
       // Get RUNE price from network endpoint
       const networkResponse = await fetch('https://thornode.ninerealms.com/thorchain/network');
       const networkData = await networkResponse.json();
-      const runePrice = Number(networkData.rune_price_in_tor);  // Keep as 1e8
+      const runePrice = Number(networkData.rune_price_in_tor) / 1e8;
       
       // Get pool prices
       const poolsResponse = await fetch('https://thornode.thorchain.liquify.com/thorchain/pools');
@@ -354,13 +351,14 @@
       
       // Update price map with pool prices
       pools.forEach(pool => {
-        const normalizedAsset = normalizeAssetName(pool.asset);
-        // Keep asset_tor_price in 1e8 format
-        assetPrices.set(normalizedAsset, Number(pool.asset_tor_price));
+        const asset = pool.asset;
+        // asset_tor_price is the price of the asset in RUNE (1e8)
+        const assetPriceInRune = Number(pool.asset_tor_price) / 1e8;
+        assetPrices.set(asset, assetPriceInRune * runePrice); // Multiply by RUNE price to get USD value
       });
       
+      // Force Svelte reactivity
       assetPrices = assetPrices;
-      
     } catch (err) {
       console.error('Error fetching asset prices:', err);
     }
@@ -376,18 +374,10 @@
       const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/tx/status/${txid}`);
       const data = await response.json();
       
-      // Clean and normalize the asset name
-      let cleanAsset = data.tx.coins[0].asset;
-      if (cleanAsset.includes('-')) {
-        cleanAsset = cleanAsset.split('-')[0];
-      }
-      if (cleanAsset.includes('~')) {
-        cleanAsset = cleanAsset.split('~')[0] + '.' + cleanAsset.split('~')[1];
-      }
-      
+      // Extract relevant information
       const result = {
-        inAsset: cleanAsset,
-        inAmount: Number(data.tx.coins[0].amount)  // Keep raw amount
+        inAsset: data.tx.coins[0].asset,
+        inAmount: Number(data.tx.coins[0].amount) / 1e8
       };
       
       // Cache the result
@@ -451,17 +441,9 @@
 
   // Update the coin display components to show prices
   function getAssetPrice(asset) {
-    const normalizedAsset = normalizeAssetName(asset);
-    const price = assetPrices.get(normalizedAsset);
-    
-    console.log('Price Lookup:', {
-      originalAsset: asset,
-      normalizedAsset,
-      rawPrice: price,
-      usdPrice: price ? price / 1e8 : null
-    });
-    
-    return price || 0;
+    // Clean the asset name (remove contract part)
+    const cleanAsset = asset.split('-')[0];
+    return assetPrices.get(cleanAsset) || 0;
   }
 
   function isERC20(asset) {
@@ -482,15 +464,8 @@
   }
 
   function getAssetIcon(asset) {
-    // Clean the asset name (handle both - and ~ separators)
-    let cleanAsset = asset;
-    if (asset.includes('-')) {
-      cleanAsset = asset.split('-')[0];
-    }
-    if (asset.includes('~')) {
-      cleanAsset = asset.split('~')[0] + '.' + asset.split('~')[1];
-    }
-    cleanAsset = cleanAsset.toUpperCase();
+    // Clean the asset name (remove contract address part and convert to uppercase)
+    const cleanAsset = asset.split('-')[0].toUpperCase();
     
     // Check if we have a specific asset icon
     if (assetIcons[cleanAsset]) {
@@ -530,14 +505,8 @@
   function formatAssetName(asset) {
     if (!asset) return '';
     
-    // Handle both - and ~ separators
-    let cleanAsset = asset;
-    if (asset.includes('-')) {
-      cleanAsset = asset.split('-')[0];
-    }
-    if (asset.includes('~')) {
-      cleanAsset = asset.split('~')[0] + '.' + asset.split('~')[1];
-    }
+    // Clean the asset name (remove contract address part)
+    const cleanAsset = asset.split('-')[0];
     
     // If no dots, return as is (for unknown formats)
     if (!cleanAsset.includes('.')) return cleanAsset;
@@ -553,27 +522,6 @@
     
     // For other assets, return just the token part
     return token;
-  }
-
-  // Add this helper function to normalize asset names for price matching
-  function normalizeAssetName(asset) {
-    if (!asset) return '';
-    
-    // Handle both - and ~ separators
-    let cleanAsset = asset;
-    if (asset.includes('-')) {
-      cleanAsset = asset.split('-')[0];
-    }
-    if (asset.includes('~')) {
-      cleanAsset = asset.split('~')[0] + '.' + asset.split('~')[1];
-    }
-    
-    // Special case for RUNE
-    if (cleanAsset === 'RUNE') {
-      return 'THOR.RUNE';
-    }
-    
-    return cleanAsset;
   }
 </script>
 
@@ -697,7 +645,7 @@
                       </div>
                       {#if tx.amount.includes('rune')}
                         <span class="usd-value">
-                          {formatUSD((Number(tx.amount.split('rune')[0]) / 1e8) * (getAssetPrice('THOR.RUNE') / 1e8))}
+                          {formatUSD(Number(tx.amount.split('rune')[0]) / 1e8 * getAssetPrice('THOR.RUNE'))}
                         </span>
                       {/if}
                     </div>
@@ -707,52 +655,6 @@
             {:else if tx.type === 'observed'}
               <div class="swap-details">
                 <div class="asset-container">
-                  {#if tx.txType === '/types.MsgObservedTxOut' && tx.memo && getTxIdFromMemo(tx.memo)}
-                    {#await fetchTxStatus(getTxIdFromMemo(tx.memo)) then status}
-                      {#if status?.inAsset && status?.inAmount}
-                        <div class="asset-icon-container">
-                          <img 
-                            src={getAssetIcon(status.inAsset)} 
-                            alt={status.inAsset}
-                            class="asset-icon"
-                            on:error={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = '/assets/coins/fallback-logo.svg';
-                            }}
-                          />
-                          {#if isERC20(status.inAsset)}
-                            <img 
-                              src={chainIcons[status.inAsset.split('.')[0]]} 
-                              alt={status.inAsset.split('.')[0]}
-                              class="chain-icon"
-                              on:error={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = '/assets/coins/fallback-logo.svg';
-                              }}
-                            />
-                          {/if}
-                        </div>
-                        <div class="asset-info">
-                          <div class="asset-amount">
-                            <span class="amount">{(status.inAmount / 1e8).toFixed(4)} {formatAssetName(status.inAsset)}</span>
-                          </div>
-                          {#if getAssetPrice(status.inAsset)}
-                            <span class="usd-value">
-                              {formatUSD((status.inAmount * (getAssetPrice(status.inAsset) / 1e8)) / 1e8)}
-                            </span>
-                          {/if}
-                        </div>
-                        <div class="swap-arrow">→</div>
-                      {:else}
-                        <div class="loading-indicator">
-                          <span class="dot"></span>
-                          <span class="dot"></span>
-                          <span class="dot"></span>
-                        </div>
-                      {/if}
-                    {/await}
-                  {/if}
-
                   {#each tx.coins as coin}
                     <div class="asset-icon-container">
                       <img 
@@ -778,13 +680,11 @@
                     </div>
                     <div class="asset-info">
                       <div class="asset-amount">
-                        <span class="amount">
-                          {(Number(coin.amount) * 1e8 / Math.pow(10, coin.decimals || 8)).toFixed(4)} {formatAssetName(coin.asset)}
-                        </span>
+                        <span class="amount">{coin.amount.toFixed(4)} {formatAssetName(coin.asset)}</span>
                       </div>
                       {#if getAssetPrice(coin.asset)}
                         <span class="usd-value">
-                          {formatUSD((Number(coin.amount) * getAssetPrice(coin.asset)) / 1e8)}
+                          {formatUSD(coin.amount * getAssetPrice(coin.asset))}
                         </span>
                       {/if}
                     </div>
@@ -830,6 +730,52 @@
                         <span class="amount">{formatAssetName(getOutAssetFromMemo(tx.memo))}</span>
                       </div>
                     </div>
+                  {/if}
+
+                  {#if tx.txType === '/types.MsgObservedTxOut' && tx.memo && getTxIdFromMemo(tx.memo)}
+                    {#await fetchTxStatus(getTxIdFromMemo(tx.memo)) then status}
+                      {#if status?.inAsset && status?.inAmount}
+                        <div class="swap-arrow">→</div>
+                        <div class="asset-icon-container">
+                          <img 
+                            src={getAssetIcon(status.inAsset)} 
+                            alt={status.inAsset}
+                            class="asset-icon"
+                            on:error={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = '/assets/coins/fallback-logo.svg';
+                            }}
+                          />
+                          {#if isERC20(status.inAsset)}
+                            <img 
+                              src={chainIcons[status.inAsset.split('.')[0]]} 
+                              alt={status.inAsset.split('.')[0]}
+                              class="chain-icon"
+                              on:error={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = '/assets/coins/fallback-logo.svg';
+                              }}
+                            />
+                          {/if}
+                        </div>
+                        <div class="asset-info">
+                          <div class="asset-amount">
+                            <span class="amount">{status.inAmount.toFixed(4)} {formatAssetName(status.inAsset)}</span>
+                          </div>
+                          {#if getAssetPrice(status.inAsset)}
+                            <span class="usd-value">
+                              {formatUSD(status.inAmount * getAssetPrice(status.inAsset))}
+                            </span>
+                          {/if}
+                        </div>
+                      {:else}
+                        <div class="loading-indicator">
+                          <span class="dot"></span>
+                          <span class="dot"></span>
+                          <span class="dot"></span>
+                        </div>
+                      {/if}
+                    {/await}
                   {/if}
                 </div>
                 
