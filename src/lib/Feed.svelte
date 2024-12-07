@@ -649,6 +649,10 @@
                 <div class="info-pill type" class:inbound={tx.txType === '/types.MsgObservedTxIn'} class:outbound={tx.txType === '/types.MsgObservedTxOut'}>
                   {getTransactionTypeName(tx.txType)}
                 </div>
+              {:else if tx.type === 'transfer'}
+                <div class="info-pill type send">
+                  Send
+                </div>
               {/if}
               {#if tx.memo && getAffiliateFromMemo(tx.memo)}
                 {#if affiliateInfo[getAffiliateFromMemo(tx.memo)]}
@@ -1152,7 +1156,7 @@
   .memo {
     width: 100%;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
     padding: 4px 8px;
     background: #3a3a3a;
@@ -1176,8 +1180,9 @@
   }
 
   .memo .label {
+    color: #808080;
     flex-shrink: 0;
-    padding-top: 2px;
+    width: 45px;
   }
 
   .memo .value {
@@ -1185,6 +1190,16 @@
     overflow-wrap: break-word;
     word-wrap: break-word;
     hyphens: auto;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .memo .value:hover {
+    color: #4a90e2;
+  }
+
+  .memo .value:active {
+    color: #2d5f9e;
   }
 
   .amount-container {
@@ -1400,5 +1415,11 @@
     .feed {
       height: calc(100vh - 100px);
     }
+  }
+
+  /* Add style for send pill */
+  .info-pill.type.send {
+    background: #00F9BB;
+    color: #000000;
   }
 </style>
