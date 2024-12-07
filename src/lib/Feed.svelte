@@ -128,13 +128,14 @@
     return `${address.slice(0, 8)}...${address.slice(-4)}`;
   }
 
-  function formatAmount(amount) {
+  function formatAmount(amount, decimals = 8) {
     // Extract numeric value and denomination
     const match = amount.match(/^(\d+)(.+)$/);
     if (!match) return '0 UNKNOWN';
     
     const [_, value, denom] = match;
-    const numericValue = Number(value) / 1e8;
+    // Always normalize to 1e8 decimals
+    const numericValue = (Number(value) * 1e8) / Math.pow(10, decimals);
     
     // Process the denomination
     let formattedDenom = denom.toUpperCase();
@@ -351,14 +352,15 @@
       
       // Update price map with pool prices
       pools.forEach(pool => {
-        const asset = pool.asset;
-        // asset_tor_price is the price of the asset in RUNE (1e8)
+        const normalizedAsset = normalizeAssetName(pool.asset);
+        // asset_tor_price is in 1e8 format
         const assetPriceInRune = Number(pool.asset_tor_price) / 1e8;
-        assetPrices.set(asset, assetPriceInRune * runePrice); // Multiply by RUNE price to get USD value
+        assetPrices.set(normalizedAsset, assetPriceInRune * runePrice);
       });
       
       // Force Svelte reactivity
       assetPrices = assetPrices;
+      
     } catch (err) {
       console.error('Error fetching asset prices:', err);
     }
@@ -441,9 +443,8 @@
 
   // Update the coin display components to show prices
   function getAssetPrice(asset) {
-    // Clean the asset name (remove contract part)
-    const cleanAsset = asset.split('-')[0];
-    return assetPrices.get(cleanAsset) || 0;
+    const normalizedAsset = normalizeAssetName(asset);
+    return assetPrices.get(normalizedAsset) || 0;
   }
 
   function isERC20(asset) {
@@ -464,8 +465,15 @@
   }
 
   function getAssetIcon(asset) {
-    // Clean the asset name (remove contract address part and convert to uppercase)
-    const cleanAsset = asset.split('-')[0].toUpperCase();
+    // Clean the asset name (handle both - and ~ separators)
+    let cleanAsset = asset;
+    if (asset.includes('-')) {
+      cleanAsset = asset.split('-')[0];
+    }
+    if (asset.includes('~')) {
+      cleanAsset = asset.split('~')[0] + '.' + asset.split('~')[1];
+    }
+    cleanAsset = cleanAsset.toUpperCase();
     
     // Check if we have a specific asset icon
     if (assetIcons[cleanAsset]) {
@@ -505,8 +513,14 @@
   function formatAssetName(asset) {
     if (!asset) return '';
     
-    // Clean the asset name (remove contract address part)
-    const cleanAsset = asset.split('-')[0];
+    // Handle both - and ~ separators
+    let cleanAsset = asset;
+    if (asset.includes('-')) {
+      cleanAsset = asset.split('-')[0];
+    }
+    if (asset.includes('~')) {
+      cleanAsset = asset.split('~')[0] + '.' + asset.split('~')[1];
+    }
     
     // If no dots, return as is (for unknown formats)
     if (!cleanAsset.includes('.')) return cleanAsset;
@@ -522,6 +536,27 @@
     
     // For other assets, return just the token part
     return token;
+  }
+
+  // Add this helper function to normalize asset names for price matching
+  function normalizeAssetName(asset) {
+    if (!asset) return '';
+    
+    // Handle both - and ~ separators
+    let cleanAsset = asset;
+    if (asset.includes('-')) {
+      cleanAsset = asset.split('-')[0];
+    }
+    if (asset.includes('~')) {
+      cleanAsset = asset.split('~')[0] + '.' + asset.split('~')[1];
+    }
+    
+    // Special case for RUNE
+    if (cleanAsset === 'RUNE') {
+      return 'THOR.RUNE';
+    }
+    
+    return cleanAsset;
   }
 </script>
 
@@ -680,11 +715,13 @@
                     </div>
                     <div class="asset-info">
                       <div class="asset-amount">
-                        <span class="amount">{coin.amount.toFixed(4)} {formatAssetName(coin.asset)}</span>
+                        <span class="amount">
+                          {(Number(coin.amount) * 1e8 / Math.pow(10, coin.decimals || 8)).toFixed(4)} {formatAssetName(coin.asset)}
+                        </span>
                       </div>
                       {#if getAssetPrice(coin.asset)}
                         <span class="usd-value">
-                          {formatUSD(coin.amount * getAssetPrice(coin.asset))}
+                          {formatUSD((Number(coin.amount) * 1e8 / Math.pow(10, coin.decimals || 8)) * getAssetPrice(coin.asset))}
                         </span>
                       {/if}
                     </div>
