@@ -387,7 +387,8 @@
       
       const result = {
         inAsset: cleanAsset,
-        inAmount: Number(data.tx.coins[0].amount)  // Keep raw amount
+        inAmount: Number(data.tx.coins[0].amount),  // Keep raw amount
+        memo: data.tx.memo  // Add memo to the result
       };
       
       // Cache the result
@@ -635,6 +636,30 @@
                   </div>
                 {/if}
               {/if}
+              {#if tx.txType === '/types.MsgObservedTxOut' && tx.memo && getTxIdFromMemo(tx.memo)}
+                {#await fetchTxStatus(getTxIdFromMemo(tx.memo)) then status}
+                  {#if status?.memo && getAffiliateFromMemo(status.memo)}
+                    {#if affiliateInfo[getAffiliateFromMemo(status.memo)]}
+                      <div class="info-pill affiliate">
+                        <img 
+                          src={affiliateInfo[getAffiliateFromMemo(status.memo)].logo} 
+                          alt={affiliateInfo[getAffiliateFromMemo(status.memo)].name}
+                          class="affiliate-icon"
+                          on:error={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/assets/coins/fallback-logo.svg';
+                          }}
+                        />
+                        <span class="affiliate-name">{affiliateInfo[getAffiliateFromMemo(status.memo)].name}</span>
+                      </div>
+                    {:else}
+                      <div class="info-pill affiliate">
+                        <span>{getAffiliateFromMemo(status.memo)}</span>
+                      </div>
+                    {/if}
+                  {/if}
+                {/await}
+              {/if}
             </div>
             <div class="info-pill">
               {#if tx.type === 'observed'}
@@ -743,12 +768,6 @@
                           {/if}
                         </div>
                         <div class="swap-arrow">→</div>
-                      {:else}
-                        <div class="loading-indicator">
-                          <span class="dot"></span>
-                          <span class="dot"></span>
-                          <span class="dot"></span>
-                        </div>
                       {/if}
                     {/await}
                   {/if}
