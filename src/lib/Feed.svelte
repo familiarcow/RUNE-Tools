@@ -704,25 +704,6 @@
           <div class="transaction-details">
             {#if tx.type === 'transfer'}
               <div class="transfer-info">
-                <div class="transfer-addresses">
-                  <div class="address">
-                    <span class="label">From:</span>
-                    <span 
-                      class="value" 
-                      title="Click to copy address"
-                      on:click={() => navigator.clipboard.writeText(tx.sender)}
-                    >{formatAddress(tx.sender)}</span>
-                  </div>
-                  <div class="arrow">→</div>
-                  <div class="address">
-                    <span class="label">To:</span>
-                    <span 
-                      class="value" 
-                      title="Click to copy address"
-                      on:click={() => navigator.clipboard.writeText(tx.recipient)}
-                    >{formatAddress(tx.recipient)}</span>
-                  </div>
-                </div>
                 <div class="swap-details">
                   <div class="asset-container">
                     <div class="asset-icon-container">
@@ -745,6 +726,25 @@
                           {formatUSD((Number(tx.amount.split('rune')[0]) / 1e8) * (getAssetPrice('THOR.RUNE') / 1e8))}
                         </span>
                       {/if}
+                    </div>
+                  </div>
+                  
+                  <div class="transfer-addresses">
+                    <div class="address">
+                      <span class="label">From:</span>
+                      <span 
+                        class="value clickable" 
+                        title="Click to copy address"
+                        on:click={() => navigator.clipboard.writeText(tx.sender)}
+                      >{formatAddress(tx.sender)}</span>
+                    </div>
+                    <div class="address">
+                      <span class="label">To:</span>
+                      <span 
+                        class="value clickable" 
+                        title="Click to copy address"
+                        on:click={() => navigator.clipboard.writeText(tx.recipient)}
+                      >{formatAddress(tx.recipient)}</span>
                     </div>
                   </div>
                 </div>
@@ -1031,64 +1031,49 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 8px;
   }
 
   .transfer-addresses {
+    width: 100%;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    color: #a0a0a0;
-    font-family: monospace;
-    font-size: 0.9em;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .address {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
+    font-family: monospace;
+    font-size: 0.9em;
   }
 
-  .label {
+  .address .label {
     color: #808080;
+    flex-shrink: 0;
+    width: 45px;
   }
 
-  .value {
+  .address .value {
     color: #e0e0e0;
+  }
+
+  .address .value.clickable {
     cursor: pointer;
     transition: color 0.2s;
-    user-select: none; /* Prevents text selection on click */
   }
 
-  .value:hover {
+  .address .value.clickable:hover {
     color: #4a90e2;
   }
 
-  .value:active {
-    color: #2d5f9e; /* Darker blue when clicked */
-  }
-
-  .arrow {
-    color: #4a90e2;
-  }
-
-  .amount {
-    font-family: monospace;
-    color: #4a90e2;
-    font-size: 1.1em;
-    text-align: right;
+  .address .value.clickable:active {
+    color: #2d5f9e;
   }
 
   @media (max-width: 600px) {
     .transfer-addresses {
       font-size: 0.8em;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .arrow {
-      transform: rotate(90deg);
-      margin: 4px 0;
     }
   }
 
