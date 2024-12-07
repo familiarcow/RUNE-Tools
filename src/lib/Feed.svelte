@@ -617,7 +617,6 @@
   bind:this={feedContainer}
   on:scroll={handleScroll}
 >
-  <h2>Transaction Feed</h2>
   
   {#if isPaused}
     <div class="pause-indicator" on:click={() => isPaused = false}>
@@ -699,8 +698,8 @@
                 {/await}
               {/if}
             </div>
-            <div class="info-pill">
-              {#if tx.type === 'observed'}
+            {#if tx.type === 'observed'}
+              <div class="info-pill">
                 <span 
                   class="txid clickable" 
                   on:click={() => navigator.clipboard.writeText(tx.txid)}
@@ -714,8 +713,8 @@
                 >
                   <LinkOutIcon size={16} color="#4a90e2" />
                 </a>
-              {/if}
-            </div>
+              </div>
+            {/if}
           </div>
 
           <!-- Transaction details will go here -->
