@@ -4,10 +4,13 @@
   import { quintOut, cubicInOut } from 'svelte/easing';
   import logo from "../public/assets/runetools-logo.svg";
   import laserLogo from "../public/assets/runetools-laser-logo.svg";
+  import santaLogo from "../public/assets/runetools-logos/runetools-logo-santa.png";
   import Footer from './lib/Footer.svelte';
   import Snow from './lib/Snow.svelte';
   import TerminalText from './lib/TerminalText.svelte';
   import { writable } from 'svelte/store';
+
+  const HOLIDAY_MODE = true; // Easy to toggle holiday features on/off
 
   let selectedApp = null;
   let addressParam = writable('');
@@ -506,13 +509,19 @@
 </svelte:head>
 
 <main>
-  <Snow />
+  {#if HOLIDAY_MODE}
+    <Snow />
+  {/if}
   <header>
     <div class="header-content">
       <div class="logo-container">
         <div class="logo-wrapper" on:click={goHome}>
-          <img src={logo} alt="THORChain Logo" class="logo original-logo" />
-          <img src={laserLogo} alt="THORChain Laser Logo" class="logo laser-logo" />
+          {#if HOLIDAY_MODE}
+            <img src={santaLogo} alt="THORChain Holiday Logo" class="logo holiday-logo" />
+          {:else}
+            <img src={logo} alt="THORChain Logo" class="logo original-logo" />
+            <img src={laserLogo} alt="THORChain Laser Logo" class="logo laser-logo" />
+          {/if}
         </div>
       </div>
       <div class="title-container">
@@ -924,6 +933,17 @@
     height: 200px;
     color: var(--text-color);
     font-size: 1.2rem;
+  }
+
+  .holiday-logo {
+    height: 2rem;
+    width: auto;
+    max-width: 100%;
+    transition: transform 0.3s ease;
+  }
+
+  .logo-wrapper:hover .holiday-logo {
+    transform: scale(1.1);
   }
 </style>
 
