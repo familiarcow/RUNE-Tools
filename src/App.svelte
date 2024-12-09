@@ -598,7 +598,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background-color: var(--background-color);
+    background-color: transparent;
     border-radius: 8px;
     font-size: 1.5rem;
   }
