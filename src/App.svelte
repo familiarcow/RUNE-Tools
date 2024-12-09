@@ -2,70 +2,188 @@
   import { onMount, afterUpdate } from 'svelte';
   import { fade, fly, crossfade } from 'svelte/transition';
   import { quintOut, cubicInOut } from 'svelte/easing';
-  import WordPullUp from './lib/WordPullUp.svelte';  // Import the new component
-  import TerminalText from './lib/TerminalText.svelte';
   import logo from "../public/assets/runetools-logo.svg";
   import laserLogo from "../public/assets/runetools-laser-logo.svg";
-  import LendingEstimator from "./lib/LendingEstimator.svelte";
-  import PriceChecker from "./lib/PriceChecker.svelte";
-  import SaversTracker from "./lib/SaversTracker.svelte";
-  import TradeAssets from "./lib/TradeAssets.svelte";
-  import BondTracker from "./lib/BondTracker.svelte";
-  import RunePool from "./lib/RunePool.svelte";
-  import SwapEstimator from "./lib/SwapEstimator.svelte";
-  import Constants from "./lib/Constants.svelte";
-  import InboundAddresses from "./lib/InboundAddresses.svelte";
-  import LPChecker from "./lib/LPChecker.svelte";
-  import TxStatus from "./lib/TxStatus.svelte";
-  import SwapperClout from "./lib/SwapperClout.svelte";
-  import Version from "./lib/Version.svelte";
-  import Supply from "./lib/Supply.svelte";
-  import LiquidityProviders from './lib/LiquidityProviders.svelte';
-  import Affiliates from "./lib/Affiliates.svelte";
-  import Voting from "./lib/Voting.svelte";
-  import IncentivePendulum from "./lib/IncentivePendulum.svelte";
-  import Thorchad from "./lib/Thorchad.svelte";
-  import Vaults from "./lib/Vaults.svelte";
-  import Earnings from "./lib/Earnings.svelte";
-  import { writable } from 'svelte/store';
-  import WhaleWatching from "./lib/WhaleWatching.svelte";
-  import Growth from "./lib/Growth.svelte";
-  import Rune from "./lib/Rune.svelte";
   import Footer from './lib/Footer.svelte';
-  import Feed from './lib/Feed.svelte';
   import Snow from './lib/Snow.svelte';
-  
+  import TerminalText from './lib/TerminalText.svelte';
+  import { writable } from 'svelte/store';
+
   let selectedApp = null;
   let addressParam = writable('');
   let votingSearchTerm = writable('');
+  let loadedComponent = null;
 
-  // Replace the existing apps array with categorized apps
+  // Replace the existing apps array with dynamic imports
   const apps = [
-    { name: "Swap Quote", component: SwapEstimator, icon: "🔄", path: "swap", description: "Get real time THORChain swap quotes" },
-    { name: "Bond Tracker", component: BondTracker, icon: "🔗", path: "bond", description: "Monitor your THORChain node rewards" },
-    { name: "Voting", component: Voting, icon: "🗳️", path: "voting", description: "Check THORChain's active mimir votes" },
-    { name: "Earnings", component: Earnings, icon: "💰", path: "earnings", description: "Check the THORChain protocol's earnings" },
-    { name: "Growth", component: Growth, icon: "🌱", path: "growth", description: "Track THORChain's growth metrics" },
-    { name: "Feed", component: Feed, icon: "📰", path: "feed", description: "THORChain network transaction feed" },
-    { name: "Constants and Mimirs", component: Constants, icon: "📚", path: "constants", description: "View THORChain's network parameters and settings" },
-    { name: "Incentive Pendulum", component: IncentivePendulum, icon: "⚖️", path: "pendulum", description: "Check THORChain's incentive pendulum balance" },
-    { name: "Supply Tracker", component: Supply, icon: "🔥", path: "supply", description: "Track RUNE supply and burned tokens" },
-    { name: "Price Checker", component: PriceChecker, icon: "🏷️", path: "prices", description: "Check pool prices and compare prices of similar assets" },
-    { name: "Vaults", component: Vaults, icon: "🔒", path: "vaults", description: "Inspect THORChain's native asset vaults" },
-//    { name: "Whale Watching", component: WhaleWatching, icon: "🐋", path: "whales", description: "Monitor THORChain's largest swaps in the last week" },
-    { name: "Rune", component: Rune, icon: "🌙", path: "rune", description: "Check RUNE price" },
-    { name: "Trade Assets", component: TradeAssets, icon: "💸", path: "trade", description: "Monitor THORChain Trade Asset adoption" },
-    { name: "Transaction Status", component: TxStatus, icon: "🔍", path: "tx", description: "Check THORChain Transaction status" },
-    { name: "Liquidity Providers", component: LiquidityProviders, icon: "👥", path: "lp", description: "Check liquidity providers and LP details for THORChain pools" },
-    { name: "Rune Pool", component: RunePool, icon: "🏊", path: "pool", description: "Explore RUNEPool and track your position" },
-    { name: "Lending Quote", component: LendingEstimator, icon: "⚡️", path: "lending", description: "Calculate current THORChain lending rates" },
-    { name: "Savers", component: SaversTracker, icon: "📈", path: "savers", description: "Track the Savers yield curve and Liquidity Provider rewards" },
-    { name: "Version", component: Version, icon: "🔧", path: "version", description: "Check the current THORNode version adoption" },
-    { name: "Inbound Addresses", component: InboundAddresses, icon: "📍", path: "inbound", description: "Find THORChain's inbound vault addresses" },
-    { name: "Swapper Clout", component: SwapperClout, icon: "🏆", path: "clout", description: "Check your Swapper Clout" },
-    { name: "Affiliates", component: Affiliates, icon: "🤝", path: "affiliate", description: "Track THORChain affiliate payout status" },
-    { name: "Thorchad", component: Thorchad, icon: "🧙‍♂️", path: "thorchad", description: "THORChad your profile picture" },
-    { name: "Shop", icon: "🏪", path: "shop", description: "Browse THORChain merchandise", externalUrl: "https://shop.rune.tools" },
+    { 
+      name: "Swap Quote", 
+      component: () => import("./lib/SwapEstimator.svelte"), 
+      icon: "🔄", 
+      path: "swap", 
+      description: "Get real time THORChain swap quotes" 
+    },
+    { 
+      name: "Bond Tracker", 
+      component: () => import("./lib/BondTracker.svelte"), 
+      icon: "🔗", 
+      path: "bond", 
+      description: "Monitor your THORChain node rewards" 
+    },
+    { 
+      name: "Voting", 
+      component: () => import("./lib/Voting.svelte"), 
+      icon: "🗳️", 
+      path: "voting", 
+      description: "Check THORChain's active mimir votes" 
+    },
+    { 
+      name: "Earnings", 
+      component: () => import("./lib/Earnings.svelte"), 
+      icon: "💰", 
+      path: "earnings", 
+      description: "Check the THORChain protocol's earnings" 
+    },
+    { 
+      name: "Growth", 
+      component: () => import("./lib/Growth.svelte"), 
+      icon: "🌱", 
+      path: "growth", 
+      description: "Track THORChain's growth metrics" 
+    },
+    { 
+      name: "Feed", 
+      component: () => import("./lib/Feed.svelte"), 
+      icon: "📰", 
+      path: "feed", 
+      description: "THORChain network transaction feed" 
+    },
+    { 
+      name: "Constants and Mimirs", 
+      component: () => import("./lib/Constants.svelte"), 
+      icon: "📚", 
+      path: "constants", 
+      description: "View THORChain's network parameters and settings" 
+    },
+    { 
+      name: "Incentive Pendulum", 
+      component: () => import("./lib/IncentivePendulum.svelte"), 
+      icon: "⚖️", 
+      path: "pendulum", 
+      description: "Check THORChain's incentive pendulum balance" 
+    },
+    { 
+      name: "Supply Tracker", 
+      component: () => import("./lib/Supply.svelte"), 
+      icon: "🔥", 
+      path: "supply", 
+      description: "Track RUNE supply and burned tokens" 
+    },
+    { 
+      name: "Price Checker", 
+      component: () => import("./lib/PriceChecker.svelte"), 
+      icon: "🏷️", 
+      path: "prices", 
+      description: "Check pool prices and compare prices of similar assets" 
+    },
+    { 
+      name: "Vaults", 
+      component: () => import("./lib/Vaults.svelte"), 
+      icon: "🔒", 
+      path: "vaults", 
+      description: "Inspect THORChain's native asset vaults" 
+    },
+    { 
+      name: "Rune", 
+      component: () => import("./lib/Rune.svelte"), 
+      icon: "🌙", 
+      path: "rune", 
+      description: "Check RUNE price" 
+    },
+    { 
+      name: "Trade Assets", 
+      component: () => import("./lib/TradeAssets.svelte"), 
+      icon: "💸", 
+      path: "trade", 
+      description: "Monitor THORChain Trade Asset adoption" 
+    },
+    { 
+      name: "Transaction Status", 
+      component: () => import("./lib/TxStatus.svelte"), 
+      icon: "🔍", 
+      path: "tx", 
+      description: "Check THORChain Transaction status" 
+    },
+    { 
+      name: "Liquidity Providers", 
+      component: () => import("./lib/LiquidityProviders.svelte"), 
+      icon: "👥", 
+      path: "lp", 
+      description: "Check liquidity providers and LP details for THORChain pools" 
+    },
+    { 
+      name: "Rune Pool", 
+      component: () => import("./lib/RunePool.svelte"), 
+      icon: "🏊", 
+      path: "pool", 
+      description: "Explore RUNEPool and track your position" 
+    },
+    { 
+      name: "Lending Quote", 
+      component: () => import("./lib/LendingEstimator.svelte"), 
+      icon: "⚡️", 
+      path: "lending", 
+      description: "Calculate current THORChain lending rates" 
+    },
+    { 
+      name: "Savers", 
+      component: () => import("./lib/SaversTracker.svelte"), 
+      icon: "📈", 
+      path: "savers", 
+      description: "Track the Savers yield curve and Liquidity Provider rewards" 
+    },
+    { 
+      name: "Version", 
+      component: () => import("./lib/Version.svelte"), 
+      icon: "🔧", 
+      path: "version", 
+      description: "Check the current THORNode version adoption" 
+    },
+    { 
+      name: "Inbound Addresses", 
+      component: () => import("./lib/InboundAddresses.svelte"), 
+      icon: "📍", 
+      path: "inbound", 
+      description: "Find THORChain's inbound vault addresses" 
+    },
+    { 
+      name: "Swapper Clout", 
+      component: () => import("./lib/SwapperClout.svelte"), 
+      icon: "🏆", 
+      path: "clout", 
+      description: "Check your Swapper Clout" 
+    },
+    { 
+      name: "Affiliates", 
+      component: () => import("./lib/Affiliates.svelte"), 
+      icon: "🤝", 
+      path: "affiliate", 
+      description: "Track THORChain affiliate payout status" 
+    },
+    { 
+      name: "Thorchad", 
+      component: () => import("./lib/Thorchad.svelte"), 
+      icon: "🧙‍♂️", 
+      path: "thorchad", 
+      description: "THORChad your profile picture" 
+    },
+    { 
+      name: "Shop", 
+      icon: "🏪", 
+      path: "shop", 
+      description: "Browse THORChain merchandise", 
+      externalUrl: "https://shop.rune.tools" 
+    },
   ];
 
   const [send, receive] = crossfade({
@@ -109,7 +227,7 @@
     }
   }
 
-  function selectApp(app) {
+  async function selectApp(app) {
     if (app.externalUrl) {
       window.open(app.externalUrl, '_blank');
     } else {
@@ -117,6 +235,15 @@
       const newUrl = `/${app.path}${getAppParams(app)}`;
       history.pushState(null, '', newUrl);
       menuOpen = false;
+
+      try {
+        // Dynamically load the component
+        const module = await app.component();
+        loadedComponent = module.default;
+      } catch (error) {
+        console.error('Error loading component:', error);
+        // Handle error loading component
+      }
 
       // Update addressParam if it's the SwapperClout component
       if (app.name === "Swapper Clout") {
@@ -168,12 +295,20 @@
     return "";
   }
 
-  function handlePopState() {
+  async function handlePopState() {
     const path = window.location.pathname.slice(1).split('/')[0];
     const app = apps.find(a => a.path === path);
     selectedApp = app || null;
 
     if (app) {
+      try {
+        const module = await app.component();
+        loadedComponent = module.default;
+      } catch (error) {
+        console.error('Error loading component:', error);
+        // Handle error loading component
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       if (app.name === "Swapper Clout") {
         const address = urlParams.get('address') || path.split('/')[1];
@@ -450,7 +585,11 @@
           {/each}
         </div>
       {:else}
-        <svelte:component this={selectedApp.component} address={$addressParam} searchTerm={votingSearchTerm} />
+        {#if loadedComponent}
+          <svelte:component this={loadedComponent} address={$addressParam} searchTerm={votingSearchTerm} />
+        {:else}
+          <div class="loading">Loading...</div>
+        {/if}
       {/if}
     </div>
   </div>
@@ -776,6 +915,15 @@
   .footer {
     position: relative;
     z-index: 1;
+  }
+
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: var(--text-color);
+    font-size: 1.2rem;
   }
 </style>
 
