@@ -33,6 +33,7 @@
   import Rune from "./lib/Rune.svelte";
   import Footer from './lib/Footer.svelte';
   import Feed from './lib/Feed.svelte';
+  import Snow from './lib/Snow.svelte';
   
   let selectedApp = null;
   let addressParam = writable('');
@@ -370,6 +371,7 @@
 </svelte:head>
 
 <main>
+  <Snow />
   <header>
     <div class="header-content">
       <div class="logo-container">
@@ -578,7 +580,9 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
-    padding-top: 20px; /* Add padding to the top of the content area */
+    padding-top: 20px;
+    position: relative;
+    z-index: 1;
   }
 
   .scrollable-container {
@@ -687,7 +691,7 @@
     background-color: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: flex-end;
-    z-index: 1000;
+    z-index: 2000;
   }
 
   .menu-content {
@@ -767,6 +771,11 @@
     font-weight: 500;
     margin: 0.5rem 0;
     padding-left: 0.5rem;
+  }
+
+  .footer {
+    position: relative;
+    z-index: 1;
   }
 </style>
 
