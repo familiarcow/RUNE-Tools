@@ -11,8 +11,8 @@
       this.x = x;
       this.y = y;
       this.size = Math.random() * 3 + 1;
-      this.speedX = Math.random() * 0.5 - 0.25;
-      this.speedY = Math.random() * 1 + 0.5;
+      this.speedX = Math.random() * 0.3 - 0.15;
+      this.speedY = Math.random() * 0.5 + 0.2;
       this.opacity = Math.random() * 0.5 + 0.3;
     }
 
