@@ -174,7 +174,7 @@
           {#if upgradeProposalDetails}
             <div class="version-container">
               <div class="info-label">Validator Approval</div>
-              <div class="sub-label">66% Quorum Needed</div>
+              <div class="sub-label">Requires 66% Quorum</div>
               <div class="card-header">
                 <div class="percentage">
                   {(Number(upgradeProposalDetails.approved_percent) * 100).toFixed(1)}%
@@ -346,7 +346,7 @@
   }
 
   .percentage {
-    color: #31FD9D;
+    color: white;
     font-size: 1.1rem;
     font-weight: 500;
   }
@@ -362,7 +362,7 @@
 
   .progress {
     height: 100%;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(49, 253, 157, 0.8);
     transition: width 0.3s ease;
   }
 
@@ -561,7 +561,7 @@
 
   .sub-label {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     margin-bottom: 1rem;
   }
 </style>
