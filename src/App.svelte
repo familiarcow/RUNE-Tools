@@ -504,6 +504,7 @@
       background-color: #1e1e1e;
       margin: 0;
       padding: 0;
+      min-height: 100vh;
     }
   </style>
 </svelte:head>
@@ -631,6 +632,7 @@
     flex-direction: column;
     color: var(--text-color);
     padding-top: 60px; /* Adjust this value based on your header height */
+    position: relative;
   }
 
   header {
@@ -731,6 +733,7 @@
     padding-top: 20px;
     position: relative;
     z-index: 1;
+    padding-bottom: 60px;
   }
 
   .scrollable-container {
