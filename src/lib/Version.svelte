@@ -1,250 +1,470 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
 
+  const BASE_URL = 'https://thornode.thorchain.liquify.com/thorchain';
+  const REFRESH_INTERVAL = 6000; // 6 seconds
+  const BLOCK_TIME = 6; // seconds per block
+  
   let nodes = [];
   let versions = {};
-  let allSameVersion = true;
-  let latestVersion = '';
-  let expandedVersion = null;
-  let totalNodes = 0;
-  let oldVersion = '';
-  let newVersion = '';
+  let upgradeProposal = null;
+  let currentBlock = 0;
+  let loading = true;
+  let error = null;
+  let timeRemaining = '';
+  let targetDate = null;
+  
+  // For periodic updates
+  let blockUpdateInterval;
+  let countdownInterval;
 
-  const icons = {
-    eye: '👁️',
-    eyeOff: '🙈',
-    fileText: '📄'
-  };
+  // Add new state variable
+  let upgradeProposalDetails = null;
+
+  $: if (currentBlock && upgradeProposal) {
+    calculateTargetDate();
+  }
 
   onMount(async () => {
-    await fetchNodeData();
+    try {
+      await Promise.all([
+        fetchNodeData(),
+        fetchUpgradeProposal(),
+        fetchCurrentBlock()
+      ]);
+      
+      // Refresh all data every 6 seconds
+      blockUpdateInterval = setInterval(async () => {
+        await Promise.all([
+          fetchCurrentBlock(),
+          fetchNodeData(),
+          fetchUpgradeProposal()
+        ]);
+      }, REFRESH_INTERVAL);
+      
+      // Update countdown display every minute since we don't show seconds
+      countdownInterval = setInterval(() => {
+        if (targetDate) {
+          // This will trigger the reactive timeRemaining calculation
+          targetDate = targetDate;
+        }
+      }, 60000);
+      
+    } catch (e) {
+      error = 'Failed to fetch data';
+    } finally {
+      loading = false;
+    }
   });
 
+  onDestroy(() => {
+    clearInterval(blockUpdateInterval);
+    clearInterval(countdownInterval);
+  });
+
+  async function fetchCurrentBlock() {
+    const response = await fetch(`${BASE_URL}/lastblock`);
+    const data = await response.json();
+    currentBlock = data[0].thorchain;
+  }
+
+  function calculateTargetDate() {
+    const blocksRemaining = upgradeProposal.height - currentBlock;
+    const secondsRemaining = blocksRemaining * BLOCK_TIME;
+    targetDate = new Date(Date.now() + (secondsRemaining * 1000));
+  }
+
   async function fetchNodeData() {
-    try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/nodes');
-      const data = await response.json();
-      nodes = data.filter(node => node.status === 'Active');
-      processVersions();
-    } catch (error) {
-      console.error('Error fetching node data:', error);
+    const response = await fetch(`${BASE_URL}/nodes`);
+    const data = await response.json();
+    nodes = data.filter(node => node.status === 'Active');
+    processVersions();
+  }
+
+  async function fetchUpgradeProposal() {
+    const response = await fetch(`${BASE_URL}/upgrade_proposals`);
+    const data = await response.json();
+    upgradeProposal = data[0];
+    if (upgradeProposal) {
+      await fetchUpgradeProposalDetails(upgradeProposal.name);
     }
   }
 
-  function compareVersions(a, b) {
-    const [, aMajor, aMinor = '0'] = a.split('.').map(Number);
-    const [, bMajor, bMinor = '0'] = b.split('.').map(Number);
-    
-    if (aMajor !== bMajor) {
-      return bMajor - aMajor;
+  async function fetchUpgradeProposalDetails(name) {
+    try {
+      const response = await fetch(`${BASE_URL}/upgrade_proposal/${name}`);
+      const data = await response.json();
+      upgradeProposalDetails = data;
+    } catch (error) {
+      console.error('Error fetching upgrade proposal details:', error);
     }
-    return bMinor - aMinor;
   }
 
   function processVersions() {
     versions = {};
-    
     nodes.forEach(node => {
       if (!versions[node.version]) {
         versions[node.version] = [];
       }
       versions[node.version].push(node);
     });
+  }
 
-    const versionKeys = Object.keys(versions);
-    allSameVersion = versionKeys.length === 1;
+  function getVersionPercentage(version) {
+    return ((versions[version]?.length || 0) / nodes.length * 100).toFixed(1);
+  }
+
+  function formatBlockHeight(height) {
+    return height.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  function formatDate(date) {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    }).format(date);
+  }
+
+  // Reactive statements to process data
+  $: if (nodes) {
+    processVersions();
+  }
+
+  $: timeRemaining = targetDate ? calculateTimeRemaining(targetDate) : '';
+
+  function calculateTimeRemaining(target) {
+    const now = new Date();
+    const diff = target - now;
     
-    versionKeys.sort(compareVersions);
-    newVersion = versionKeys[0];
-    oldVersion = versionKeys[1] || newVersion;
-    latestVersion = newVersion;
+    if (diff <= 0) {
+      return 'Upgrade time reached!';
+    }
 
-    totalNodes = nodes.length;
-  }
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-  function toggleVersionExpand(version) {
-    expandedVersion = expandedVersion === version ? null : version;
-  }
-
-  function getChangelogUrl(version) {
-    const versionNumber = version.replace(/^v/, '');
-    return `https://gitlab.com/thorchain/thornode/-/releases/v${versionNumber}`;
-  }
-
-  function getShortAddress(address) {
-    return address.slice(-4);
+    return `${days}d ${hours}h ${minutes}m`;
   }
 </script>
 
 <div class="version-checker">
-  <h2>THORNode Version Checker</h2>
-  
-  <div class="container">
-    {#if allSameVersion}
-      <div class="version-status same">
-        <span class="version-number">{latestVersion} ✅</span>
-        <p>All nodes are on the same version.</p>
-        <div class="action-buttons">
-          <a href={getChangelogUrl(latestVersion)} target="_blank" rel="noopener noreferrer" class="icon-button changelog-button">
-            {icons.fileText} Changelog
-          </a>
+  {#if loading}
+    <div class="loading">Loading network data...</div>
+  {:else if error}
+    <div class="error">{error}</div>
+  {:else}
+    <div class="container">
+      <!-- Upgrade Proposal -->
+      {#if upgradeProposal}
+        <section class="upgrade-proposal">
+          <h2>Upcoming Upgrade</h2>
+          
+          <!-- New version container -->
+          <div class="version-container">
+            <div class="info-label">Upcoming Version</div>
+            <div class="version-number">{upgradeProposal.name}</div>
+          </div>
+
+          {#if upgradeProposalDetails}
+            <div class="version-container">
+              <div class="info-label">Validator Approval</div>
+              <div class="sub-label">66% Quorum Needed</div>
+              <div class="card-header">
+                <div class="percentage">
+                  {(Number(upgradeProposalDetails.approved_percent) * 100).toFixed(1)}%
+                </div>
+              </div>
+              <div class="progress-bar">
+                <div 
+                  class="progress approval-progress" 
+                  style="width: {Number(upgradeProposalDetails.approved_percent) * 100}%"
+                ></div>
+                <div class="threshold-marker"></div>
+              </div>
+              <div class="approval-info">
+                {#if upgradeProposalDetails.approved}
+                  <div class="status approved">Upgrade {upgradeProposal.name} Approved ✅</div>
+                {:else if upgradeProposalDetails.validators_to_quorum > 0}
+                  <div class="status pending">
+                    Needs approval from {upgradeProposalDetails.validators_to_quorum} more validators
+                  </div>
+                {:else}
+                  <div class="status pending">Awaiting approval</div>
+                {/if}
+              </div>
+            </div>
+          {/if}
+
+          <div class="proposal-card">
+            <div class="proposal-info">
+              <div class="info-item">
+                <div class="info-label">Target Block Height</div>
+                <div class="info-value">{formatBlockHeight(upgradeProposal.height)}</div>
+              </div>
+              {#if targetDate}
+                <div class="time-info">
+                  <div class="target-date">
+                    <div class="info-label">Estimated Upgrade Time</div>
+                    <div class="date-value">{formatDate(targetDate)}</div>
+                  </div>
+                  <div class="countdown-container">
+                    <div class="info-label">Time Remaining</div>
+                    <div class="countdown">{timeRemaining}</div>
+                  </div>
+                </div>
+              {/if}
+            </div>
+            <a 
+              href={JSON.parse(upgradeProposal.info).tag} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="action-button"
+            >
+              View Release Notes
+            </a>
+          </div>
+        </section>
+      {/if}
+
+      <!-- Current Network Status -->
+      <section class="current-status">
+        <h2>Network Status</h2>
+        <div class="status-header">
+          <div class="block-info">
+            <span class="info-label">Current Block</span>
+            <span class="block-value">{formatBlockHeight(currentBlock)}</span>
+          </div>
         </div>
-      </div>
-    {:else}
-      <div class="version-status different">
-        <p>The new THORNode version has not yet been fully adopted:</p>
-        <div class="version-boxes">
-          <div class="version-box old">
-            <h3>Old Version</h3>
-            <p class="version-info">
-              {oldVersion} ({versions[oldVersion].length} / {totalNodes} nodes)
-            </p>
-            <div class="action-buttons">
-              <button on:click={() => toggleVersionExpand(oldVersion)} class="icon-button">
-                {expandedVersion === oldVersion ? icons.eyeOff : icons.eye}
-              </button>
-              <a href={getChangelogUrl(oldVersion)} target="_blank" rel="noopener noreferrer" class="icon-button changelog-button">
-                {icons.fileText} Changelog
+        <div class="version-grid">
+          {#each Object.entries(versions) as [version, nodeList]}
+            <div class="version-card">
+              <div class="card-header">
+                <h3>{version}</h3>
+                <div class="percentage">{getVersionPercentage(version)}%</div>
+              </div>
+              <div class="progress-bar">
+                <div 
+                  class="progress" 
+                  style="width: {getVersionPercentage(version)}%"
+                ></div>
+              </div>
+              <div class="node-count">
+                {nodeList.length} active nodes
+              </div>
+              <a 
+                href={`https://gitlab.com/thorchain/thornode/-/releases/v${version.replace(/^v/, '')}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="action-button"
+              >
+                View Release Notes
               </a>
             </div>
-            {#if expandedVersion === oldVersion}
-              <div class="node-list">
-                {#each versions[oldVersion] as node}
-                  <div class="node-item">{getShortAddress(node.node_address)}</div>
-                {/each}
-              </div>
-            {/if}
-          </div>
-          <div class="version-box new">
-            <h3>New Version</h3>
-            <p class="version-info">
-              {newVersion} ({versions[newVersion].length} / {totalNodes} nodes)
-            </p>
-            <div class="action-buttons">
-              <button on:click={() => toggleVersionExpand(newVersion)} class="icon-button">
-                {expandedVersion === newVersion ? icons.eyeOff : icons.eye}
-              </button>
-              <a href={getChangelogUrl(newVersion)} target="_blank" rel="noopener noreferrer" class="icon-button changelog-button">
-                {icons.fileText} Changelog
-              </a>
-            </div>
-            {#if expandedVersion === newVersion}
-              <div class="node-list">
-                {#each versions[newVersion] as node}
-                  <div class="node-item">{getShortAddress(node.node_address)}</div>
-                {/each}
-              </div>
-            {/if}
-          </div>
+          {/each}
         </div>
-      </div>
-    {/if}
-  </div>
+      </section>
+    </div>
+  {/if}
 </div>
 
 <style>
   .version-checker {
-    max-width: 600px;
-    width: 95%;
+    max-width: 800px;
     margin: 0 auto;
     padding: 20px;
-    font-family: 'Exo', sans-serif;
   }
 
   .container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  section {
     background-color: #1a1a1a;
     border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    padding: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 
   h2 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5rem;
+    color: #31FD9D;
     text-align: center;
-    margin: 0 0 20px 0;
-    padding: 20px;
-    background-color: #2c2c2c;
-    color: #4A90E2;
-    font-size: 22px;
-    font-weight: 600;
-    border-radius: 12px 12px 0 0;
   }
 
-  .version-status {
-    padding: 20px;
-    border-radius: 5px;
-    margin-bottom: 10px;
+  .info-item {
+    background: #2c2c2c;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
   }
 
-  .version-status.same {
-    background-color: rgba(76, 175, 80, 0.1);
-    color: #4caf50;
+  .info-label {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .info-value {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.2rem;
+    font-weight: 500;
+    font-family: monospace;
+  }
+
+  .version-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+
+  .version-card {
+    background: #2c2c2c;
+    border-radius: 8px;
+    padding: 1.2rem;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .card-header h3 {
+    margin: 0;
+    color: #31FD9D;
+    font-size: 1.2rem;
+  }
+
+  .percentage {
+    color: #31FD9D;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+  }
+
+  .progress {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: width 0.3s ease;
+  }
+
+  .node-count {
+    color: #888;
+    font-size: 0.9rem;
+    margin: 0.5rem 0 1rem 0;
+  }
+
+  .action-button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-align: center;
+    font-size: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .action-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+  }
+
+  .status-header {
+    background: #2c2c2c;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .block-info {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 0.5rem;
   }
 
-  .version-status.same .action-buttons {
-    margin-top: 10px;
+  .block-value {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.3rem;
+    font-weight: 500;
+    font-family: monospace;
   }
 
-  .version-status.different {
-    background-color: rgba(255, 152, 0, 0.1);
-    color: #ff9800;
+  .time-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+
+  .target-date, .countdown-container {
+    background: #2c2c2c;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  .date-value {
+    color: #31FD9D;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  .countdown {
+    color: #31FD9D;
+    font-size: 1.2rem;
+    font-weight: 500;
+    font-family: monospace;
+  }
+
+  .loading, .error {
+    text-align: center;
+    padding: 2rem;
+    color: #888;
+  }
+
+  .error {
+    color: #ff4444;
+  }
+
+  .version-container {
+    background: #2c2c2c;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    text-align: center;
   }
 
   .version-number {
-    font-size: 1.2em;
-    font-weight: bold;
-  }
-
-  .checkmark {
-    margin-left: 10px;
-  }
-
-  .version-group {
-    margin-bottom: 15px;
-  }
-
-  button {
-    background-color: #4A90E2;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s;
-  }
-
-  button:hover {
-    background-color: #3A7BC8;
-  }
-
-  ul {
-    list-style-type: none;
-    padding-left: 20px;
-    margin-top: 10px;
-  }
-
-  li {
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: #e0e0e0;
-  }
-
-  .changelog-link {
-    display: inline-block;
-    margin-left: 10px;
-    color: #4A90E2;
-    text-decoration: none;
-    font-size: 14px;
-    transition: color 0.3s;
-  }
-
-  .changelog-link:hover {
-    color: #3A7BC8;
-    text-decoration: none;
+    color: #31FD9D;
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+    font-family: monospace;
   }
 
   @media (max-width: 600px) {
@@ -252,140 +472,96 @@
       padding: 10px;
     }
 
-    h2 {
-      font-size: 18px;
-      padding: 15px;
+    section {
+      padding: 1rem;
     }
 
-    .version-status {
-      padding: 15px;
+    .version-grid {
+      grid-template-columns: 1fr;
     }
 
-    button {
-      font-size: 12px;
-      padding: 8px 12px;
+    .info-grid {
+      grid-template-columns: 1fr;
     }
 
-    .changelog-link {
-      font-size: 12px;
+    .time-info {
+      grid-template-columns: 1fr;
     }
 
-    li {
-      font-size: 12px;
+    .date-value {
+      font-size: 0.75rem;
     }
   }
 
-  .version-boxes {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-    margin-top: 20px;
-  }
-
-  .version-box {
-    flex: 1;
-    background-color: #2c2c2c;
-    border-radius: 8px;
-    padding: 15px;
-  }
-
-  .version-box h3 {
-    margin-top: 0;
-    color: #4A90E2;
-    font-size: 18px;
-  }
-
-  .version-info {
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 15px;
-  }
-
-  .version-box.old {
-    border: 1px solid #ff9800;
-  }
-
-  .version-box.new {
-    border: 1px solid #4caf50;
-  }
-
-  .version-box button {
-    margin-right: 10px;
-  }
-
-  @media (max-width: 600px) {
-    .version-boxes {
-      flex-direction: column;
-    }
-
-    .version-box {
-      margin-bottom: 15px;
+  @media (max-width: 400px) {
+    .date-value {
+      font-size: 0.7rem;
     }
   }
 
-  .node-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 15px;
+  .approval-status {
+    margin-bottom: 1.5rem;
   }
 
-  .node-item {
-    background-color: #4A90E2;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 15px;
-    font-size: 12px;
-    font-weight: bold;
+  .threshold-marker {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    right: 34%;
+    width: 2px;
+    height: calc(100% + 8px);
+    background-color: #31FD9D;
+    opacity: 0.8;
   }
 
-  @media (max-width: 600px) {
-    .node-list {
-      gap: 8px;
-    }
-
-    .node-item {
-      font-size: 10px;
-      padding: 4px 8px;
-    }
+  .threshold-marker::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -2px;
+    width: 6px;
+    height: 6px;
+    background-color: #31FD9D;
+    border-radius: 50%;
+    transform: translateY(-50%);
   }
 
-  .action-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 10px;
+  .progress-bar {
+    position: relative;
+    margin: 1rem 0;
   }
 
-  .icon-button {
-    background-color: transparent;
-    border: 1px solid #4A90E2;
-    color: #4A90E2;
-    padding: 5px 10px;
-    border-radius: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    font-size: 14px;
-    height: 36px;
-    line-height: 1;
-    text-decoration: none;  /* Add this line to remove underline */
+  .approval-info {
+    margin-top: 0.5rem;
+    text-align: center;
   }
 
-  .icon-button:hover {
-    background-color: #4A90E2;
-    color: white;
+  .status {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
   }
 
-  .changelog-button {
-    width: auto;
-    padding: 5px 12px;
+  .status.approved {
+    background: rgba(49, 253, 157, 0.1);
+    color: #31FD9D;
   }
 
-  /* Remove the old button and changelog-link styles */
-  button, .changelog-link {
-    display: none;
+  .status.pending {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .approval-progress {
+    background-color: #31FD9D !important;
+    opacity: 0.5;
+  }
+
+  .sub-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
   }
 </style>
