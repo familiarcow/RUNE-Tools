@@ -217,26 +217,6 @@
       </div>
     {/key}
   </div>
-  
-  <div 
-    class="page-indicator"
-    on:click|stopPropagation={() => {
-      currentPage = (currentPage + 1) % totalPages;
-      handleUserInteraction();
-    }}
-  >
-    {#each Array(totalPages) as _, i}
-      <button 
-        class="dot" 
-        class:active={currentPage === i}
-        on:click|stopPropagation={() => {
-          currentPage = i;
-          handleUserInteraction();
-        }}
-        aria-label={`Go to page ${i + 1}`}
-      ></button>
-    {/each}
-  </div>
 </footer>
 
 <style>
@@ -284,14 +264,14 @@
     white-space: nowrap;
     overflow: hidden;
     color: rgba(255, 255, 255, 0.8);
-    padding-right: 60px;
+    padding-right: 1.5rem;
   }
 
   /* Add media query for smaller screens */
   @media (max-width: 600px) {
     .page {
-      font-size: 0.8rem;  /* Smaller font size for mobile */
-      padding-right: 50px;
+      font-size: 0.8rem;
+      padding-right: 1rem;
     }
     
     /* Adjust container height for smaller text */
@@ -312,7 +292,7 @@
   @media (max-width: 400px) {
     .page {
       font-size: 0.75rem;
-      padding-right: 40px;
+      padding-right: 0.75rem;
     }
   }
 
@@ -342,46 +322,5 @@
 
   footer span {
     color: rgba(255, 255, 255, 0.8);
-  }
-
-  .page-indicator {
-    display: flex;
-    gap: 4px;
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 8px;
-    z-index: 10;
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    cursor: pointer;
-  }
-
-  .page-indicator:hover {
-    background: rgba(0, 0, 0, 0.2);
-  }
-
-  .dot {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background-color: var(--text-color);
-    opacity: 0.3;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    border: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .dot:hover {
-    opacity: 0.5;
-    transform: scale(1.1);
-  }
-
-  .dot.active {
-    opacity: 0.8;
-    transform: scale(1.1);
   }
 </style> 
