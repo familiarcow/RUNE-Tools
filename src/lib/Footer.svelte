@@ -231,8 +231,18 @@
     gap: 0.25rem;
     user-select: none;
     touch-action: pan-x pan-y;
-    position: relative;
-    min-height: 40px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-height: 32px;
+    z-index: 100;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(
+      to bottom,
+      rgba(44, 44, 44, 0.95),
+      var(--surface-color)
+    );
   }
 
   .page-container {
@@ -242,6 +252,7 @@
     justify-content: center;
     overflow: hidden;
     height: 24px;
+    margin-top: 0;
   }
 
   .page {
@@ -253,12 +264,14 @@
     white-space: nowrap;
     overflow: hidden;
     color: rgba(255, 255, 255, 0.8);
+    padding-right: 60px;
   }
 
   /* Add media query for smaller screens */
   @media (max-width: 600px) {
     .page {
       font-size: 0.8rem;  /* Smaller font size for mobile */
+      padding-right: 50px;
     }
     
     /* Adjust container height for smaller text */
@@ -270,11 +283,16 @@
     .page {
       line-height: 20px;
     }
+    
+    footer {
+      padding: 0.25rem 1rem;
+    }
   }
 
   @media (max-width: 400px) {
     .page {
       font-size: 0.75rem;
+      padding-right: 40px;
     }
   }
 
@@ -310,16 +328,16 @@
     display: flex;
     gap: 4px;
     position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
     padding: 2px;
     z-index: 10;
   }
 
   .dot {
-    width: 4px;
-    height: 4px;
+    width: 3px;
+    height: 3px;
     border-radius: 50%;
     background-color: var(--text-color);
     opacity: 0.3;
