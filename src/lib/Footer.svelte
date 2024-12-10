@@ -156,7 +156,13 @@
   on:mouseenter={handleUserInteraction}
   on:keydown={handleKeydown}
 >
-  <div class="page-container">
+  <div 
+    class="page-container"
+    on:click={() => {
+      currentPage = (currentPage + 1) % totalPages;
+      handleUserInteraction();
+    }}
+  >
     {#key currentPage}
       <div 
         class="page"
@@ -170,7 +176,12 @@
           <span>
             {#each pages[currentPage].content.elements as element}
               {#if element.href}
-                <a href={element.href} target="_blank" class="source-link">
+                <a 
+                  href={element.href} 
+                  target="_blank" 
+                  class="source-link"
+                  on:click|stopPropagation
+                >
                   {element.text}
                 </a>
               {:else if element.emoji}
@@ -186,6 +197,7 @@
               href={pages[currentPage].content.href}
               target="_blank" 
               class="source-link"
+              on:click|stopPropagation
             >
               {pages[currentPage].content.text}
             </a>
@@ -196,6 +208,7 @@
               href={pages[currentPage].content.href}
               target="_blank" 
               class="source-link"
+              on:click|stopPropagation
             >
               {pages[currentPage].content.text}
             </a>
@@ -205,12 +218,18 @@
     {/key}
   </div>
   
-  <div class="page-indicator">
+  <div 
+    class="page-indicator"
+    on:click|stopPropagation={() => {
+      currentPage = (currentPage + 1) % totalPages;
+      handleUserInteraction();
+    }}
+  >
     {#each Array(totalPages) as _, i}
       <button 
         class="dot" 
         class:active={currentPage === i}
-        on:click={() => {
+        on:click|stopPropagation={() => {
           currentPage = i;
           handleUserInteraction();
         }}
@@ -253,6 +272,7 @@
     overflow: hidden;
     height: 24px;
     margin-top: 0;
+    cursor: pointer;
   }
 
   .page {
@@ -331,8 +351,15 @@
     right: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    padding: 2px;
+    padding: 8px;
     z-index: 10;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    cursor: pointer;
+  }
+
+  .page-indicator:hover {
+    background: rgba(0, 0, 0, 0.2);
   }
 
   .dot {
