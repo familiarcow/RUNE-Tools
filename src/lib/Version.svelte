@@ -119,15 +119,20 @@
   }
 
   function formatDate(date) {
-    return new Intl.DateTimeFormat('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    const timeStr = new Intl.DateTimeFormat('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       timeZoneName: 'short'
     }).format(date);
+
+    const dateStr = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(date);
+
+    return `${timeStr}\n${dateStr}`;
   }
 
   // Reactive statements to process data
@@ -317,7 +322,7 @@
     color: rgba(255, 255, 255, 0.9);
     font-size: 1.2rem;
     font-weight: 500;
-    font-family: monospace;
+    font-family: 'JetBrains Mono', monospace;
   }
 
   .version-grid {
@@ -349,6 +354,7 @@
     color: white;
     font-size: 1.1rem;
     font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
   }
 
   .progress-bar {
@@ -410,7 +416,7 @@
     color: rgba(255, 255, 255, 0.9);
     font-size: 1.3rem;
     font-weight: 500;
-    font-family: monospace;
+    font-family: 'JetBrains Mono', monospace;
   }
 
   .time-info {
@@ -430,15 +436,17 @@
     color: #31FD9D;
     font-size: 0.85rem;
     font-weight: 500;
-    white-space: nowrap;
-    line-height: 1.2;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: pre-line;
+    line-height: 1.6;
+    text-align: center;
   }
 
   .countdown {
     color: #31FD9D;
     font-size: 1.2rem;
     font-weight: 500;
-    font-family: monospace;
+    font-family: 'JetBrains Mono', monospace;
   }
 
   .loading, .error {
@@ -464,7 +472,7 @@
     font-size: 1.2rem;
     font-weight: 500;
     margin-top: 0.5rem;
-    font-family: monospace;
+    font-family: 'JetBrains Mono', monospace;
   }
 
   @media (max-width: 600px) {
@@ -489,13 +497,15 @@
     }
 
     .date-value {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
+      line-height: 1.5;
     }
   }
 
   @media (max-width: 400px) {
     .date-value {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
+      line-height: 1.4;
     }
   }
 
