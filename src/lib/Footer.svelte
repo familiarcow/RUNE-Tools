@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { fade, slide } from 'svelte/transition';
   import { cubicInOut } from 'svelte/easing';
+  import { audioPlaying } from './stores/audioStore';
 
   const emojis = ['🫡', '✍️', '💪', '🧙‍♂️', '🕺', '🏃‍♂️‍➡️', '🦅', '🐋', '🐉', '⚡️', '🌊', '🍷', '🍻', '🏄‍♂️', '🏆', '🎸', '🚀', '🗿', '🗽', '🏗️', '📠', '🔌', '🔮', '🔭', '💯', '🏴‍☠️', '🥷', '👑', '🪐', '🍦', '🍾', '🎯', '❤️', '☑️', '🆒'];
 
@@ -21,6 +22,32 @@
   const FIRST_PAGE_DURATION = 15000;  // 15 seconds
   const OTHER_PAGE_DURATION = 10000;  // 10 seconds
 
+  // Music tracks array
+  const musicTracks = [
+    '/assets/music/Also-Sprach-Zarathustra-PM-Music.mp3',
+    '/assets/music/Bach-Cello-Suite-No.-1-G-Major-PM-Music.mp3',
+    '/assets/music/Blue-Danube-PM-Music.mp3',
+    '/assets/music/Ride-of-the-Valkyries-PM-Music.mp3',
+    '/assets/music/Romeo-and-Juliet-PM-Music.mp3',
+    '/assets/music/Russian-Dance-PM-Music.mp3',
+    '/assets/music/The-Flower-Duet-PM-Music.mp3',
+    '/assets/music/We-Shop-Song-PM-Music.mp3',
+    '/assets/music/Winter-Vivaldi-PM-Music.mp3'
+  ];
+
+  let audio;
+  let currentTrackIndex = 0;
+  let currentTrackTitle = '';
+
+  function getTrackTitle(path) {
+    // Extract title from path and format it
+    return path
+      .split('/')
+      .pop()
+      .replace('-PM-Music.mp3', '')
+      .replace(/-/g, ' ');
+  }
+
   const pages = [
     {
       content: {
@@ -30,7 +57,8 @@
           { text: " by " },
           { href: "https://x.com/familiarcow", text: "familiarcow" },
           { emoji: true },
-          { href: "https://x.com/RuneDotTools", text: "Follow on 𝕏" }
+          { href: "https://x.com/RuneDotTools", text: "Follow on 𝕏" },
+          { type: 'sound' } // Add sound button element
         ]
       }
     },
@@ -138,6 +166,40 @@
     }
   }
 
+  function toggleSound() {
+    if (!audio) {
+      // Initialize audio on first play
+      audio = new Audio();
+      audio.addEventListener('ended', playNextTrack);
+      currentTrackIndex = Math.floor(Math.random() * musicTracks.length);
+      audio.src = musicTracks[currentTrackIndex];
+      currentTrackTitle = getTrackTitle(musicTracks[currentTrackIndex]);
+    }
+
+    if ($audioPlaying) {
+      audio.pause();
+      audioPlaying.set(false);
+    } else {
+      audio.play().catch(err => {
+        console.error('Error playing audio:', err);
+        audioPlaying.set(false);
+      });
+      audioPlaying.set(true);
+    }
+  }
+
+  function playNextTrack() {
+    if (!$audioPlaying) return;
+    
+    currentTrackIndex = (currentTrackIndex + 1) % musicTracks.length;
+    audio.src = musicTracks[currentTrackIndex];
+    currentTrackTitle = getTrackTitle(musicTracks[currentTrackIndex]);
+    audio.play().catch(err => {
+      console.error('Error playing next track:', err);
+      audioPlaying.set(false);
+    });
+  }
+
   onMount(() => {
     randomEmoji = getRandomEmoji();
     startAutoScroll();
@@ -145,6 +207,11 @@
 
   onDestroy(() => {
     clearTimeout(autoScrollTimer);
+    if (audio) {
+      audio.removeEventListener('ended', playNextTrack);
+      audio.pause();
+      audio = null;
+    }
   });
 </script>
 
@@ -175,7 +242,20 @@
         {#if pages[currentPage].content.type === 'links'}
           <span>
             {#each pages[currentPage].content.elements as element}
-              {#if element.href}
+              {#if element.type === 'sound'}
+                <button
+                  class="sound-button"
+                  on:click|stopPropagation={toggleSound}
+                  aria-label={$audioPlaying ? 'Stop music' : 'Play music'}
+                  title={currentTrackTitle}
+                >
+                  {#if $audioPlaying}
+                    🔊
+                  {:else}
+                    🔈
+                  {/if}
+                </button>
+              {:else if element.href}
                 <a 
                   href={element.href} 
                   target="_blank" 
@@ -322,5 +402,35 @@
 
   footer span {
     color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Add styles for sound button */
+  .sound-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 0 0.5rem;
+    color: rgba(255, 255, 255, 0.8);
+    transition: opacity 0.2s ease;
+    vertical-align: middle;
+    line-height: inherit;
+  }
+
+  .sound-button:hover {
+    opacity: 0.7;
+  }
+
+  /* Add media queries for the sound button to match text sizes */
+  @media (max-width: 600px) {
+    .sound-button {
+      font-size: 0.8rem;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .sound-button {
+      font-size: 0.75rem;
+    }
   }
 </style> 
