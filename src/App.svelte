@@ -12,7 +12,7 @@
   import Banner from './lib/Banner.svelte';
 
   const HOLIDAY_MODE = true; // Easy to toggle holiday features on/off
-  const SHOW_BANNER = true; // Easy to toggle banner on/off
+  const SHOW_BANNER = false; // Easy to toggle banner on/off
 
   let selectedApp = null;
   let addressParam = writable('');
