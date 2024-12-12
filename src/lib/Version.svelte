@@ -82,11 +82,25 @@
   }
 
   async function fetchUpgradeProposal() {
-    const response = await fetch(`${BASE_URL}/upgrade_proposals`);
-    const data = await response.json();
-    upgradeProposal = data[0];
-    if (upgradeProposal) {
-      await fetchUpgradeProposalDetails(upgradeProposal.name);
+    try {
+      const response = await fetch(`${BASE_URL}/upgrade_proposals`);
+      const data = await response.json();
+      
+      // Handle null response
+      if (!data) {
+        upgradeProposal = null;
+        upgradeProposalDetails = null;
+        return;
+      }
+      
+      upgradeProposal = data[0];
+      if (upgradeProposal) {
+        await fetchUpgradeProposalDetails(upgradeProposal.name);
+      }
+    } catch (error) {
+      console.error('Error fetching upgrade proposal:', error);
+      upgradeProposal = null;
+      upgradeProposalDetails = null;
     }
   }
 
@@ -573,5 +587,16 @@
     color: rgba(255, 255, 255, 0.6);
     font-size: 0.7rem;
     margin-bottom: 1rem;
+  }
+
+  .version-container .status {
+    margin-top: 1rem;
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
   }
 </style>
