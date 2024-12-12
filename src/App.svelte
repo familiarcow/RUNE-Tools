@@ -9,8 +9,10 @@
   import Snow from './lib/Snow.svelte';
   import TerminalText from './lib/TerminalText.svelte';
   import { writable } from 'svelte/store';
+  import Banner from './lib/Banner.svelte';
 
   const HOLIDAY_MODE = true; // Easy to toggle holiday features on/off
+  const SHOW_BANNER = true; // Easy to toggle banner on/off
 
   let selectedApp = null;
   let addressParam = writable('');
@@ -547,6 +549,10 @@
       </nav>
     </div>
   </header>
+  
+  {#if SHOW_BANNER}
+    <Banner />
+  {/if}
 
   {#if menuOpen}
     <div class="menu-overlay" on:click|self={toggleMenu} in:fade={{ duration: 200 }} out:fade={{ duration: 200 }}>
@@ -631,7 +637,7 @@
     display: flex;
     flex-direction: column;
     color: var(--text-color);
-    padding-top: 60px; /* Adjust this value based on your header height */
+    padding-top: calc(60px + var(--banner-height, 0px));
     position: relative;
   }
 
@@ -730,7 +736,7 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
-    padding-top: 20px;
+    padding-top: calc(20px + var(--banner-height, 0px));
     position: relative;
     z-index: 1;
     padding-bottom: 60px;
@@ -947,6 +953,16 @@
 
   .logo-wrapper:hover .holiday-logo {
     transform: scale(1.1);
+  }
+
+  :global(:root) {
+    --banner-height: 24px; /* Height of banner */
+  }
+
+  @media (max-width: 600px) {
+    :global(:root) {
+      --banner-height: 22px;
+    }
   }
 </style>
 
