@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { slide } from 'svelte/transition';
 
   interface Token {
     address: string;
@@ -25,7 +26,7 @@
 
   let tokenList: TokenList | null = null;
   let error: string | null = null;
-  let fallbackLogo = '/fallback-token-icon.png';
+  let fallbackLogo = '/assets/coins/RUNE-ICON.svg';
   let loadedLogos: { [key: string]: string } = {};
   let searchQuery = '';
   let loading = true;
@@ -120,6 +121,10 @@
     return `${address.slice(0, 10)}...${address.slice(-10)}`;
   }
 
+  function copyToClipboard(address: string) {
+    navigator.clipboard.writeText(address);
+  }
+
   onMount(() => {
     fetchTokenLists();
   });
@@ -210,7 +215,13 @@
                 <span class="chain-badge {token.chain.toLowerCase()}">{token.chain}</span>
               </div>
               <p class="symbol">{token.symbol}</p>
-              <p class="address" title={token.address}>{truncateAddress(token.address)}</p>
+              <p 
+                class="address" 
+                title="Click to copy address"
+                on:click={() => copyToClipboard(token.address)}
+              >
+                {truncateAddress(token.address)}
+              </p>
             </div>
           </div>
         {/each}
@@ -360,10 +371,15 @@
     margin: 0;
     cursor: pointer;
     transition: color 0.2s;
+    user-select: none;
   }
 
   .address:hover {
     color: #888;
+  }
+
+  .address:active {
+    color: #aaa;
   }
 
   .token-header {
