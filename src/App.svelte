@@ -497,6 +497,12 @@
   }
 
   $: appRows = groupIntoRows(apps, optimalColumns);
+
+  $: if (selectedApp) {
+    document.title = `${selectedApp.name} - RUNE Tools`;
+  } else {
+    document.title = "RUNE Tools";
+  }
 </script>
 
 <svelte:head>
