@@ -56,9 +56,9 @@
           { href: "https://github.com/cow9r/RUNE-Tools", text: "Source" },
           { text: " by " },
           { href: "https://x.com/familiarcow", text: "familiarcow" },
-          { type: 'sound' },
+          { emoji: true },
           { href: "https://x.com/RuneDotTools", text: "Follow on 𝕏" },
-          { emoji: true }
+          { type: 'sound' }
         ]
       }
     },
@@ -252,7 +252,7 @@
                   {#if $audioPlaying}
                     🔊
                   {:else}
-                    🔈
+                    🔇
                   {/if}
                 </button>
               {:else if element.href}
