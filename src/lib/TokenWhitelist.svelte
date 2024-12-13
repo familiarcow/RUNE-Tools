@@ -18,6 +18,7 @@
     logoURI: string;
     chain: 'ETH' | 'BSC' | 'AVAX';
     poolStatus?: string;
+    runeDepth?: number;
   }
 
   interface TokenList {
@@ -92,7 +93,8 @@
         const pool = pools.find(p => p.asset === poolAsset);
         return {
           ...token,
-          poolStatus: pool?.status
+          poolStatus: pool?.status,
+          runeDepth: pool ? Number(pool.balance_rune) / 1e8 : undefined
         };
       });
 
@@ -145,6 +147,13 @@
 
   function copyToClipboard(address: string) {
     navigator.clipboard.writeText(address);
+  }
+
+  function formatRuneAmount(amount: number | undefined): string {
+    if (!amount) return '';
+    if (amount < 10000) return '<10k';
+    if (amount < 1000000) return `${Math.round(amount / 1000)}k`;
+    return `${(amount / 1000000).toFixed(1)}M`;
   }
 
   onMount(() => {
@@ -237,7 +246,15 @@
                 <div class="badge-container">
                   <span class="chain-badge {token.chain.toLowerCase()}">{token.chain}</span>
                   {#if token.poolStatus}
-                    <span class="pool-badge {token.poolStatus.toLowerCase()}">{token.poolStatus}</span>
+                    <span class="pool-badge {token.poolStatus.toLowerCase()}">
+                      {token.poolStatus}
+                      {#if token.runeDepth}
+                        <span class="rune-depth">
+                          <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" />
+                          {formatRuneAmount(token.runeDepth)}
+                        </span>
+                      {/if}
+                    </span>
                   {/if}
                 </div>
               </div>
@@ -555,6 +572,8 @@
   }
 
   .pool-badge {
+    display: flex;
+    align-items: center;
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-size: 0.7rem;
@@ -570,5 +589,20 @@
   .pool-badge.staged {
     background: #f3ba2f;
     color: black;
+  }
+
+  .rune-depth {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .rune-depth img {
+    width: 12px;
+    height: 12px;
+    margin: 0;
   }
 </style>
