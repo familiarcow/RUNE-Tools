@@ -2,6 +2,13 @@
   import { onMount } from 'svelte';
   import { slide } from 'svelte/transition';
 
+  interface Pool {
+    asset: string;
+    status: 'Available' | 'Staged' | string;
+    balance_asset: string;
+    balance_rune: string;
+  }
+
   interface Token {
     address: string;
     chainId: number;
@@ -10,6 +17,7 @@
     decimals: number;
     logoURI: string;
     chain: 'ETH' | 'BSC' | 'AVAX';
+    poolStatus?: string;
   }
 
   interface TokenList {
@@ -41,12 +49,14 @@
     const symbol = token.symbol.toLowerCase();
     const address = token.address.toLowerCase();
     const chain = token.chain.toLowerCase();
+    const status = token.poolStatus?.toLowerCase() || '';
     
     const matchesSearch = !query || 
       name.includes(query) || 
       symbol.includes(query) || 
       address.includes(query) ||
-      chain.includes(query);
+      chain.includes(query) ||
+      status.includes(query);
 
     const matchesChain = selectedChain === 'ALL' || token.chain === selectedChain;
     
@@ -55,10 +65,11 @@
 
   async function fetchTokenLists() {
     try {
-      const [ethResponse, bscResponse, avaxResponse] = await Promise.all([
+      const [ethResponse, bscResponse, avaxResponse, poolsResponse] = await Promise.all([
         fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/common%2Ftokenlist%2Fethtokens%2Feth_mainnet_latest.json/raw?ref=develop'),
         fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/common%2Ftokenlist%2Fbsctokens%2Fbsc_mainnet_latest.json/raw?ref=develop'),
-        fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/common%2Ftokenlist%2Favaxtokens%2Favax_mainnet_latest.json/raw?ref=develop')
+        fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/common%2Ftokenlist%2Favaxtokens%2Favax_mainnet_latest.json/raw?ref=develop'),
+        fetch('https://thornode.ninerealms.com/thorchain/pools')
       ]);
 
       if (!ethResponse.ok || !bscResponse.ok || !avaxResponse.ok) 
@@ -74,12 +85,23 @@
       bscList.tokens = bscList.tokens.map(t => ({ ...t, chain: 'BSC' }));
       avaxList.tokens = avaxList.tokens.map(t => ({ ...t, chain: 'AVAX' }));
 
+      const pools: Pool[] = await poolsResponse.json();
+      
+      const enrichedTokens = [...ethList.tokens, ...bscList.tokens, ...avaxList.tokens].map(token => {
+        const poolAsset = `${token.chain}.${token.symbol}-${token.address.toUpperCase()}`;
+        const pool = pools.find(p => p.asset === poolAsset);
+        return {
+          ...token,
+          poolStatus: pool?.status
+        };
+      });
+
       tokenList = {
         name: 'THORChain Token Whitelist',
         timestamp: new Date().toISOString(),
         version: { major: 1, minor: 0, patch: 0 },
         keywords: ['thorchain', 'ethereum', 'bsc', 'avalanche'],
-        tokens: [...ethList.tokens, ...bscList.tokens, ...avaxList.tokens]
+        tokens: enrichedTokens
       };
 
       if (tokenList) {
@@ -187,7 +209,7 @@
         <div class="search-section">
           <input
             type="text"
-            placeholder="Search by name, symbol, or address..."
+            placeholder="Search by name, symbol, address, or pool status"
             bind:value={searchQuery}
             class="search-input"
           />
@@ -196,8 +218,8 @@
           <div class="info-section" transition:slide>
             This is a list of the tokens that are whitelisted for liquidity pool creation on THORChain. 
             These assets may or may not have a pool created already. New pools can be created by staging 
-            a pool with at least 10k in RUNE and the equivalent value of the token. Pools become active 
-            after a few days and will become inactive with less than 10k RUNE in liquidity.
+            a pool with at least 10k in RUNE and the equivalent value of the token. Pools transition from Staged to  Active 
+            after a few days. Active pools will revert to Staged with less than 10k RUNE in liquidity.
           </div>
         {/if}
       </div>
@@ -212,7 +234,12 @@
             <div class="token-info">
               <div class="token-header">
                 <h3>{token.name}</h3>
-                <span class="chain-badge {token.chain.toLowerCase()}">{token.chain}</span>
+                <div class="badge-container">
+                  <span class="chain-badge {token.chain.toLowerCase()}">{token.chain}</span>
+                  {#if token.poolStatus}
+                    <span class="pool-badge {token.poolStatus.toLowerCase()}">{token.poolStatus}</span>
+                  {/if}
+                </div>
               </div>
               <p class="symbol">{token.symbol}</p>
               <p 
@@ -519,5 +546,29 @@
     line-height: 1.5;
     color: #888;
     font-size: 0.95rem;
+  }
+
+  .badge-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .pool-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    background: #333;
+    color: white;
+  }
+
+  .pool-badge.available {
+    background: #00a67c;
+  }
+
+  .pool-badge.staged {
+    background: #f3ba2f;
+    color: black;
   }
 </style>
