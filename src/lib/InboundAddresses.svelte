@@ -7,6 +7,7 @@
   let error = null;
   let toastMessage = '';
   let showToast = false;
+  let assetPrices = new Map();
 
   const chainIcons = {
     BTC: 'bitcoin-btc-logo.svg',
@@ -17,6 +18,14 @@
     AVAX: 'avalanche-avax-logo.svg',
     GAIA: 'cosmos-atom-logo.svg',
     BSC: 'binance-coin-bnb-logo.svg',
+    THOR: 'Thorchain_icon.svg',
+  };
+
+  const chainToToken = {
+    THOR: 'RUNE',
+    BSC: 'BNB',
+    GAIA: 'ATOM',
+    BASE: 'ETH'
   };
 
   const clipboardIcon = `
@@ -28,11 +37,26 @@
 
   onMount(async () => {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/inbound_addresses');
-      if (!response.ok) {
-        throw new Error('Failed to fetch inbound addresses');
+      const [inboundResponse, poolsResponse] = await Promise.all([
+        fetch('https://thornode.ninerealms.com/thorchain/inbound_addresses'),
+        fetch('https://thornode.ninerealms.com/thorchain/pools')
+      ]);
+
+      if (!inboundResponse.ok || !poolsResponse.ok) {
+        throw new Error('Failed to fetch data');
       }
-      inboundAddresses = await response.json();
+
+      const [inboundData, poolsData] = await Promise.all([
+        inboundResponse.json(),
+        poolsResponse.json()
+      ]);
+
+      poolsData.forEach(pool => {
+        const priceInUsd = Number(pool.asset_tor_price) / 1e8;
+        assetPrices.set(pool.asset, priceInUsd);
+      });
+
+      inboundAddresses = inboundData;
       loading = false;
     } catch (e) {
       error = e.message;
@@ -57,15 +81,28 @@
     if (feeValue >= 0.001) {
       formattedFee = feeValue.toFixed(3);
     } else {
-      // Find the first non-zero digit
       const decimalPlaces = Math.abs(Math.floor(Math.log10(feeValue))) + 1;
       formattedFee = feeValue.toFixed(Math.max(decimalPlaces, 8));
     }
     
-    // Trim trailing zeros after the decimal point
     formattedFee = formattedFee.replace(/\.?0+$/, '');
+    const tokenName = chainToToken[chain] || chain;
     
-    return `${formattedFee} ${chain}`;
+    const assetKey = `${chain}.${tokenName}`;
+    const priceInUsd = assetPrices.get(assetKey);
+    const feeInUsd = priceInUsd ? feeValue * priceInUsd : null;
+    
+    return {
+      base: `${formattedFee} ${tokenName}`,
+      usd: feeInUsd ? `$${feeInUsd.toFixed(2)}` : null
+    };
+  }
+
+  function formatAddress(address) {
+    if (!address || address.length <= 16) return address;
+    const start = address.slice(0, 8);
+    const end = address.slice(-8);
+    return `${start}...${end}`;
   }
 </script>
 
@@ -89,7 +126,7 @@
               <div class="info-row">
                 <strong>Inbound Address:</strong>
                 <div class="address-container">
-                  <span class="address">{address.address}</span>
+                  <span class="address" title={address.address}>{formatAddress(address.address)}</span>
                   <button class="copy-icon" on:click={() => copyToClipboard(address.address, `${address.chain} inbound address`)}>
                     {@html clipboardIcon}
                   </button>
@@ -99,20 +136,27 @@
                 <div class="info-row">
                   <strong>Router Address:</strong>
                   <div class="address-container">
-                    <span class="address">{address.router}</span>
+                    <span class="address" title={address.router}>{formatAddress(address.router)}</span>
                     <button class="copy-icon" on:click={() => copyToClipboard(address.router, `${address.chain} router address`)}>
                       {@html clipboardIcon}
                     </button>
                   </div>
                 </div>
               {/if}
-              <div class="info-row">
-                <strong>Gas Rate:</strong>
-                <span>{address.gas_rate} {address.gas_rate_units}</span>
-              </div>
+              {#if address.chain !== 'THOR' && address.gas_rate}
+                <div class="info-row">
+                  <strong>Gas Rate:</strong>
+                  <span>{address.gas_rate} {address.gas_rate_units}</span>
+                </div>
+              {/if}
               <div class="info-row">
                 <strong>Outbound Fee:</strong>
-                <span>{formatOutboundFee(address.outbound_fee, address.chain)}</span>
+                <span>
+                  {formatOutboundFee(address.outbound_fee, address.chain).base}
+                  {#if formatOutboundFee(address.outbound_fee, address.chain).usd}
+                    <span class="usd-amount">({formatOutboundFee(address.outbound_fee, address.chain).usd})</span>
+                  {/if}
+                </span>
               </div>
             </div>
           </div>
@@ -155,79 +199,112 @@
 
   @media (min-width: 1400px) {
     .card-grid {
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 1200px;
+      margin: 0 auto;
     }
   }
 
   .card {
     background-color: var(--surface-color);
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.1);
   }
 
   .card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   }
 
   .card-header {
     display: flex;
     align-items: center;
-    padding: 1rem;
-    background-color: #4A90E2;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #4A90E2, #357ABD);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   }
 
   .chain-icon {
-    width: 24px;
-    height: 24px;
-    margin-right: 0.5rem;
+    width: 28px;
+    height: 28px;
+    margin-right: 0.75rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
   }
 
   .card-header h2 {
     margin: 0;
-    color: #ecf0f1;
-    font-size: 1.2rem;
+    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   .card-content {
-    padding: 1rem;
+    padding: 1.25rem;
   }
 
   .info-row {
-    margin: 0.5rem 0;
+    margin: 0.75rem 0;
     display: flex;
     flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .info-row:first-child {
+    margin-top: 0;
+  }
+
+  .info-row:last-child {
+    margin-bottom: 0;
   }
 
   .info-row strong {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted, #666);
   }
 
   .address-container {
     display: flex;
     align-items: center;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
   }
 
   .address {
-    font-family: monospace;
-    word-break: break-all;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
     font-size: 0.9rem;
     flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: default;
+    color: var(--text-color);
   }
 
   .copy-icon {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0;
+    padding: 0.25rem;
     margin-left: 0.5rem;
-    color: #4A90E2;
-    transition: color 0.3s ease;
+    color: var(--text-muted, #666);
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
   }
 
   .copy-icon:hover {
-    color: #3A7BC8;
+    color: var(--text-color);
+    background-color: rgba(0, 0, 0, 0.05);
   }
 
   .error {
@@ -248,6 +325,12 @@
     z-index: 1000;
   }
 
+  .usd-amount {
+    font-size: 0.85em;
+    color: var(--text-muted, #666);
+    margin-left: 0.25rem;
+  }
+
   @media (max-width: 600px) {
     .container {
       padding: 0 1rem;
@@ -261,20 +344,33 @@
       grid-template-columns: 1fr;
     }
 
-    .card-header h2 {
-      font-size: 1rem;
+    .card-header {
+      padding: 1rem;
     }
 
     .card-content {
-      padding: 0.75rem;
+      padding: 1rem;
     }
 
-    .info-row {
-      font-size: 0.9rem;
+    .chain-icon {
+      width: 24px;
+      height: 24px;
     }
 
-    .address {
+    .card-header h2 {
+      font-size: 1.1rem;
+    }
+
+    .info-row strong {
       font-size: 0.8rem;
+    }
+
+    .address-container {
+      padding: 0.4rem 0.6rem;
+    }
+
+    .usd-amount {
+      font-size: 0.8em;
     }
   }
 </style>
