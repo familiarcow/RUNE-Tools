@@ -269,25 +269,34 @@
     position: sticky;
     top: 0;
     background: #111;
-    padding: 1.5rem;
+    padding: 1rem;
     z-index: 10;
     border: 1px solid #333;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
     margin: 1rem;
     width: calc(100% - 2rem);
+    box-sizing: border-box;
   }
 
   .title-section {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 1rem;
     background: #1a1a1a;
     padding: 1rem;
     border-radius: 12px;
     border: 1px solid #333;
+  }
+
+  @media (min-width: 768px) {
+    .title-section {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
   }
 
   .title-section h2 {
@@ -298,6 +307,7 @@
 
   .chain-filters {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
   }
 
@@ -310,6 +320,20 @@
     cursor: pointer;
     font-weight: 500;
     transition: all 0.2s;
+    flex: 1;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  @media (min-width: 768px) {
+    .chain-filter {
+      flex: 0 1 auto;
+    }
+
+    .header {
+      padding: 1.5rem;
+      gap: 1.5rem;
+    }
   }
 
   .chain-filter:hover {
