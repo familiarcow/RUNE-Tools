@@ -265,7 +265,9 @@
                   {element.text}
                 </a>
               {:else if element.emoji}
-                {" "}{getRandomEmoji()}{" "}
+                <span class="emoji-wrapper">
+                  {getRandomEmoji()}
+                </span>
               {:else}
                 {element.text}
               {/if}
@@ -409,5 +411,17 @@
     .sound-button {
       font-size: 0.75rem;
     }
+  }
+
+  .emoji-wrapper {
+    padding: 0 0.5rem;
+    opacity: 0.9;
+    transition: all 0.2s ease;
+    display: inline;
+  }
+
+  .emoji-wrapper:hover {
+    opacity: 1;
+    transform: scale(1.1);
   }
 </style> 
