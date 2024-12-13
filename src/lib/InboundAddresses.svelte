@@ -28,6 +28,18 @@
     BASE: 'ETH'
   };
 
+  const chainExplorers = {
+    THOR: 'https://runescan.io/address/',
+    BTC: 'https://mempool.space/address/',
+    ETH: 'https://etherscan.io/address/',
+    BCH: 'https://blockchair.com/bitcoin-cash/address/',
+    LTC: 'https://blockchair.com/litecoin/address/',
+    DOGE: 'https://blockchair.com/dogecoin/address/',
+    AVAX: 'https://snowtrace.io/address/',
+    GAIA: 'https://www.mintscan.io/cosmos/address/',
+    BSC: 'https://bscscan.com/address/',
+  };
+
   const clipboardIcon = `
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
@@ -35,21 +47,34 @@
     </svg>
   `;
 
+  const linkIcon = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+      <polyline points="15 3 21 3 21 9"></polyline>
+      <line x1="10" y1="14" x2="21" y2="3"></line>
+    </svg>
+  `;
+
   onMount(async () => {
     try {
-      const [inboundResponse, poolsResponse] = await Promise.all([
+      const [inboundResponse, poolsResponse, networkResponse] = await Promise.all([
         fetch('https://thornode.ninerealms.com/thorchain/inbound_addresses'),
-        fetch('https://thornode.ninerealms.com/thorchain/pools')
+        fetch('https://thornode.ninerealms.com/thorchain/pools'),
+        fetch('https://thornode.ninerealms.com/thorchain/network')
       ]);
 
-      if (!inboundResponse.ok || !poolsResponse.ok) {
+      if (!inboundResponse.ok || !poolsResponse.ok || !networkResponse.ok) {
         throw new Error('Failed to fetch data');
       }
 
-      const [inboundData, poolsData] = await Promise.all([
+      const [inboundData, poolsData, networkData] = await Promise.all([
         inboundResponse.json(),
-        poolsResponse.json()
+        poolsResponse.json(),
+        networkResponse.json()
       ]);
+
+      const runePrice = Number(networkData.rune_price_in_tor) / 1e8;
+      assetPrices.set('THOR.RUNE', runePrice);
 
       poolsData.forEach(pool => {
         const priceInUsd = Number(pool.asset_tor_price) / 1e8;
@@ -127,9 +152,20 @@
                 <strong>Inbound Address:</strong>
                 <div class="address-container">
                   <span class="address" title={address.address}>{formatAddress(address.address)}</span>
-                  <button class="copy-icon" on:click={() => copyToClipboard(address.address, `${address.chain} inbound address`)}>
-                    {@html clipboardIcon}
-                  </button>
+                  <div class="button-group">
+                    <button class="icon-button" on:click={() => copyToClipboard(address.address, `${address.chain} inbound address`)}>
+                      {@html clipboardIcon}
+                    </button>
+                    <a 
+                      href={chainExplorers[address.chain] + address.address} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      class="icon-button"
+                      title="View on block explorer"
+                    >
+                      {@html linkIcon}
+                    </a>
+                  </div>
                 </div>
               </div>
               {#if address.router}
@@ -137,9 +173,20 @@
                   <strong>Router Address:</strong>
                   <div class="address-container">
                     <span class="address" title={address.router}>{formatAddress(address.router)}</span>
-                    <button class="copy-icon" on:click={() => copyToClipboard(address.router, `${address.chain} router address`)}>
-                      {@html clipboardIcon}
-                    </button>
+                    <div class="button-group">
+                      <button class="icon-button" on:click={() => copyToClipboard(address.router, `${address.chain} router address`)}>
+                        {@html clipboardIcon}
+                      </button>
+                      <a 
+                        href={chainExplorers[address.chain] + address.router} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="icon-button"
+                        title="View on block explorer"
+                      >
+                        {@html linkIcon}
+                      </a>
+                    </div>
                   </div>
                 </div>
               {/if}
@@ -181,19 +228,19 @@
   .container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0 2rem;
+    padding: 0 1rem;
   }
 
   h1 {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     font-size: 1.5rem;
   }
 
   .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1rem;
+    gap: 0.75rem;
     max-width: 100%;
   }
 
@@ -222,15 +269,15 @@
   .card-header {
     display: flex;
     align-items: center;
-    padding: 1.25rem;
+    padding: 0.75rem 1rem;
     background: linear-gradient(135deg, #4A90E2, #357ABD);
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   }
 
   .chain-icon {
-    width: 28px;
-    height: 28px;
-    margin-right: 0.75rem;
+    width: 24px;
+    height: 24px;
+    margin-right: 0.5rem;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
   }
 
@@ -243,14 +290,14 @@
   }
 
   .card-content {
-    padding: 1.25rem;
+    padding: 0.75rem 1rem;
   }
 
   .info-row {
-    margin: 0.75rem 0;
+    margin: 0.5rem 0;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.25rem;
   }
 
   .info-row:first-child {
@@ -262,19 +309,24 @@
   }
 
   .info-row strong {
-    margin-bottom: 0;
+    margin-bottom: 0.5rem;
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-muted, #666);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .address-container {
     display: flex;
     align-items: center;
-    background-color: rgba(0, 0, 0, 0.03);
-    border-radius: 6px;
+    background: linear-gradient(to right, rgba(74, 144, 226, 0.05), rgba(74, 144, 226, 0.02));
+    border-radius: 8px;
     padding: 0.5rem 0.75rem;
+    border: 1px solid rgba(74, 144, 226, 0.1);
+    position: relative;
   }
 
   .address {
@@ -286,25 +338,37 @@
     text-overflow: ellipsis;
     cursor: default;
     color: var(--text-color);
+    letter-spacing: 0.5px;
   }
 
-  .copy-icon {
+  .button-group {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+  }
+
+  .icon-button {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0.25rem;
-    margin-left: 0.5rem;
-    color: var(--text-muted, #666);
-    transition: color 0.2s ease;
+    padding: 0.35rem;
+    color: #4A90E2;
+    opacity: 0.8;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 4px;
   }
 
-  .copy-icon:hover {
-    color: var(--text-color);
-    background-color: rgba(0, 0, 0, 0.05);
+  .icon-button:hover {
+    opacity: 1;
+    background-color: rgba(74, 144, 226, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .icon-button:active {
+    transform: translateY(0);
   }
 
   .error {
@@ -333,7 +397,7 @@
 
   @media (max-width: 600px) {
     .container {
-      padding: 0 1rem;
+      padding: 0 0.75rem;
     }
 
     h1 {
@@ -345,11 +409,11 @@
     }
 
     .card-header {
-      padding: 1rem;
+      padding: 0.75rem;
     }
 
     .card-content {
-      padding: 1rem;
+      padding: 0.75rem;
     }
 
     .chain-icon {
@@ -367,6 +431,14 @@
 
     .address-container {
       padding: 0.4rem 0.6rem;
+    }
+
+    .copy-icon {
+      padding: 0.3rem;
+    }
+
+    .address {
+      font-size: 0.85rem;
     }
 
     .usd-amount {
