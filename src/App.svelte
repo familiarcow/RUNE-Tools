@@ -127,6 +127,13 @@
       description: "Check liquidity providers and LP details for THORChain pools" 
     },
     { 
+      name: "Token Whitelist", 
+      component: () => import("./lib/TokenWhitelist.svelte"), 
+      icon: "✏️", 
+      path: "token-whitelist", 
+      description: "Check THORChain's token whitelist" 
+    },
+    { 
       name: "Rune Pool", 
       component: () => import("./lib/RunePool.svelte"), 
       icon: "🏊", 
