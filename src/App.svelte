@@ -648,14 +648,15 @@
   }
 
   header {
-    background-color: var(--surface-color);
+    background: rgba(44, 44, 44, 0.85);
+    backdrop-filter: blur(10px);
     padding: 0.5rem 1rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 1000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .header-content {
@@ -676,13 +677,13 @@
     position: relative;
     display: inline-block;
     cursor: pointer;
+    transform: scale(1.05);
   }
 
   .logo {
     height: 2rem;
     width: auto;
     max-width: 100%;
-
   }
 
   .original-logo {
@@ -696,14 +697,6 @@
     left: 0;
     z-index: 1;
     opacity: 0;
-  }
-
-  .logo-wrapper:hover .original-logo {
-    opacity: 0;
-  }
-
-  .logo-wrapper:hover .laser-logo {
-    opacity: 1;
   }
 
   .title-container {
@@ -954,7 +947,7 @@
     height: 2rem;
     width: auto;
     max-width: 100%;
-    transition: transform 0.3s ease;
+    transform: scale(1.1);
   }
 
   .logo-wrapper:hover .holiday-logo {

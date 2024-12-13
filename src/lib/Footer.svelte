@@ -56,9 +56,9 @@
           { href: "https://github.com/cow9r/RUNE-Tools", text: "Source" },
           { text: " by " },
           { href: "https://x.com/familiarcow", text: "familiarcow" },
-          { emoji: true },
+          { type: 'sound' },
           { href: "https://x.com/RuneDotTools", text: "Follow on 𝕏" },
-          { type: 'sound' } // Add sound button element
+          { emoji: true }
         ]
       }
     },
@@ -302,8 +302,8 @@
 <style>
   footer {
     padding: 0.5rem 1.5rem;
-    background-color: var(--surface-color);
-    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.1);
+    background: rgba(44, 44, 44, 0.85);
+    backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -317,11 +317,6 @@
     min-height: 32px;
     z-index: 100;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    background: linear-gradient(
-      to bottom,
-      rgba(44, 44, 44, 0.95),
-      var(--surface-color)
-    );
   }
 
   .page-container {
@@ -347,42 +342,8 @@
     padding-right: 1.5rem;
   }
 
-  /* Add media query for smaller screens */
-  @media (max-width: 600px) {
-    .page {
-      font-size: 0.8rem;
-      padding-right: 1rem;
-    }
-    
-    /* Adjust container height for smaller text */
-    .page-container {
-      height: 20px;
-    }
-    
-    /* Adjust line height to match new container height */
-    .page {
-      line-height: 20px;
-    }
-    
-    footer {
-      padding: 0.25rem 1rem;
-    }
-  }
-
-  @media (max-width: 400px) {
-    .page {
-      font-size: 0.75rem;
-      padding-right: 0.75rem;
-    }
-  }
-
-  /* Reset all link styles in footer */
-  footer a,
-  footer a:visited,
-  footer a:active,
-  footer a:link {
-    color: #31FD9D;
-    text-decoration: none;
+  footer span {
+    color: rgba(255, 255, 255, 0.8);
   }
 
   .source-link,
@@ -392,19 +353,15 @@
     color: #31FD9D;
     text-decoration: none;
     font-weight: 600;
-    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
     opacity: 0.95;
   }
 
   .source-link:hover {
     opacity: 1;
+    text-shadow: 0 0 8px rgba(49, 253, 157, 0.3);
   }
 
-  footer span {
-    color: rgba(255, 255, 255, 0.8);
-  }
-
-  /* Add styles for sound button */
   .sound-button {
     background: none;
     border: none;
@@ -412,23 +369,43 @@
     font-size: 0.95rem;
     padding: 0 0.5rem;
     color: rgba(255, 255, 255, 0.8);
-    transition: opacity 0.2s ease;
-    vertical-align: middle;
-    line-height: inherit;
+    transition: all 0.2s ease;
+    display: inline;
+    margin: 0;
+    opacity: 0.9;
   }
 
   .sound-button:hover {
-    opacity: 0.7;
+    opacity: 1;
+    transform: scale(1.1);
   }
 
-  /* Add media queries for the sound button to match text sizes */
   @media (max-width: 600px) {
+    footer {
+      padding: 0.25rem 1rem;
+    }
+
+    .page {
+      font-size: 0.8rem;
+      padding-right: 1rem;
+      line-height: 20px;
+    }
+    
+    .page-container {
+      height: 20px;
+    }
+    
     .sound-button {
       font-size: 0.8rem;
     }
   }
 
   @media (max-width: 400px) {
+    .page {
+      font-size: 0.75rem;
+      padding-right: 0.75rem;
+    }
+    
     .sound-button {
       font-size: 0.75rem;
     }
