@@ -219,7 +219,7 @@
 
   const fetchSupply = async () => {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/cosmos/bank/v1beta1/supply/rune");
+      const response = await fetch("https://thornode.ninerealms.com/cosmos/bank/v1beta1/supply/by_denom?denom=rune");
       const data = await response.json();
       const totalSupplyInRune = Number(data.amount.amount) / 1e8;
       tweenedTotalSupply.set(totalSupplyInRune);
@@ -239,7 +239,7 @@
 
   const fetchSupplyFromLiquify = async () => {
     try {
-      const response = await fetch("https://thornode.thorchain.liquify.com/cosmos/bank/v1beta1/supply/rune");
+      const response = await fetch("https://thornode.thorchain.liquify.com/cosmos/bank/v1beta1/supply/by_denom?denom=rune");
       const data = await response.json();
       const totalSupplyInRune = Number(data.amount.amount) / 1e8;
       tweenedTotalSupply.set(totalSupplyInRune);
