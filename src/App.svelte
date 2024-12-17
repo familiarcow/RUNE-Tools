@@ -197,6 +197,16 @@
     },
   ];
 
+  const hiddenApps = [
+    { 
+      name: "Buy", 
+      component: () => import("./lib/BuyRune.svelte"), 
+      icon: "💵", 
+      path: "buy", 
+      description: "Buy RUNE" 
+    },
+  ];
+
   const [send, receive] = crossfade({
     duration: 400,
     fallback(node, params) {
@@ -308,7 +318,7 @@
 
   async function handlePopState() {
     const path = window.location.pathname.slice(1).split('/')[0];
-    const app = apps.find(a => a.path === path);
+    const app = [...apps, ...hiddenApps].find(a => a.path === path);
     selectedApp = app || null;
 
     if (app) {
