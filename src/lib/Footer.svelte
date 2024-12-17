@@ -15,7 +15,7 @@
   let startX = 0;
   let startY = 0;
   let isDragging = false;
-  const totalPages = 2;
+  const totalPages = 3;
   let autoScrollTimer;
   let isUserInteracting = false;
 
@@ -67,6 +67,13 @@
         type: 'vultisig',
         href: "https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a",
         text: "Secure your RUNE & register for the Vultisig airdrop campaign"
+      }
+    },
+    {
+      content: {
+        type: 'thorswap',
+        href: "https://app.thorswap.finance/swap?ref=-",
+        text: "Trade RUNE and swap native assets on THORSwap"
       }
     }
   ];
@@ -284,7 +291,7 @@
               {pages[currentPage].content.text}
             </a>
           </span>
-        {:else if pages[currentPage].content.type === 'feedback'}
+        {:else if pages[currentPage].content.type === 'thorswap'}
           <span>
             <a 
               href={pages[currentPage].content.href}

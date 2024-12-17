@@ -37,6 +37,7 @@ declare module '$env/static/private' {
 	export const REPL_OWNER: string;
 	export const TERM_PROGRAM_VERSION: string;
 	export const configureFlags: string;
+	export const REPLIT_SSL: string;
 	export const NIXPKGS_ALLOW_UNFREE: string;
 	export const mesonFlags: string;
 	export const npm_package_integrity: string;
@@ -106,6 +107,7 @@ declare module '$env/static/private' {
 	export const npm_lifecycle_script: string;
 	export const doCheck: string;
 	export const VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
+	export const npm_config_force: string;
 	export const REPLIT_RTLD_LOADER: string;
 	export const npm_package_optional: string;
 	export const npm_config_npm_version: string;
@@ -226,6 +228,7 @@ declare module '$env/dynamic/private' {
 		REPL_OWNER: string;
 		TERM_PROGRAM_VERSION: string;
 		configureFlags: string;
+		REPLIT_SSL: string;
 		NIXPKGS_ALLOW_UNFREE: string;
 		mesonFlags: string;
 		npm_package_integrity: string;
@@ -295,6 +298,7 @@ declare module '$env/dynamic/private' {
 		npm_lifecycle_script: string;
 		doCheck: string;
 		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
+		npm_config_force: string;
 		REPLIT_RTLD_LOADER: string;
 		npm_package_optional: string;
 		npm_config_npm_version: string;

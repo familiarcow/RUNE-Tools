@@ -10,7 +10,6 @@
   import TerminalText from './lib/TerminalText.svelte';
   import { writable } from 'svelte/store';
   import Banner from './lib/Banner.svelte';
-
   const HOLIDAY_MODE = true; // Easy to toggle holiday features on/off
   const SHOW_BANNER = false; // Easy to toggle banner on/off
 
