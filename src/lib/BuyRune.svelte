@@ -753,7 +753,8 @@
         </div>
       {:else}
         <div class="connect-prompt">
-          <p>Connect your wallet to buy RUNE with ETH or stablecoins</p>
+          <p>Connect your Web3 wallet to buy RUNE with ETH or stablecoins</p>
+          <p>Use MetaMask, Coinbase Wallet, Phantom, CTRL, or any other Web3 wallet.</p>
         </div>
       {/if}
 
