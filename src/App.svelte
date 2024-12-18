@@ -189,6 +189,13 @@
       description: "THORChad your profile picture" 
     },
     { 
+      name: "Buy RUNE", 
+      component: () => import("./lib/BuyRune.svelte"), 
+      icon: "💵", 
+      path: "buy", 
+      description: "Buy RUNE with ETH or Stablecoins" 
+    },
+    { 
       name: "Shop", 
       icon: "🏪", 
       path: "shop", 
@@ -197,15 +204,7 @@
     },
   ];
 
-  const hiddenApps = [
-    { 
-      name: "Buy", 
-      component: () => import("./lib/BuyRune.svelte"), 
-      icon: "💵", 
-      path: "buy", 
-      description: "Buy RUNE" 
-    },
-  ];
+  const hiddenApps = [];
 
   const [send, receive] = crossfade({
     duration: 400,

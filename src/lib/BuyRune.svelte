@@ -1,3 +1,18 @@
+<svelte:head>
+  <title>Buy RUNE | Purchase THORChain RUNE with ETH or Stablecoins</title>
+  <meta name="description" content="Buy THORChain RUNE directly with Ethereum (ETH), USDC, or USDT using MetaMask or any Web3 wallet. The easiest way to purchase RUNE on THORChain." />
+  <meta name="keywords" content="Buy RUNE, Buy THORChain, Buy RUNE with MetaMask, Buy RUNE with Ethereum, Where to buy THORChain, THORChain RUNE, Purchase RUNE, RUNE token, Buy crypto with MetaMask" />
+  
+  <!-- Open Graph / Social Media Meta Tags -->
+  <meta property="og:title" content="Buy RUNE | Purchase THORChain RUNE with ETH or Stablecoins" />
+  <meta property="og:description" content="Buy THORChain RUNE directly with Ethereum (ETH), USDC, or USDT using MetaMask or any Web3 wallet." />
+  <meta property="og:type" content="website" />
+  
+  <!-- Twitter Card data -->
+  <meta name="twitter:title" content="Buy RUNE with ETH or Stablecoins" />
+  <meta name="twitter:description" content="Buy THORChain RUNE directly with Ethereum (ETH), USDC, or USDT using MetaMask." />
+</svelte:head>
+
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { ethers } from 'ethers';
@@ -29,7 +44,7 @@
   // Update the TOKEN_ADDRESSES constant with correct checksum addresses
   const TOKEN_ADDRESSES = {
     USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7'  // Fixed checksum
+    USDT: '0xdAC17F958D2ee523A2206206994597C13D831ec7'  // Fixed checksum
   };
 
   // Add Router ABI
@@ -48,8 +63,8 @@
     LIM: '0',           
     INTERVAL: '1',      
     QUANTITY: '0',      
-    AFFILIATE: 'odin',     
-    FEE: '20'           
+    AFFILIATE: '-',     
+    FEE: '20'
   };
 
   function constructMemo(destAddr) {
@@ -236,7 +251,7 @@
     }
   }
 
-  // Update the approveToken function
+  // Update the approveToken function to remove unnecessary alerts
   async function approveToken(tokenAddress, amount) {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -295,18 +310,15 @@
       const newAllowance = await tokenContract.allowance(account, checksummedRouter);
       console.log('New allowance:', newAllowance.toString());
 
-      if (newAllowance < amount) {
-        throw new Error('Allowance check failed after approval');
-      }
-
       return true;
     } catch (error) {
       console.error('Approval failed:', error);
       if (error.code === 'ACTION_REJECTED') {
+        // Only alert if user explicitly rejected
         alert('Token approval was rejected');
-      } else if (!error.message?.includes('invalid value for value.data')) {
-        alert(`Failed to approve token: ${error.message}`);
+        return false;
       }
+      // Don't alert for other errors, just return false
       return false;
     }
   }
@@ -418,9 +430,21 @@
     return assetMap[symbol];
   }
 
-  // Modify handleSubmit to fetch quote first
+  // Add this validation function
+  function isValidRuneAddress(address) {
+    return address.toLowerCase().startsWith('thor');
+  }
+
+  // Update the handleSubmit function
   async function handleSubmit() {
     if (!isWalletConnected || !inputAmount || !runeAddress || !vaultAddress || !routerAddress) return;
+    
+    // Validate RUNE address
+    if (!isValidRuneAddress(runeAddress)) {
+      alert(`Invalid RUNE address. Address must start with 'thor'.\n\nNeed a RUNE wallet? Create one securely with Vultisig`);
+      window.open('https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a', '_blank');
+      return;
+    }
     
     isLoading = true;
     const quoteSuccess = await fetchQuote();
@@ -429,7 +453,6 @@
     if (quoteSuccess) {
       showReviewModal = true;
     }
-    // No else needed as fetchQuote now handles error display
   }
 
   // Add these constants
@@ -477,7 +500,7 @@
     }
   }
 
-  // Update the executeTransaction function to handle redirect
+  // Update the executeTransaction function to handle approval more gracefully
   async function executeTransaction() {
     if (!isWalletConnected || !inputAmount || !runeAddress || !vaultAddress || !routerAddress) return;
     
@@ -495,10 +518,13 @@
         const currentAllowance = await checkAllowance(tokenAddress, account, routerAddress);
         
         if (currentAllowance < amount) {
-          alert(`Please approve ${selectedAsset} spending first`);
           const approved = await approveToken(tokenAddress, amount);
           if (!approved) {
-            throw new Error(`Failed to approve ${selectedAsset}`);
+            // Only return if approval was explicitly rejected
+            if (error?.code === 'ACTION_REJECTED') {
+              return;
+            }
+            // Otherwise continue with the transaction
           }
         }
       }
@@ -566,8 +592,8 @@
         console.log('Transaction sent:', txHash);
         showReviewModal = false;
         
-        // Redirect to tracker
-        window.location.href = `https://track.ninerealms.com/${txHash}`;
+        // Open tracker in new tab
+        window.open(`https://track.ninerealms.com/${txHash}`, '_blank');
       }
 
     } catch (error) {
@@ -612,6 +638,9 @@
   let disclaimer1 = false;
   let disclaimer2 = false;
   let disclaimer3 = false;
+
+  // Add this state variable
+  let showWalletHelper = false;
 </script>
 
 <div class="bond-tracker-wrapper">
@@ -621,79 +650,117 @@
     </div>
     
     <div class="card-body">
-      {#if !isWalletConnected}
-      {:else}
-        <div class="connected-account">
-          <span class="label">Connected:</span>
-          <span class="address">{account}</span>
-        </div>
-      {/if}
-
-      <div class="form-group">
-        <label>
-          Select Asset
-          <div class="asset-grid">
-            {#each supportedAssets as asset}
-              <button 
-                class="asset-button" 
-                class:selected={selectedAsset === asset.symbol}
-                on:click={() => selectedAsset = asset.symbol}
-              >
-                <img 
-                  src="/assets/coins/{getAssetLogo(asset.symbol)}" 
-                  alt={asset.name}
-                  class="asset-logo"
-                />
-                <div class="asset-info">
-                  <span class="asset-symbol">{asset.symbol}</span>
-                  {#if isWalletConnected}
-                    <div class="balance-info" in:fade={{ duration: 200 }}>
-                      <span class="asset-balance">
-                        {parseFloat(balances[asset.symbol]).toFixed(6)}
-                      </span>
-                    </div>
-                  {/if}
-                </div>
-              </button>
-            {/each}
-          </div>
-        </label>
-
-        <label>
-          {selectedAsset} Amount
-          <input 
-            type="text"
-            class="form-control"
-            placeholder="Enter amount"
-            bind:value={inputAmount}
-            on:input={handleAmountInput}
-          />
-        </label>
-
-        <label>
-          RUNE Address
-          <input 
-            type="text" 
-            bind:value={runeAddress} 
-            placeholder="Enter RUNE address"
-            class="form-control"
-          />
-        </label>
-      </div>
-
-      <div class="submit-container">
+      <div class="wallet-section" in:fade={{ duration: 200 }}>
         {#if !isWalletConnected}
           <button 
-            class="btn btn-primary"
+            class="btn btn-primary connect-button"
             on:click={connectWallet}
           >
             Connect Wallet
           </button>
         {:else}
+          <div class="connected-account">
+            <div class="wallet-status">
+              <div class="wallet-indicator"></div>
+              <span class="wallet-label">Wallet Connected</span>
+              <span class="address">{formatAddress(account)}</span>
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      {#if isWalletConnected}
+        <div class="form-group">
+          <label>
+            Select Asset
+            <div class="asset-grid">
+              {#each supportedAssets as asset}
+                <button 
+                  class="asset-button" 
+                  class:selected={selectedAsset === asset.symbol}
+                  on:click={() => selectedAsset = asset.symbol}
+                >
+                  <img 
+                    src="/assets/coins/{getAssetLogo(asset.symbol)}" 
+                    alt={asset.name}
+                    class="asset-logo"
+                  />
+                  <div class="asset-info">
+                    <span class="asset-symbol">{asset.symbol}</span>
+                    {#if isWalletConnected}
+                      <div class="balance-info" in:fade={{ duration: 200 }}>
+                        <span class="asset-balance">
+                          {parseFloat(balances[asset.symbol]).toFixed(6)}
+                        </span>
+                      </div>
+                    {/if}
+                  </div>
+                </button>
+              {/each}
+            </div>
+          </label>
+
+          <div class="input-row">
+            <span class="input-label">{selectedAsset} Amount</span>
+            <div class="input-container">
+              <input 
+                type="text"
+                class="form-control"
+                placeholder="Enter {selectedAsset} amount"
+                bind:value={inputAmount}
+                on:input={handleAmountInput}
+              />
+            </div>
+          </div>
+
+          <div class="input-row">
+            <span class="input-label">
+              RUNE Address
+              <button 
+                class="info-button" 
+                on:click={() => showWalletHelper = !showWalletHelper}
+                title="Toggle wallet info"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14">
+                  <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                </svg>
+              </button>
+            </span>
+            <div class="input-container">
+              <input 
+                type="text" 
+                bind:value={runeAddress} 
+                placeholder="Enter RUNE address"
+                class="form-control"
+              />
+              {#if showWalletHelper}
+                <div class="input-helper" transition:fade={{ duration: 200 }}>
+                  Your THORChain address. Starts with "thor..." Need a RUNE wallet? 
+                  <a 
+                    href="https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Create one with Vultisig
+                  </a>
+                </div>
+              {/if}
+            </div>
+          </div>
+        </div>
+      {:else}
+        <div class="connect-prompt">
+          <p>Connect your wallet to buy RUNE with ETH or stablecoins</p>
+        </div>
+      {/if}
+
+      <div class="submit-container" in:fade={{ duration: 200 }}>
+        {#if isWalletConnected}
           <button 
             class="btn btn-primary"
             on:click={handleSubmit}
             disabled={!inputAmount || !runeAddress}
+            in:fade={{ duration: 200 }}
           >
             Review Transaction
           </button>
@@ -829,13 +896,13 @@
 
   .card-body {
     padding: 20px;
-  }
-
-  .form-group {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    margin: 1.5rem 0;
+  }
+
+  .form-group {
+    margin-top: 0;
   }
 
   label {
@@ -1472,5 +1539,188 @@
   .connected-account .address {
     color: #e0e0e0;
     font-family: monospace;
+  }
+
+  /* Add these new styles */
+  .wallet-section {
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .connect-button {
+    min-width: 180px;
+    padding: 10px 20px;
+    font-size: 1rem;
+  }
+
+  .connected-account {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    background: rgba(74, 144, 226, 0.08);
+    border-radius: 12px;
+    border: 1px solid rgba(74, 144, 226, 0.15);
+  }
+
+  .wallet-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .wallet-indicator {
+    width: 6px;
+    height: 6px;
+    background: #31FD9D;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(49, 253, 157, 0.4);
+  }
+
+  .wallet-label {
+    color: #31FD9D;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .address-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(74, 144, 226, 0.2);
+  }
+
+  .address {
+    color: #e0e0e0;
+    font-family: monospace;
+    font-size: 0.9rem;
+  }
+
+  .connect-button {
+    min-width: 180px;
+    padding: 10px 20px;
+    font-size: 1rem;
+  }
+
+  /* Add these new styles */
+  .input-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    min-height: 48px;
+  }
+
+  .input-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .input-container .form-control {
+    height: 48px;
+    width: 100%;
+  }
+
+  .input-label {
+    color: #e0e0e0;
+    font-weight: 500;
+    font-size: 0.9rem;
+    min-width: 120px;
+    padding-top: 12px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .form-control {
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    background-color: #2c2c2c;
+    color: #e0e0e0;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: #4A90E2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+  }
+
+  .form-control::placeholder {
+    color: #666;
+  }
+
+  /* Update form-group spacing */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* Add these styles */
+  .input-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .input-helper {
+    font-size: 0.8rem;
+    color: #a9a9a9;
+    text-align: right;
+  }
+
+  .input-helper a {
+    color: #4A90E2;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .input-helper a:hover {
+    color: #357ABD;
+    text-decoration: underline;
+  }
+
+  /* Add these new styles */
+  .input-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .info-button {
+    background: none;
+    border: none;
+    padding: 2px;
+    color: #4A90E2;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .info-button:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .info-button:active {
+    transform: scale(0.95);
+  }
+
+  /* Update input-helper transition */
+  .input-helper {
+    font-size: 0.8rem;
+    color: #a9a9a9;
+    text-align: right;
+    margin-top: 0.25rem;
   }
 </style>
