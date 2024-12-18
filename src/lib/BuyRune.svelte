@@ -552,14 +552,17 @@
           amount,
           memo,
           expiry,
-          txOptions // Use same options for estimation
+          txOptions
         );
+        
+        // Calculate gas limit with 2% buffer
+        const gasBuffer = estimatedGas * BigInt(2) / BigInt(100);
+        const finalGasLimit = estimatedGas + gasBuffer;
+        txOptions.gasLimit = finalGasLimit;
 
-        // Add gas limit with buffer to options
-        txOptions.gasLimit = estimatedGas * BigInt(120) / BigInt(100);
       } catch (error) {
         console.warn('Gas estimation failed:', error);
-        txOptions.gasLimit = BigInt(210000); // Fallback gas limit
+        txOptions.gasLimit = BigInt(210000);
       }
 
       // Send transaction
