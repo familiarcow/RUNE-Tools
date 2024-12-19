@@ -86,6 +86,11 @@
       const response = await fetch(`${BASE_URL}/upgrade_proposals`);
       const data = await response.json();
       
+      // Add debugging
+      if (data && data[0]) {
+        console.log('Upgrade proposal info:', data[0].info);
+      }
+      
       // Handle null response
       if (!data) {
         upgradeProposal = null;
@@ -170,6 +175,23 @@
 
     return `${days}d ${hours}h ${minutes}m`;
   }
+
+  function getReleaseNotesUrl(proposal) {
+    try {
+      let info = proposal.info;
+      
+      // Replace double backslashes with single backslashes
+      info = info.replace(/\\\\/g, '\\');
+      
+      // Now parse the cleaned string
+      info = JSON.parse(info);
+      return info.tag || 'https://gitlab.com/thorchain/thornode/-/tags/v' + proposal.name;
+    } catch (e) {
+      console.warn('Failed to parse upgrade proposal info:', e);
+      // Fallback to constructing the URL from the version number
+      return 'https://gitlab.com/thorchain/thornode/-/tags/v' + proposal.name;
+    }
+  }
 </script>
 
 <div class="version-checker">
@@ -240,7 +262,7 @@
               {/if}
             </div>
             <a 
-              href={JSON.parse(upgradeProposal.info).tag} 
+              href={getReleaseNotesUrl(upgradeProposal)} 
               target="_blank" 
               rel="noopener noreferrer"
               class="action-button"
