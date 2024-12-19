@@ -196,6 +196,13 @@
       description: "Buy RUNE with ETH or Stablecoins" 
     },
     { 
+      name: "Trade on THORSwap", 
+      component: () => import("./lib/Thorswap.svelte"), 
+      icon: "/assets/thorswap.png",
+      path: "thorswap", 
+      description: "Trade RUNE and other native assets on THORSwap." 
+    },
+    { 
       name: "Shop", 
       icon: "🏪", 
       path: "shop", 
@@ -614,7 +621,13 @@
                   on:mouseleave={handleMouseLeave}
                   in:fly={{ y: 20, duration: 300, delay: 100 + i * 50, easing: quintOut }}
                 >
-                  <span class="app-icon">{app.icon}</span>
+                  <span class="app-icon">
+                    {#if typeof app.icon === 'string' && (app.icon.endsWith('.svg') || app.icon.endsWith('.png'))}
+                      <img src={app.icon} alt={app.name} />
+                    {:else}
+                      {app.icon}
+                    {/if}
+                  </span>
                   <span class="app-name">{app.name}</span>
                 </button>
               {/each}
@@ -829,6 +842,13 @@
   .app-icon {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
+  }
+
+  /* Add this style for image icons */
+  .app-icon img {
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: contain;
   }
 
   .app-name {
