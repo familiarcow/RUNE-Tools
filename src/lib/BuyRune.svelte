@@ -64,7 +64,7 @@
     INTERVAL: '1',      
     QUANTITY: '0',      
     AFFILIATE: '-',     
-    FEE: '20'
+    FEE: '10'
   };
 
   function constructMemo(destAddr) {
