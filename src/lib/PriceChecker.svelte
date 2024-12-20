@@ -55,6 +55,34 @@
     'AVAX.AVAX': 'avalanche-2'
   };
 
+  const assetLogos = {
+    'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
+    'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
+    'BSC.BNB': 'assets/coins/binance-coin-bnb-logo.svg',
+    'BCH.BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
+    'LTC.LTC': 'assets/coins/litecoin-ltc-logo.svg',
+    'AVAX.AVAX': 'assets/coins/avalanche-avax-logo.svg',
+    'GAIA.ATOM': 'assets/coins/cosmos-atom-logo.svg',
+    'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
+    'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
+    'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'assets/coins/usd-coin-usdc-logo.svg',
+    'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'assets/coins/tether-usdt-logo.svg',
+    'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': 'assets/coins/wrapped-bitcoin-wbtc-logo.svg',
+    'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': 'assets/coins/usd-coin-usdc-logo.svg',
+    'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg',
+    'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'assets/coins/usd-coin-usdc-logo.svg',
+    'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'assets/coins/tether-usdt-logo.svg',
+    'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': 'assets/coins/multi-collateral-dai-dai-logo.svg',
+    'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': 'assets/coins/gemini-dollar-gusd-logo.svg',
+    'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': 'assets/coins/liquity-usd-logo.svg',
+    'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': 'assets/coins/paxos-standard-usdp-logo.svg',
+    'ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9': 'assets/coins/aave-aave-logo.svg',
+    'ETH.LINK-0X514910771AF9CA656AF840DFF83E8264ECF986CA': 'assets/coins/chainlink-link-logo.svg',
+    'ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F': 'assets/coins/synthetix-snx-logo.svg',
+    'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'assets/coins/fox-token-fox-logo.svg',
+    'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'assets/coins/solana-sol-logo.svg'
+  };
+
   async function getPools() {
     try {
       const response = await fetch("https://thornode.ninerealms.com/thorchain/pools");
@@ -229,7 +257,16 @@
                   {#each combinedPoolData as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
-                      <td class="asset-cell">{formatCryptoName(pool.asset)}</td>
+                      <td class="asset-cell">
+                        {#if assetLogos[pool.asset]}
+                          <img 
+                            src={assetLogos[pool.asset]} 
+                            alt={formatCryptoName(pool.asset)}
+                            class="asset-icon"
+                          />
+                        {/if}
+                        {formatCryptoName(pool.asset)}
+                      </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                       <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
                       <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
@@ -259,7 +296,16 @@
                   {#each filterAssets(combinedPoolData, bitcoinAssets) as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
-                      <td class="asset-cell">{formatCryptoName(pool.asset)}</td>
+                      <td class="asset-cell">
+                        {#if assetLogos[pool.asset]}
+                          <img 
+                            src={assetLogos[pool.asset]} 
+                            alt={formatCryptoName(pool.asset)}
+                            class="asset-icon"
+                          />
+                        {/if}
+                        {formatCryptoName(pool.asset)}
+                      </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                         <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
                         <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
@@ -286,7 +332,16 @@
                   {#each filterAssets(combinedPoolData, stablecoinAssets) as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
-                      <td class="asset-cell">{formatCryptoName(pool.asset)}</td>
+                      <td class="asset-cell">
+                        {#if assetLogos[pool.asset]}
+                          <img 
+                            src={assetLogos[pool.asset]} 
+                            alt={formatCryptoName(pool.asset)}
+                            class="asset-icon"
+                          />
+                        {/if}
+                        {formatCryptoName(pool.asset)}
+                      </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                         <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
                         <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
@@ -505,5 +560,17 @@
     .difference-cell {
       width: 35%;
     }
+  }
+
+  .asset-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .asset-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
   }
 </style>
