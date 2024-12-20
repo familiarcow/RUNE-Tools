@@ -40,7 +40,6 @@
     'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': 'dai',
     'BCH.BCH': 'bitcoin-cash',
     'BSC.BNB': 'binancecoin',
-    'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'tether',
     'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'solana',
     'DOGE.DOGE': 'dogecoin',
     'ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9': 'aave',
@@ -90,28 +89,28 @@
   function getExternalPrice(asset) {
     const coinGeckoId = assetToCoinGeckoMap[asset] || asset.split('.')[1].toLowerCase();
     let price = $externalPrices[coinGeckoId]?.usd;
-    
+
     // If the price is not found, check for USDC or USDT alternatives
     if (!price && (asset.includes('USDC') || asset.includes('USDT'))) {
       price = $externalPrices['usd-coin']?.usd || $externalPrices['tether']?.usd;
     }
-    
+
     console.log(`Asset: ${asset}, CoinGecko ID: ${coinGeckoId}, Price: ${price}`);
     return price || null;
   }
 
   $: combinedPoolData = $pools.length > 0 && Object.keys($externalPrices).length > 0
     ? $pools.map(pool => {
-        const externalPrice = getExternalPrice(pool.asset);
+            const externalPrice = getExternalPrice(pool.asset);
         const difference = externalPrice ? ((pool.usd_price - externalPrice) / externalPrice) * 100 : null;
         console.log(`Combined data for ${pool.asset}: THORChain price: ${pool.usd_price}, External price: ${externalPrice}, Difference: ${difference}`);
-        return {
-          ...pool,
-          externalPrice,
+            return {
+              ...pool,
+              externalPrice,
           difference,
-        };
+            };
       }).sort((a, b) => Math.abs(b.difference || 0) - Math.abs(a.difference || 0))
-    : [];
+      : [];
 
   async function fetchData() {
     const poolsData = await getPools();
@@ -198,14 +197,14 @@
     </div>
 
     <div class="tabs">
-      <button 
-        class="tab-button {$currentTab === 'prices' ? 'active' : ''}" 
+      <button
+        class="tab-button {$currentTab === 'prices' ? 'active' : ''}"
         on:click={() => currentTab.set('prices')}
       >
         All Prices
       </button>
-      <button 
-        class="tab-button {$currentTab === 'likeAssetComparison' ? 'active' : ''}" 
+      <button
+        class="tab-button {$currentTab === 'likeAssetComparison' ? 'active' : ''}"
         on:click={() => currentTab.set('likeAssetComparison')}
       >
         Like Asset Comparison
@@ -244,61 +243,61 @@
           {/if}
         {:else}
           {#if combinedPoolData.length > 0}
-            <section class="comparison-section">
-              <h3>Bitcoin Assets</h3>
-              <div class="table-wrapper">
-                <table>
-                  <thead>
+          <section class="comparison-section">
+            <h3>Bitcoin Assets</h3>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Asset</th>
+                    <th>THORChain Price</th>
+                    <th>External Price</th>
+                    <th>Difference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each filterAssets(combinedPoolData, bitcoinAssets) as pool}
+                    {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
-                      <th>Asset</th>
-                      <th>THORChain Price</th>
-                      <th>External Price</th>
-                      <th>Difference</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {#each filterAssets(combinedPoolData, bitcoinAssets) as pool}
-                      {@const difference = formatPriceDifference(pool.difference)}
-                      <tr>
-                        <td class="asset-cell">{formatCryptoName(pool.asset)}</td>
-                        <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
+                      <td class="asset-cell">{formatCryptoName(pool.asset)}</td>
+                      <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                         <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
                         <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
-                      </tr>
-                    {/each}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-            <section class="comparison-section">
-              <h3>Stablecoins</h3>
-              <div class="table-wrapper">
-                <table>
-                  <thead>
+          <section class="comparison-section">
+            <h3>Stablecoins</h3>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Asset</th>
+                    <th>THORChain Price</th>
+                    <th>External Price</th>
+                    <th>Difference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each filterAssets(combinedPoolData, stablecoinAssets) as pool}
+                    {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
-                      <th>Asset</th>
-                      <th>THORChain Price</th>
-                      <th>External Price</th>
-                      <th>Difference</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {#each filterAssets(combinedPoolData, stablecoinAssets) as pool}
-                      {@const difference = formatPriceDifference(pool.difference)}
-                      <tr>
-                        <td class="asset-cell">{formatCryptoName(pool.asset)}</td>
-                        <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
+                      <td class="asset-cell">{formatCryptoName(pool.asset)}</td>
+                      <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                         <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
                         <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
-                      </tr>
-                    {/each}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          {:else}
-            <div class="loading">Loading data...</div>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        {:else}
+          <div class="loading">Loading data...</div>
           {/if}
         {/if}
       </div>
@@ -310,7 +309,6 @@
   main {
     width: 100%;
     min-height: 100vh;
-    background-color: #1a1a1a;
     color: #fff;
   }
 
