@@ -140,11 +140,11 @@
       description: "Explore RUNEPool and track your position" 
     },
     { 
-      name: "Lending Quote", 
-      component: () => import("./lib/LendingEstimator.svelte"), 
+      name: "Lending Position", 
+      component: () => import("./lib/LendingPosition.svelte"), 
       icon: "⚡️", 
       path: "lending", 
-      description: "Calculate current THORChain lending rates" 
+      description: "View your current THORChain lending position" 
     },
     { 
       name: "Savers", 
