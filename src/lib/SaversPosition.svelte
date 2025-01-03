@@ -488,7 +488,7 @@
 
   .toast {
     position: fixed;
-    bottom: 20px;
+    bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #4A90E2;

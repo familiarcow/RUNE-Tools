@@ -378,7 +378,7 @@
 
   .toast {
     position: fixed;
-    bottom: 2rem;
+    bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
     background-color: var(--surface-color);

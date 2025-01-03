@@ -307,12 +307,12 @@
 
   .toast {
     position: fixed;
-    bottom: 20px;
+    bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #4A90E2;
     color: white;
-    padding: 10px 20px;
+    padding: 12px 24px;
     border-radius: 4px;
     z-index: 1000;
   }

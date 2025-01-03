@@ -560,7 +560,7 @@
 
   .toast {
     position: fixed;
-    bottom: 20px;
+    bottom: 60px;
     right: 20px;
     background-color: var(--surface-color);
     color: var(--text-color);
