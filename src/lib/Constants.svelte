@@ -7,8 +7,8 @@
   let mimir = null;
   let loading = true;
   let error = null;
-  let notification = null;
-  let notificationTimeout;
+  let toast = null;
+  let toastTimeout;
   let searchTerm = '';
 
   onMount(async () => {
@@ -29,15 +29,15 @@
 
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-      showNotification(`Copied "${text}" to clipboard!`);
+      showToast(`Copied "${text}" to clipboard!`);
     });
   }
 
-  function showNotification(message) {
-    notification = message;
-    clearTimeout(notificationTimeout);
-    notificationTimeout = setTimeout(() => {
-      notification = null;
+  function showToast(message) {
+    toast = message;
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toast = null;
     }, 3000);
   }
 
@@ -78,7 +78,7 @@
   <div class="app-header">
     <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo">
     <h2>THORChain Constants</h2>
-    <div class="info-icon" on:click={() => showNotification('Constants are the core parameters that govern the THORChain protocol.')}>ⓘ</div>
+    <div class="info-icon" on:click={() => showToast('Constants are the core parameters that govern the THORChain protocol.')}>ⓘ</div>
   </div>
 
   <div class="search-container">
@@ -132,9 +132,9 @@
     </div>
   {/if}
 
-  {#if notification}
-    <div class="notification" transition:fade={{ duration: 300 }}>
-      {notification}
+  {#if toast}
+    <div class="toast" transition:fade={{ duration: 300 }}>
+      {toast}
     </div>
   {/if}
 </div>
@@ -317,9 +317,9 @@
     color: #69db7c;
   }
 
-  .notification {
+  .toast {
     position: fixed;
-    bottom: 20px;
+    bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #4A90E2;
