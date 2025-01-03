@@ -409,12 +409,12 @@
     left: 50%;
     transform: translateX(-50%);
     background-color: #4A90E2;
-    color: white;
+    color: #fff;
     padding: 12px 24px;
-    border-radius: 4px;
+    border-radius: 6px;
     z-index: 1000;
     font-size: 14px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     max-width: 80%;
     text-align: center;
   }
