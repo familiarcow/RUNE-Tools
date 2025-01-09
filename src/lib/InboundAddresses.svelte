@@ -144,7 +144,7 @@
         {#each inboundAddresses as address}
           <div class="card">
             <div class="card-header">
-              <img src={`/assets/coins/${chainIcons[address.chain]}`} alt={`${address.chain} logo`} class="chain-icon" />
+              <img src={`/assets/chains/${address.chain}.svg`} alt={`${address.chain} logo`} class="chain-icon" />
               <h2>{address.chain}</h2>
             </div>
             <div class="card-content">
