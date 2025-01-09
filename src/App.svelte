@@ -105,34 +105,6 @@
       description: "Check RUNE price" 
     },
     { 
-      name: "Trade Assets", 
-      component: () => import("./lib/TradeAssets.svelte"), 
-      icon: "💸", 
-      path: "trade", 
-      description: "Monitor THORChain Trade Asset adoption" 
-    },
-    { 
-      name: "Transaction Status", 
-      component: () => import("./lib/TxStatus.svelte"), 
-      icon: "🔍", 
-      path: "tx", 
-      description: "Check THORChain Transaction status" 
-    },
-    { 
-      name: "Liquidity Providers", 
-      component: () => import("./lib/LiquidityProviders.svelte"), 
-      icon: "👥", 
-      path: "lp", 
-      description: "Check liquidity providers and LP details for THORChain pools" 
-    },
-    { 
-      name: "Token Whitelist", 
-      component: () => import("./lib/TokenWhitelist.svelte"), 
-      icon: "✏️", 
-      path: "token-whitelist", 
-      description: "Check THORChain's token whitelist" 
-    },
-    { 
       name: "Rune Pool", 
       component: () => import("./lib/RunePool.svelte"), 
       icon: "🏊", 
@@ -187,13 +159,6 @@
       icon: "🧙‍♂️", 
       path: "thorchad", 
       description: "THORChad your profile picture" 
-    },
-    { 
-      name: "Buy RUNE", 
-      component: () => import("./lib/BuyRune.svelte"), 
-      icon: "💵", 
-      path: "buy", 
-      description: "Buy RUNE with ETH or Stablecoins" 
     },
     { 
       name: "Trade on THORSwap", 
