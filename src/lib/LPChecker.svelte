@@ -316,6 +316,7 @@
   function getShortPoolName(fullName) {
     if (fullName === 'BTC.BTC') return 'BTC';
     if (fullName === 'GAIA.ATOM') return 'ATOM';
+    if (fullName === 'BASE.ETH') return 'ETH (Base)';
     
     const parts = fullName.split('-');
     if (parts.length > 1) {
