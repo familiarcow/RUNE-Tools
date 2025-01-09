@@ -106,7 +106,9 @@
           'GAIA.ATOM',
           'DOGE.DOGE',
           'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D',
-          'BSC.USDT-0X55D398326F99059FF775485246999027B3197955'
+          'BSC.USDT-0X55D398326F99059FF775485246999027B3197955',
+          'BASE.ETH',
+          'BASE.USDC-0X8335838D2E035533690163199029129183338E73'
         ];
       
       // Map asset names to pool abbreviations
@@ -130,7 +132,9 @@
           'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': "USDC (BSC)",
           'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': "USDT (BSC)",
           'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': "USDC (AVAX)",
-          'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': "USDT (AVAX)"
+          'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': "USDT (AVAX)",
+          'BASE.ETH': "ETH (BASE)",
+          'BASE.USDC-0X8335838D2E035533690163199029129183338E73': "USDC (BASE)"
       };
       
       // Dummy destinations from the chains to pull a valid quote from thornode
@@ -154,7 +158,9 @@
           'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
           'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
           'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
-          'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7'
+          'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'BASE.ETH': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7',
+          'BASE.USDC-0X8335838D2E035533690163199029129183338E73': '0x4E71F9debEC9117F1FACc7eeB490758AF45806A7'
         };
     
       // Asset svg logos for display
@@ -179,7 +185,9 @@
       'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': 'assets/coins/paxos-standard-usdp-logo.svg',
       'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'assets/coins/usd-coin-usdc-logo.svg',
       'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'assets/coins/tether-usdt-logo.svg',
-      'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg'
+      'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg',
+      'BASE.ETH': 'assets/coins/ethereum-eth-logo.svg',
+      'BASE.USDC-0X8335838D2E035533690163199029129183338E73': 'assets/coins/usd-coin-usdc-logo.svg'
       };
     
       let assetPrices = {};
@@ -748,6 +756,52 @@
       width: auto;
       margin: 0;
     }
+
+    .amount-input-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .amount-input-wrapper {
+      position: relative;
+      flex: 1;
+      display: flex;
+    }
+
+    .usd-value {
+      color: #888;
+      font-size: 0.9em;
+      white-space: nowrap;
+    }
+
+    .input-with-usd {
+      width: 100%;
+      padding-right: 100px;
+      -moz-appearance: textfield;
+    }
+
+    .input-with-usd::-webkit-outer-spin-button,
+    .input-with-usd::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .usd-overlay {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #888;
+      font-size: 0.9em;
+      pointer-events: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      border: none;
+    }
 </style>
     
       
@@ -886,8 +940,20 @@
             <!-- swap amount input and display -->
             <div class="expand" in:slide={{ duration: 1000 }} out:slide={{ duration: 333 }}>
               <label>Swap Amount ({from_asset.split('.')[1].split('-')[0]}):</label>
-              <input type="number" style="width: 50%;" bind:value={amount} use:handleFocus />
-              <span>{estimatedValueUSD}</span>
+              <div class="amount-input-container">
+                <div class="amount-input-wrapper">
+                  <input 
+                    type="number" 
+                    class="input-with-usd" 
+                    bind:value={amount} 
+                    use:handleFocus 
+                    placeholder="Enter amount"
+                  />
+                  {#if estimatedValueUSD}
+                    <span class="usd-overlay">{estimatedValueUSD}</span>
+                  {/if}
+                </div>
+              </div>
             </div>
 
             {#if showHeightField}
