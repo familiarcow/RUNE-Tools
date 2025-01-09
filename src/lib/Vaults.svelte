@@ -15,15 +15,16 @@
   let showAssetBalances = false;
 
   const chainIcons = {
-    BTC: '/assets/coins/bitcoin-btc-logo.svg',
-    ETH: '/assets/coins/ethereum-eth-logo.svg',
-    BCH: '/assets/coins/bitcoin-cash-bch-logo.svg',
-    LTC: '/assets/coins/litecoin-ltc-logo.svg',
-    DOGE: '/assets/coins/dogecoin-doge-logo.svg',
-    AVAX: '/assets/coins/avalanche-avax-logo.svg',
-    BSC: '/assets/coins/binance-coin-bnb-logo.svg',
-    GAIA: '/assets/coins/cosmos-atom-logo.svg',
-    THOR: '/assets/coins/RUNE-ICON.svg'
+    BTC: '/assets/chains/BTC.svg',
+    ETH: '/assets/chains/ETH.svg',
+    BCH: '/assets/chains/BCH.svg',
+    LTC: '/assets/chains/LTC.svg',
+    DOGE: '/assets/chains/DOGE.svg',
+    AVAX: '/assets/chains/AVAX.svg',
+    BSC: '/assets/chains/BSC.svg',
+    GAIA: '/assets/chains/GAIA.svg',
+    THOR: '/assets/chains/THOR.svg',
+    BASE: '/assets/chains/BASE.svg'
   };
 
   async function fetchPrices() {
