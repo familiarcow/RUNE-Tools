@@ -9,7 +9,8 @@
 
   const bitcoinAssets = [
     'BTC.BTC',
-    'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599'
+    'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599',
+    'BASE.CBTC-0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
   ];
 
   const stablecoinAssets = [
@@ -22,7 +23,8 @@
     'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48',
     'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1',
     'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7',
-    'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F'
+    'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F',
+    'BASE.USDC-0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
   ];
 
   const assetToCoinGeckoMap = {
@@ -52,7 +54,10 @@
     'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'shapeshift',
     'GAIA.ATOM': 'cosmos',
     'LTC.LTC': 'litecoin',
-    'AVAX.AVAX': 'avalanche-2'
+    'AVAX.AVAX': 'avalanche-2',
+    'BASE.ETH': 'ethereum',
+    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDAA02913': 'usd-coin',
+    'BASE.CBTC-0XCB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'coinbase-wrapped-btc'
   };
 
   const assetLogos = {
@@ -80,7 +85,10 @@
     'ETH.LINK-0X514910771AF9CA656AF840DFF83E8264ECF986CA': 'assets/coins/chainlink-link-logo.svg',
     'ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F': 'assets/coins/synthetix-snx-logo.svg',
     'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'assets/coins/fox-token-fox-logo.svg',
-    'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'assets/coins/solana-sol-logo.svg'
+    'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'assets/coins/solana-sol-logo.svg',
+    'BASE.ETH': 'assets/coins/ethereum-eth-logo.svg',
+    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDAA02913': 'assets/coins/usd-coin-usdc-logo.svg',
+    'BASE.CBTC-0XCB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'assets/coins/coinbase-wrapped-btc-logo.svg'
   };
 
   async function getPools() {
@@ -156,8 +164,10 @@
 
   function formatCryptoName(cryptoName) {
     const parts = cryptoName.split(/\.|-/);
-    const [chain, asset, identifier] = parts;
-    if (["ETH", "BSC", "AVAX"].includes(chain) && identifier) {
+    const [chain, asset] = parts;
+    if (asset === 'ETH') {
+      return `${asset} (${chain})`;
+    } else if (["ETH", "BSC", "AVAX", "BASE"].includes(chain) && parts[2]) {
       return `${asset} (${chain})`;
     } else {
       return asset;
@@ -247,6 +257,7 @@
               <table>
                 <thead>
                   <tr>
+                    <th>Chain</th>
                     <th>Asset</th>
                     <th>THORChain Price</th>
                     <th>External Price</th>
@@ -257,6 +268,13 @@
                   {#each combinedPoolData as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
+                      <td class="chain-cell">
+                        <img 
+                          src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
+                          alt={pool.asset.split('.')[0]}
+                          class="chain-icon"
+                        />
+                      </td>
                       <td class="asset-cell">
                         {#if assetLogos[pool.asset]}
                           <img 
@@ -286,6 +304,7 @@
               <table>
                 <thead>
                   <tr>
+                    <th>Chain</th>
                     <th>Asset</th>
                     <th>THORChain Price</th>
                     <th>External Price</th>
@@ -296,6 +315,13 @@
                   {#each filterAssets(combinedPoolData, bitcoinAssets) as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
+                      <td class="chain-cell">
+                        <img 
+                          src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
+                          alt={pool.asset.split('.')[0]}
+                          class="chain-icon"
+                        />
+                      </td>
                       <td class="asset-cell">
                         {#if assetLogos[pool.asset]}
                           <img 
@@ -307,8 +333,8 @@
                         {formatCryptoName(pool.asset)}
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
-                        <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
-                        <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
+                      <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
+                      <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
                     </tr>
                   {/each}
                 </tbody>
@@ -322,6 +348,7 @@
               <table>
                 <thead>
                   <tr>
+                    <th>Chain</th>
                     <th>Asset</th>
                     <th>THORChain Price</th>
                     <th>External Price</th>
@@ -332,6 +359,13 @@
                   {#each filterAssets(combinedPoolData, stablecoinAssets) as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
+                      <td class="chain-cell">
+                        <img 
+                          src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
+                          alt={pool.asset.split('.')[0]}
+                          class="chain-icon"
+                        />
+                      </td>
                       <td class="asset-cell">
                         {#if assetLogos[pool.asset]}
                           <img 
@@ -343,8 +377,8 @@
                         {formatCryptoName(pool.asset)}
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
-                        <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
-                        <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
+                      <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
+                      <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
                     </tr>
                   {/each}
                 </tbody>
@@ -473,26 +507,33 @@
   }
 
   td {
-    padding: 12px 16px;
+    padding: 12px 8px;
     vertical-align: middle;
   }
 
+  .chain-cell {
+    width: 40px;
+    padding: 12px 0;
+    text-align: center;
+  }
+
+  .chain-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+
   .asset-cell {
-    width: 25%;
-    color: #4A90E2;
-    font-weight: 500;
+    width: 180px;
+    padding-left: 8px;
   }
 
   .price-cell {
-    width: 25%;
-    font-family: monospace;
-    font-size: 14px;
+    width: 120px;
   }
 
   .difference-cell {
-    width: 25%;
-    font-weight: 500;
-    text-align: right;
+    width: 100px;
   }
 
   .comparison-section {
