@@ -5,6 +5,7 @@
         import { onMount } from 'svelte';
         import { slide } from 'svelte/transition';
         import Settings from '../../public/assets/Settings.svelte';
+        import AssetDropdown from './SwapEstimator/AssetDropdown.svelte';
   
           
         let amount = null; //random starting swap
@@ -376,24 +377,6 @@
         showEstimatedTime = !showEstimatedTime;
     }
           
-      function handleFromAssetSelect(asset) {
-        if (asset === to_asset) {
-          // Swap the assets
-          to_asset = from_asset;
-        }
-        from_asset = asset;
-        fromDropdownOpen = false;
-      }
-
-      function handleToAssetSelect(asset) {
-        if (asset === from_asset) {
-          // Swap the assets
-          from_asset = to_asset;
-        }
-        to_asset = asset;
-        toDropdownOpen = false;
-      }
-
       function handleToggleAll() {
         toggleAll = !toggleAll;
         showEstimatedTime = toggleAll;
@@ -872,67 +855,31 @@
         
             <!-- asset selection container -->
             <div class="asset-select-container">
-              <div class="custom-select" id="from_asset">
-                <div class="selected" on:click={() => (fromDropdownOpen = !fromDropdownOpen)}>
-                  <img 
-                    src={assetLogos[from_asset]} 
-                    alt={assetNames[from_asset]} 
-                    on:error={(e) => {
-                      e.target.onerror = null; // Prevent further error callbacks
-                      e.target.src = 'assets/coins/fallback-logo.svg';
-                    }}
-                  />
-                  <span>{assetNames[from_asset]}</span>
-                </div>
-                {#if fromDropdownOpen}
-                  <div class="options" in:slide={{ duration: 1000 }} out:slide={{ duration: 333 }}>
-                    {#each assets as asset}
-                      <div on:click={() => handleFromAssetSelect(asset)}>
-                        <img 
-                          src={assetLogos[asset]} 
-                          alt={assetNames[asset]} 
-                          on:error={(e) => {
-                            e.target.onerror = null; // Prevent further error callbacks
-                            e.target.src = 'assets/coins/fallback-logo.svg';
-                          }}
-                        />
-                        <span>{assetNames[asset]}</span>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
+              <AssetDropdown
+                  bind:selectedAsset={from_asset}
+                  {assets}
+                  {assetNames}
+                  {assetLogos}
+                  label="From"
+                  on:select={({detail}) => {
+                      if (detail.asset === to_asset) {
+                          to_asset = from_asset;
+                      }
+                  }}
+              />
           
-              <div class="custom-select" id="to_asset">
-                <div class="selected" on:click={() => (toDropdownOpen = !toDropdownOpen)}>
-                  <img 
-                    src={assetLogos[to_asset]} 
-                    alt={assetNames[to_asset]} 
-                    on:error={(e) => {
-                      e.target.onerror = null; // Prevent further error callbacks
-                      e.target.src = 'assets/coins/fallback-logo.svg';
-                    }}
-                  />
-                  <span>{assetNames[to_asset]}</span>
-                </div>
-                {#if toDropdownOpen}
-                  <div class="options" in:slide={{ duration: 1000 }} out:slide={{ duration: 333 }}>
-                    {#each assets as asset}
-                      <div on:click={() => handleToAssetSelect(asset)}>
-                        <img 
-                          src={assetLogos[asset]} 
-                          alt={assetNames[asset]} 
-                          on:error={(e) => {
-                            e.target.onerror = null; // Prevent further error callbacks
-                            e.target.src = 'assets/coins/fallback-logo.svg';
-                          }}
-                        />
-                        <span>{assetNames[asset]}</span>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
+              <AssetDropdown
+                  bind:selectedAsset={to_asset}
+                  {assets}
+                  {assetNames}
+                  {assetLogos}
+                  label="To" 
+                  on:select={({detail}) => {
+                      if (detail.asset === from_asset) {
+                          from_asset = to_asset;
+                      }
+                  }}
+              />
             </div>
       
             <div>&nbsp;</div>
