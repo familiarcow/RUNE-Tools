@@ -467,5 +467,26 @@
     .stat-value {
       font-size: 20px;
     }
+
+    .slider {
+      width: 48px;
+      height: 24px;
+      border-radius: 12px;
+    }
+
+    .knob {
+      height: 20px;
+      width: 20px;
+      bottom: 2px;
+    }
+
+    input:checked + .slider .knob {
+      transform: translateX(24px);
+    }
+
+    .knob-icon.rune img,
+    .knob-icon.dollar {
+      font-size: 14px;
+    }
   }
 </style>
