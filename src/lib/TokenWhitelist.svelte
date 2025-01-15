@@ -16,7 +16,7 @@
     symbol: string;
     decimals: number;
     logoURI: string;
-    chain: 'ETH' | 'BSC' | 'AVAX';
+    chain: 'ETH' | 'BSC' | 'AVAX' | 'BASE';
     poolStatus?: string;
     runeDepth?: number;
   }
@@ -39,7 +39,7 @@
   let loadedLogos: { [key: string]: string } = {};
   let searchQuery = '';
   let loading = true;
-  let selectedChain: 'ALL' | 'ETH' | 'BSC' | 'AVAX' = 'ALL';
+  let selectedChain: 'ALL' | 'ETH' | 'BSC' | 'AVAX' | 'BASE' = 'ALL';
   let showInfo = false;
 
   $: filteredTokens = tokenList?.tokens.filter(token => {
@@ -64,33 +64,197 @@
     return matchesSearch && matchesChain;
   }) ?? [];
 
+  // Add token metadata mapping
+  const TOKEN_METADATA: Record<string, { name: string; symbol: string; logoURI: string }> = {
+    // BASE tokens
+    '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': {
+      name: 'USD Coin',
+      symbol: 'USDC',
+      logoURI: 'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png'
+    },
+    '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf': {
+      name: 'Coinbase Wrapped Bitcoin',
+      symbol: 'cbBTC',
+      logoURI: 'https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png'
+    },
+
+    // AVAX tokens
+    '0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7': {
+      name: 'Tether USD',
+      symbol: 'USDT',
+      logoURI: 'https://assets.coingecko.com/coins/images/325/thumb/Tether.png'
+    },
+    '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e': {
+      name: 'USD Coin',
+      symbol: 'USDC',
+      logoURI: 'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png'
+    },
+    '0xfe6b19286885a4f7f55adad09c3cd1f906d2478f': {
+      name: 'Wrapped SOL',
+      symbol: 'WSOL',
+      logoURI: 'https://assets.coingecko.com/coins/images/4128/thumb/solana.png'
+    },
+    '0x093783055f9047c2bff99c4e414501f8a147bc69': {
+      name: 'Dexalot Token',
+      symbol: 'ALOT',
+      logoURI: 'https://assets.coingecko.com/coins/images/26336/thumb/alot-token-logo-200.png'
+    },
+
+    // BSC tokens
+    '0x55d398326f99059ff775485246999027b3197955': {
+      name: 'Binance Pegged USDT',
+      symbol: 'USDT',
+      logoURI: 'https://assets.coingecko.com/coins/images/325/thumb/Tether.png'
+    },
+    '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d': {
+      name: 'Binance Pegged USDC',
+      symbol: 'USDC',
+      logoURI: 'https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png'
+    },
+    '0xe9e7cea3dedca5984780bafc599bd69add087d56': {
+      name: 'Binance Pegged BUSD',
+      symbol: 'BUSD',
+      logoURI: 'https://assets.coingecko.com/coins/images/9576/thumb/BUSD.png'
+    },
+    '0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3': {
+      name: 'Binance Pegged DAI',
+      symbol: 'DAI',
+      logoURI: 'https://assets.coingecko.com/coins/images/9956/thumb/4943.png'
+    },
+    '0x14016e85a25aeb13065688cafb43044c2ef86784': {
+      name: 'True USD',
+      symbol: 'TUSD',
+      logoURI: 'https://assets.coingecko.com/coins/images/3449/thumb/tusd.png'
+    },
+    '0x2170ed0880ac9a755fd29b2688956bd959f933f8': {
+      name: 'Binance Pegged ETH',
+      symbol: 'ETH',
+      logoURI: 'https://assets.coingecko.com/coins/images/279/thumb/ethereum.png'
+    },
+    '0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c': {
+      name: 'Binance Pegged BTC',
+      symbol: 'BTC',
+      logoURI: 'https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png'
+    },
+    '0x570a5d26f7765ecb712c0924e4de545b89fd43df': {
+      name: 'Binance Pegged SOL',
+      symbol: 'SOL',
+      logoURI: 'https://assets.coingecko.com/coins/images/4128/thumb/solana.png'
+    },
+    '0x3ee2200efb3400fabb9aacf31297cbdd1d435d47': {
+      name: 'Binance Pegged Cardano',
+      symbol: 'ADA',
+      logoURI: 'https://assets.coingecko.com/coins/images/975/thumb/cardano.png'
+    },
+    '0x4b0f1812e5df2a09796481ff14017e6005508003': {
+      name: 'Trust Wallet Token',
+      symbol: 'TWT',
+      logoURI: 'https://assets.coingecko.com/coins/images/11085/thumb/Trust.png'
+    },
+    '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82': {
+      name: 'PancakeSwap Token',
+      symbol: 'CAKE',
+      logoURI: 'https://assets.coingecko.com/coins/images/12632/thumb/pancakeswap-cake-logo_%281%29.png'
+    }
+  };
+
   async function fetchTokenLists() {
     try {
-      const [ethResponse, bscResponse, avaxResponse, poolsResponse] = await Promise.all([
+      const [ethResponse, configResponse, poolsResponse] = await Promise.all([
         fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/common%2Ftokenlist%2Fethtokens%2Feth_mainnet_latest.json/raw?ref=develop'),
-        fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/common%2Ftokenlist%2Fbsctokens%2Fbsc_mainnet_latest.json/raw?ref=develop'),
-        fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/common%2Ftokenlist%2Favaxtokens%2Favax_mainnet_latest.json/raw?ref=develop'),
+        fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/config%2Fdefault.yaml/raw?ref=develop'),
         fetch('https://thornode.ninerealms.com/thorchain/pools')
       ]);
 
-      if (!ethResponse.ok || !bscResponse.ok || !avaxResponse.ok) 
-        throw new Error('Failed to fetch one or more token lists');
+      if (!ethResponse.ok || !configResponse.ok) 
+        throw new Error('Failed to fetch token lists');
 
-      const [ethList, bscList, avaxList] = await Promise.all([
-        ethResponse.json(),
-        bscResponse.json(),
-        avaxResponse.json()
-      ]);
-
-      ethList.tokens = ethList.tokens.map(t => ({ ...t, chain: 'ETH' }));
-      bscList.tokens = bscList.tokens.map(t => ({ ...t, chain: 'BSC' }));
-      avaxList.tokens = avaxList.tokens.map(t => ({ ...t, chain: 'AVAX' }));
-
+      const ethList = await ethResponse.json();
+      const configText = await configResponse.text();
       const pools: Pool[] = await poolsResponse.json();
+
+      // Parse YAML to extract whitelist tokens
+      const chainWhitelists: Record<string, string[]> = {};
+      const lines = configText.split('\n');
+      let currentChain = '';
+      let inBlockScanner = false;
       
-      const enrichedTokens = [...ethList.tokens, ...bscList.tokens, ...avaxList.tokens].map(token => {
-        const poolAsset = `${token.chain}.${token.symbol}-${token.address.toUpperCase()}`;
+      for (const line of lines) {
+        // Match chain section headers
+        const chainMatch = line.match(/^\s+(\w+):$/);
+        if (chainMatch && ['base', 'avax', 'bsc'].includes(chainMatch[1].toLowerCase())) {
+          currentChain = chainMatch[1].toUpperCase();
+          inBlockScanner = false;
+          continue;
+        }
+
+        // Check if we're entering block_scanner section
+        if (line.includes('block_scanner:')) {
+          inBlockScanner = true;
+          continue;
+        }
+        
+        // Match whitelist_tokens section
+        if (inBlockScanner && line.includes('whitelist_tokens:')) {
+          chainWhitelists[currentChain] = [];
+          continue;
+        }
+        
+        // Match token addresses
+        const tokenMatch = line.match(/^\s+-\s+(0x[a-fA-F0-9]+)\s+#\s*(.+)?$/);
+        if (tokenMatch && currentChain) {
+          const [_, address, comment] = tokenMatch;
+          chainWhitelists[currentChain] = chainWhitelists[currentChain] || [];
+          chainWhitelists[currentChain].push(address);
+        }
+      }
+
+      console.log('Parsed whitelists:', chainWhitelists); // For debugging
+
+      // Process ETH tokens
+      const ethTokens = ethList.tokens.map(t => ({ ...t, chain: 'ETH' as const }));
+
+      // Create tokens for other chains using the whitelist
+      const otherChainTokens = Object.entries(chainWhitelists).flatMap(([chain, addresses]) =>
+        addresses.map(address => {
+          const metadata = TOKEN_METADATA[address.toLowerCase()];
+          return {
+            address: address.toLowerCase(),
+            chainId: chain === 'BSC' ? 56 : chain === 'AVAX' ? 43114 : 8453, // BASE
+            name: metadata?.name || '', // Use metadata if available
+            symbol: metadata?.symbol || '', // Use metadata if available
+            decimals: 18, // Default to 18 for all tokens
+            logoURI: metadata?.logoURI || fallbackLogo,
+            chain: chain as 'BSC' | 'AVAX' | 'BASE'
+          };
+        })
+      );
+
+      console.log('Other chain tokens:', otherChainTokens); // For debugging
+
+      // Combine all tokens
+      const allTokens = [...otherChainTokens, ...ethTokens];
+
+      // Enrich with pool data
+      const enrichedTokens = allTokens.map(token => {
+        const poolAsset = `${token.chain}.${token.symbol || ''}-${token.address.toUpperCase()}`;
+        console.log('Looking for pool:', poolAsset); // For debugging
         const pool = pools.find(p => p.asset === poolAsset);
+
+        // If we find a pool, use its data to populate missing token info
+        if (pool && (!token.symbol || !token.name)) {
+          const assetParts = pool.asset.split('-');
+          const symbol = assetParts[0].split('.')[1];
+          console.log('Found pool for token:', { pool, symbol }); // For debugging
+          return {
+            ...token,
+            symbol: symbol || token.symbol || '',
+            name: symbol || token.name || '',
+            poolStatus: pool.status,
+            runeDepth: pool ? Number(pool.balance_rune) / 1e8 : undefined
+          };
+        }
+
         return {
           ...token,
           poolStatus: pool?.status,
@@ -102,8 +266,8 @@
         name: 'THORChain Token Whitelist',
         timestamp: new Date().toISOString(),
         version: { major: 1, minor: 0, patch: 0 },
-        keywords: ['thorchain', 'ethereum', 'bsc', 'avalanche'],
-        tokens: enrichedTokens
+        keywords: ['thorchain', 'ethereum', 'bsc', 'avalanche', 'base'],
+        tokens: enrichedTokens // Include all tokens, even if we don't have names yet
       };
 
       if (tokenList) {
@@ -190,12 +354,6 @@
           </div>
           <div class="chain-filters">
             <button 
-              class="chain-filter {selectedChain === 'ALL' ? 'active' : ''}"
-              on:click={() => selectedChain = 'ALL'}
-            >
-              ALL
-            </button>
-            <button 
               class="chain-filter eth {selectedChain === 'ETH' ? 'active' : ''}"
               on:click={() => selectedChain = 'ETH'}
             >
@@ -212,6 +370,18 @@
               on:click={() => selectedChain = 'AVAX'}
             >
               AVAX
+            </button>
+            <button 
+              class="chain-filter base {selectedChain === 'BASE' ? 'active' : ''}"
+              on:click={() => selectedChain = 'BASE'}
+            >
+              BASE
+            </button>
+            <button 
+              class="chain-filter {selectedChain === 'ALL' ? 'active' : ''}"
+              on:click={() => selectedChain = 'ALL'}
+            >
+              ALL
             </button>
           </div>
         </div>
@@ -242,7 +412,7 @@
             />
             <div class="token-info">
               <div class="token-header">
-                <h3>{token.name}</h3>
+                <h3>{token.name || `Unknown Token (${token.chain})`}</h3>
                 <div class="badge-container">
                   <span class="chain-badge {token.chain.toLowerCase()}">{token.chain}</span>
                   {#if token.poolStatus}
@@ -258,7 +428,7 @@
                   {/if}
                 </div>
               </div>
-              <p class="symbol">{token.symbol}</p>
+              <p class="symbol">{token.symbol || 'Unknown Symbol'}</p>
               <p 
                 class="address" 
                 title="Click to copy address"
@@ -394,15 +564,6 @@
     background: #627eea;
   }
 
-  .chain-filter.active.bsc {
-    background: #f3ba2f;
-    color: black;
-  }
-
-  .chain-filter.active.avax {
-    background: #e84142;
-  }
-
   .chain-filter.active:hover {
     opacity: 0.9;
   }
@@ -466,16 +627,6 @@
 
   .chain-badge.eth {
     background: #627eea;
-    color: white;
-  }
-
-  .chain-badge.bsc {
-    background: #f3ba2f;
-    color: black;
-  }
-
-  .chain-badge.avax {
-    background: #e84142;
     color: white;
   }
 
@@ -604,5 +755,34 @@
     width: 12px;
     height: 12px;
     margin: 0;
+  }
+
+  .chain-filter.active.bsc {
+    background: #f3ba2f;
+    color: black;
+  }
+
+  .chain-filter.active.avax {
+    background: #e84142;
+  }
+
+  .chain-filter.active.base {
+    background: #0052FF;
+    color: white;
+  }
+
+  .chain-badge.bsc {
+    background: #f3ba2f;
+    color: black;
+  }
+
+  .chain-badge.avax {
+    background: #e84142;
+    color: white;
+  }
+
+  .chain-badge.base {
+    background: #0052FF;
+    color: white;
   }
 </style>
