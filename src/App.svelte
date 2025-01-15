@@ -154,6 +154,13 @@
       description: "Track THORChain affiliate payout status" 
     },
     { 
+      name: "Base Stats", 
+      component: () => import("./lib/Base.svelte"), 
+      icon: "/assets/chains/BASE.svg", 
+      path: "base", 
+      description: "Track Base chain stats and pools on THORChain" 
+    },
+    { 
       name: "Thorchad", 
       component: () => import("./lib/Thorchad.svelte"), 
       icon: "🧙‍♂️", 
