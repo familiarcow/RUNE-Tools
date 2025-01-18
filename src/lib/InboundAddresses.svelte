@@ -38,6 +38,7 @@
     AVAX: 'https://snowtrace.io/address/',
     GAIA: 'https://www.mintscan.io/cosmos/address/',
     BSC: 'https://bscscan.com/address/',
+    BASE: 'https://basescan.org/address/'
   };
 
   const clipboardIcon = `
