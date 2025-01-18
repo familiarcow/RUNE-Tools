@@ -153,12 +153,19 @@
       path: "affiliate", 
       description: "Track THORChain affiliate payout status" 
     },
-        { 
+    { 
       name: "Token Whitelist", 
       component: () => import("./lib/TokenWhitelist.svelte"), 
       icon: "📝", 
       path: "whitelist", 
       description: "View THORChain's whitelisted tokens and pools" 
+    },
+    { 
+      name: "Treasury", 
+      component: () => import("./lib/Treasury.svelte"), 
+      icon: "🏦", 
+      path: "treasury", 
+      description: "Track THORChain's treasury balances and flows" 
     },
     { 
       name: "Base", 
