@@ -10,7 +10,7 @@
   const bitcoinAssets = [
     'BTC.BTC',
     'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599',
-    'BASE.CBTC-0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
+    'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF'
   ];
 
   const stablecoinAssets = [
@@ -24,7 +24,7 @@
     'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1',
     'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7',
     'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F',
-    'BASE.USDC-0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913'
   ];
 
   const assetToCoinGeckoMap = {
@@ -57,7 +57,12 @@
     'AVAX.AVAX': 'avalanche-2',
     'BASE.ETH': 'ethereum',
     'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDAA02913': 'usd-coin',
-    'BASE.CBTC-0XCB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'coinbase-wrapped-btc'
+    'BASE.CBTC-0XCB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'coinbase-wrapped-btc',
+    'BSC.TWT-0X4B0F1812E5DF2A09796481FF14017E6005508003': 'trust-wallet-token',
+    'ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044': 'thorswap',
+    'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'coinbase-wrapped-btc',
+    'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'shapeshift-fox-token',
+    'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'thorstarter'
   };
 
   const assetLogos = {
@@ -77,6 +82,7 @@
     'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg',
     'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'assets/coins/usd-coin-usdc-logo.svg',
     'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'assets/coins/tether-usdt-logo.svg',
+    'BSC.TWT-0X4B0F1812E5DF2A09796481FF14017E6005508003': 'assets/coins/twt-logo.png',
     'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': 'assets/coins/multi-collateral-dai-dai-logo.svg',
     'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': 'assets/coins/gemini-dollar-gusd-logo.svg',
     'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': 'assets/coins/liquity-usd-logo.svg',
@@ -87,8 +93,13 @@
     'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'assets/coins/fox-token-fox-logo.svg',
     'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'assets/coins/solana-sol-logo.svg',
     'BASE.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDAA02913': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BASE.CBTC-0XCB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'assets/coins/coinbase-wrapped-btc-logo.svg'
+    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913': 'assets/coins/usd-coin-usdc-logo.svg',
+    'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'assets/coins/coinbase-wrapped-btc-logo.svg',
+    'ETH.DPI-0X1494CA1F11D487C2BBE4543E90080AEBA4BA3C2B': 'assets/coins/dpi-logo.png',
+    'ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044': 'assets/coins/thorswap-logo.png',
+    'ETH.VTHOR-0X815C23ECA83261B6EC689B60CC4A58B54BC24D8D': 'assets/coins/thorswap-logo.png',
+    'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'assets/coins/xrune-logo.png',
+    'ETH.TGT-0X108A850856DB3F85D0269A2693D896B394C80325': 'assets/coins/tgt-logo.png'
   };
 
   async function getPools() {
@@ -257,7 +268,6 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Chain</th>
                     <th>Asset</th>
                     <th>THORChain Price</th>
                     <th>External Price</th>
@@ -268,21 +278,23 @@
                   {#each combinedPoolData as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
-                      <td class="chain-cell">
-                        <img 
-                          src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
-                          alt={pool.asset.split('.')[0]}
-                          class="chain-icon"
-                        />
-                      </td>
                       <td class="asset-cell">
-                        {#if assetLogos[pool.asset]}
-                          <img 
-                            src={assetLogos[pool.asset]} 
-                            alt={formatCryptoName(pool.asset)}
-                            class="asset-icon"
-                          />
-                        {/if}
+                        <div class="logo-container">
+                          {#if assetLogos[pool.asset]}
+                            <img 
+                              src={assetLogos[pool.asset]} 
+                              alt={formatCryptoName(pool.asset)}
+                              class="asset-icon"
+                            />
+                            <div class="chain-logo-container">
+                              <img 
+                                src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
+                                alt={pool.asset.split('.')[0]}
+                                class="chain-icon"
+                              />
+                            </div>
+                          {/if}
+                        </div>
                         {formatCryptoName(pool.asset)}
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
@@ -304,7 +316,6 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Chain</th>
                     <th>Asset</th>
                     <th>THORChain Price</th>
                     <th>External Price</th>
@@ -315,21 +326,23 @@
                   {#each filterAssets(combinedPoolData, bitcoinAssets) as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
-                      <td class="chain-cell">
-                        <img 
-                          src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
-                          alt={pool.asset.split('.')[0]}
-                          class="chain-icon"
-                        />
-                      </td>
                       <td class="asset-cell">
-                        {#if assetLogos[pool.asset]}
-                          <img 
-                            src={assetLogos[pool.asset]} 
-                            alt={formatCryptoName(pool.asset)}
-                            class="asset-icon"
-                          />
-                        {/if}
+                        <div class="logo-container">
+                          {#if assetLogos[pool.asset]}
+                            <img 
+                              src={assetLogos[pool.asset]} 
+                              alt={formatCryptoName(pool.asset)}
+                              class="asset-icon"
+                            />
+                            <div class="chain-logo-container">
+                              <img 
+                                src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
+                                alt={pool.asset.split('.')[0]}
+                                class="chain-icon"
+                              />
+                            </div>
+                          {/if}
+                        </div>
                         {formatCryptoName(pool.asset)}
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
@@ -348,7 +361,6 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Chain</th>
                     <th>Asset</th>
                     <th>THORChain Price</th>
                     <th>External Price</th>
@@ -359,21 +371,23 @@
                   {#each filterAssets(combinedPoolData, stablecoinAssets) as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
                     <tr>
-                      <td class="chain-cell">
-                        <img 
-                          src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
-                          alt={pool.asset.split('.')[0]}
-                          class="chain-icon"
-                        />
-                      </td>
                       <td class="asset-cell">
-                        {#if assetLogos[pool.asset]}
-                          <img 
-                            src={assetLogos[pool.asset]} 
-                            alt={formatCryptoName(pool.asset)}
-                            class="asset-icon"
-                          />
-                        {/if}
+                        <div class="logo-container">
+                          {#if assetLogos[pool.asset]}
+                            <img 
+                              src={assetLogos[pool.asset]} 
+                              alt={formatCryptoName(pool.asset)}
+                              class="asset-icon"
+                            />
+                            <div class="chain-logo-container">
+                              <img 
+                                src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
+                                alt={pool.asset.split('.')[0]}
+                                class="chain-icon"
+                              />
+                            </div>
+                          {/if}
+                        </div>
                         {formatCryptoName(pool.asset)}
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
@@ -524,8 +538,46 @@
   }
 
   .asset-cell {
-    width: 180px;
-    padding-left: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+  }
+
+  .logo-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 32px;
+  }
+
+  .asset-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+  }
+
+  .chain-logo-container {
+    position: absolute;
+    bottom: 0;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .chain-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    border: none;
+    pointer-events: none;
   }
 
   .price-cell {
@@ -601,17 +653,5 @@
     .difference-cell {
       width: 35%;
     }
-  }
-
-  .asset-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .asset-icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
   }
 </style>
