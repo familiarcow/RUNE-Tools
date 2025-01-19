@@ -396,7 +396,7 @@
                     <span class="stat-value">{formatUSD(calculateTotalValue(balances))}</span>
                 </div>
                 <div class="stat-box">
-                    <span class="stat-label">Total Bond Value</span>
+                    <span class="stat-label">Bonded Value</span>
                     <span class="stat-value">{formatUSD(calculateTotalBondValue(bonds))}</span>
                 </div>
                 <div class="stat-box">
