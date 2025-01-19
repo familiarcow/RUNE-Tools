@@ -428,7 +428,7 @@
                         </div>
 
                         <div class="card-content">
-                            {#if balances.length > 0 && balances.some(b => b.denom === 'rune' && Number(b.amount) > 0)}
+                            {#if balances.length > 0 && balances.some(b => b.denom === 'rune' && Number(b.amount) > 100000000)}
                                 <div class="section-container">
                                     <h3>Balances</h3>
                                     <div class="balances-container">
@@ -511,7 +511,7 @@
                                                 </div>
                                                 <div class="lp-amounts">
                                                     <div class="amount-row">
-                                                        <span class="amount">{position.assetAmount.toFixed(2)}</span>
+                                                        <span class="amount">{formatAmount(position.assetAmount * 1e8)}</span>
                                                         <div class="logo-container small">
                                                             <img 
                                                                 src={assetLogos[position.fullPool] || `/assets/coins/fallback-logo.svg`}
@@ -541,7 +541,7 @@
                                                         {/if}
                                                     </div>
                                                     <div class="amount-row">
-                                                        <span class="amount">{position.runeAmount.toFixed(2)}</span>
+                                                        <span class="amount">{formatAmount(position.runeAmount * 1e8)}</span>
                                                         <div class="logo-container small">
                                                             <img 
                                                                 src={assetLogos['THOR.RUNE']} 
