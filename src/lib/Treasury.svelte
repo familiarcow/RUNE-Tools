@@ -392,11 +392,12 @@
         <h1>Treasury Positions</h1>
         
         {#if !loading && !error}
+            <div class="total-treasury">
+                <span class="total-label">Total Treasury Value</span>
+                <span class="total-value">{formatUSD(calculateTotalValue(balances))}</span>
+            </div>
+            
             <div class="stats-container">
-                <div class="stat-box">
-                    <span class="stat-label">Total Treasury Value</span>
-                    <span class="stat-value">{formatUSD(calculateTotalValue(balances))}</span>
-                </div>
                 <div class="stat-box">
                     <span class="stat-label">Bonded Value</span>
                     <span class="stat-value">{formatUSD(calculateTotalBondValue(bonds))}</span>
@@ -846,11 +847,13 @@
     }
 
     .stats-container {
-        display: flex;
-        justify-content: center;
-        gap: 2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
         margin-bottom: 2rem;
-        flex-wrap: wrap;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .stat-box {
@@ -1001,6 +1004,15 @@
         .lp-container {
             padding: 0.25rem;
         }
+
+        .total-treasury {
+            padding: 1rem;
+            margin: 0 1rem 1.5rem;
+        }
+
+        .total-treasury .total-value {
+            font-size: 1.3rem;
+        }
     }
 
     .logo-container.small {
@@ -1086,6 +1098,32 @@
         border-radius: 6px;
         padding: 0.75rem;
         border: 1px solid var(--border-color);
+    }
+
+    .total-treasury {
+        max-width: 400px;
+        margin: 0 auto 2rem;
+        padding: 1.25rem;
+        background: var(--surface-color);
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+    }
+
+    .total-label {
+        display: block;
+        font-size: 1rem;
+        color: var(--secondary-text-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .total-treasury .total-value {
+        display: block;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: var(--text-color);
+        letter-spacing: -0.5px;
     }
 
     :root {
