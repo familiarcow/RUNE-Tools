@@ -11,31 +11,12 @@
         }
     ];
 
-    const LP_ASSETS = [
-        'BCH.BCH',
-        'BSC.BNB',
-        'BTC.BTC',
-        'ETH.ETH',
-        'LTC.LTC',
-        'DOGE.DOGE',
-        'AVAX.AVAX',
-        'GAIA.ATOM',
-        'THOR.THOR',
-        'BASE.ETH',
-        'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7',
-        'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599',
-        'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48',
-        'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D',
-        'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0',
-        'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1',
-        'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD',
-        'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF',
-        'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913'
-    ];
+    let LP_ASSETS = []; // Will be populated from pools API
 
     const THOR_API = 'https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances';
     const MIDGARD_API = 'https://midgard.ninerealms.com/v2/member';
     const TREASURY_LP_API = 'https://thornode.ninerealms.com/thorchain/balance/module/treasury';
+    const POOLS_API = 'https://thornode.ninerealms.com/thorchain/pools';
     
     const chainIcons = {
         BTC: '/assets/chains/BTC.svg',
@@ -376,9 +357,30 @@
         }, 0);
     }
 
-    // Update onMount to include bond fetching
-    onMount(() => {
-        Promise.all([
+    async function fetchPools() {
+        try {
+            const response = await fetch(POOLS_API);
+            const pools = await response.json();
+            
+            // Filter for Available pools only
+            LP_ASSETS = pools
+                .filter(pool => pool.status === 'Available')
+                .map(pool => pool.asset);
+                
+            console.log('Fetched pool assets:', LP_ASSETS);
+        } catch (e) {
+            console.error('Error fetching pools:', e);
+            LP_ASSETS = []; // Reset to empty array on error
+        }
+    }
+
+    // Update onMount to include pools fetching
+    onMount(async () => {
+        // Fetch pools first since we need them for LP positions
+        await fetchPools();
+        
+        // Then fetch the rest
+        await Promise.all([
             fetchThorBalances(),
             fetchBonds()
         ]);
