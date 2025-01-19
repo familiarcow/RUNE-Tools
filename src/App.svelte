@@ -573,7 +573,13 @@
       <div class="menu-content" in:fly={{ x: 300, duration: 300, easing: cubicInOut }} out:fly={{ x: 300, duration: 300, easing: cubicInOut }}>
         {#each apps as app}
           <button class="menu-item" on:click={() => selectApp(app)}>
-            <span class="app-icon">{app.icon}</span>
+            <span class="app-icon">
+              {#if typeof app.icon === 'string' && (app.icon.endsWith('.svg') || app.icon.endsWith('.png'))}
+                <img src={app.icon} alt={app.name} class="menu-icon-img" />
+              {:else}
+                {app.icon}
+              {/if}
+            </span>
             <span class="app-name">{app.name}</span>
           </button>
         {/each}
@@ -898,6 +904,17 @@
   .menu-item .app-icon {
     margin-right: 1rem;
     font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .menu-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
 
   .menu-item .app-name {
