@@ -66,7 +66,7 @@
       content: {
         type: 'vultisig',
         href: "https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a",
-        text: "Secure your RUNE & register for the Vultisig airdrop campaign"
+        text: "Register for the Vultisig airdrop campaign"
       }
     },
     {
