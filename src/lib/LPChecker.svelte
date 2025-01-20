@@ -22,7 +22,7 @@
   let analyzingProgress = 0;
   let totalAnalysisTime = 0;
 
-  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.ninerealms.com';
+  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.thorchain.liquify.com/';
 
   const route = writable({ view: 'list', params: {} });
 
@@ -268,7 +268,7 @@
     analyzingAll = true;
     analyzingProgress = 0;
     const totalLPs = liquidityProviders.length;
-    totalAnalysisTime = totalLPs * 1; // 1 second per LP
+    totalAnalysisTime = totalLPs * 0.1; // Changed from 1 to 0.1 seconds per LP
 
     for (let i = 0; i < totalLPs; i++) {
       const lp = liquidityProviders[i];
@@ -301,11 +301,11 @@
       }
 
       analyzingProgress = ((i + 1) / totalLPs) * 100;
-      await sleep(1000); // Sleep for 1 second
+      await sleep(100); // Changed from 1000 to 100 milliseconds
     }
 
     analyzingAll = false;
-    liquidityProviders = [...liquidityProviders]; // Trigger reactivity
+    liquidityProviders = [...liquidityProviders];
   }
 
   function formatPnL(pnl) {
