@@ -119,6 +119,13 @@
       description: "View your current THORChain lending position" 
     },
     { 
+      name: "LP Checker", 
+      component: () => import("./lib/LiquidityProviders.svelte"), 
+      icon: "💧", 
+      path: "lp", 
+      description: "Check your THORChain LP positions" 
+    },
+    { 
       name: "Savers", 
       component: () => import("./lib/SaversTracker.svelte"), 
       icon: "📈", 
@@ -197,15 +204,7 @@
     },
   ];
 
-  const hiddenApps = [
-    { 
-      name: "LP Checker", 
-      component: () => import("./lib/LiquidityProviders.svelte"), 
-      icon: "💧", 
-      path: "lp", 
-      description: "Check your THORChain LP positions" 
-    }
-  ];
+  const hiddenApps = [];  // Empty again since we moved LP Checker back to apps
 
   const [send, receive] = crossfade({
     duration: 400,
