@@ -197,7 +197,15 @@
     },
   ];
 
-  const hiddenApps = [];
+  const hiddenApps = [
+    { 
+      name: "LP Checker", 
+      component: () => import("./lib/LiquidityProviders.svelte"), 
+      icon: "💧", 
+      path: "lp", 
+      description: "Check your THORChain LP positions" 
+    }
+  ];
 
   const [send, receive] = crossfade({
     duration: 400,
