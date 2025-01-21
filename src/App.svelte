@@ -10,6 +10,16 @@
   import TerminalText from './lib/TerminalText.svelte';
   import { writable } from 'svelte/store';
   import Banner from './lib/Banner.svelte';
+  
+  // Add store for starred apps
+  const STARRED_APPS_KEY = 'runetools-starred-apps';
+  const starredApps = writable(new Set(JSON.parse(localStorage.getItem(STARRED_APPS_KEY) || '[]')));
+  
+  // Subscribe to changes and update localStorage
+  starredApps.subscribe(value => {
+    localStorage.setItem(STARRED_APPS_KEY, JSON.stringify(Array.from(value)));
+  });
+
   const HOLIDAY_MODE = false; // Easy to toggle holiday features on/off
   const SHOW_BANNER = false; // Easy to toggle banner on/off
 
@@ -513,6 +523,45 @@
 
   $: appRows = groupIntoRows(apps, optimalColumns);
 
+  // Add star icon SVG
+  const starOutlineIcon = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+    </svg>
+  `;
+
+  const starFilledIcon = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+    </svg>
+  `;
+
+  // Add function to toggle star status
+  function toggleStar(app, event) {
+    event.stopPropagation(); // Prevent app selection when clicking star
+    starredApps.update(starred => {
+      const newStarred = new Set(starred);
+      if (newStarred.has(app.path)) {
+        newStarred.delete(app.path);
+      } else {
+        newStarred.add(app.path);
+      }
+      return newStarred;
+    });
+  }
+
+  // Sort apps with starred items first
+  $: sortedApps = [...apps].sort((a, b) => {
+    const aStarred = $starredApps.has(a.path);
+    const bStarred = $starredApps.has(b.path);
+    if (aStarred && !bStarred) return -1;
+    if (!aStarred && bStarred) return 1;
+    return 0;
+  });
+
+  // Update the grouping function to use sortedApps
+  $: appRows = groupIntoRows(sortedApps, optimalColumns);
+
   $: if (selectedApp) {
     document.title = `${selectedApp.name} - RUNE Tools`;
   } else {
@@ -532,7 +581,7 @@
   </style>
 </svelte:head>
 
-<main>
+<main class:mobile={isMobile}>
   {#if HOLIDAY_MODE}
     <Snow />
   {/if}
@@ -620,6 +669,13 @@
                   on:mouseleave={handleMouseLeave}
                   in:fly={{ y: 20, duration: 300, delay: 100 + i * 50, easing: quintOut }}
                 >
+                  <div 
+                    class="star-icon" 
+                    class:starred={$starredApps.has(app.path)} 
+                    on:click={(e) => toggleStar(app, e)}
+                  >
+                    {@html $starredApps.has(app.path) ? starFilledIcon : starOutlineIcon}
+                  </div>
                   <span class="app-icon">
                     {#if typeof app.icon === 'string' && (app.icon.endsWith('.svg') || app.icon.endsWith('.png'))}
                       <img src={app.icon} alt={app.name} />
@@ -824,6 +880,7 @@
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
   }
 
   .app-button:hover {
@@ -836,6 +893,29 @@
   .app-button:active {
     transform: scale(1.02) translateY(-1px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .star-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    transition: opacity 0.2s ease;
+    z-index: 2;
+    opacity: 0;
+  }
+
+  /* Show star on hover for desktop */
+  .app-button:hover .star-icon {
+    opacity: 0.8;
+  }
+
+  /* Always show star for mobile */
+  :global(.mobile) .star-icon {
+    opacity: 0.5;
+  }
+
+  .star-icon.starred {
+    opacity: 1 !important; /* Use !important to ensure starred icons are always visible */
   }
 
   .app-icon {
@@ -1007,6 +1087,11 @@
     :global(:root) {
       --banner-height: 22px;
     }
+  }
+
+  /* Add mobile class when isMobile is true */
+  main.mobile {
+    /* existing styles */
   }
 </style>
 
