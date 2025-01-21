@@ -80,6 +80,13 @@
       description: "View THORChain's network parameters and settings" 
     },
     { 
+      name: "Block Date", 
+      component: () => import("./lib/BlockDate.svelte"), 
+      icon: "📅", 
+      path: "blockdate", 
+      description: "Convert THORChain block height to date and vice versa" 
+    },
+    { 
       name: "Incentive Pendulum", 
       component: () => import("./lib/IncentivePendulum.svelte"), 
       icon: "⚖️", 
