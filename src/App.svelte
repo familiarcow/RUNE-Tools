@@ -733,7 +733,7 @@
     display: flex;
     flex-direction: column;
     color: var(--text-color);
-    padding-top: calc(60px + var(--banner-height, 0px));
+    padding-top: calc(45px + var(--banner-height, 0px));
     position: relative;
   }
 
@@ -825,21 +825,21 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
-    padding-top: calc(20px + var(--banner-height, 0px));
+    padding-top: 10px;
     position: relative;
     z-index: 1;
     padding-bottom: 60px;
   }
 
   .scrollable-container {
-    padding-top: 20px; /* Add additional padding for the app components */
+    padding-top: 0;
   }
 
   .description-container {
     color: var(--text-color);
     padding: 0.5rem;
-    margin-bottom: 1rem;
-    height: 100px;
+    margin-bottom: 0.5rem;
+    height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
