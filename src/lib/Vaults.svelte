@@ -171,7 +171,11 @@
       ]);
       
       const data = await vaultsResponse.json();
-      vaults = data;
+      // Sort vaults - Active first, then Retiring
+      vaults = data.sort((a, b) => {
+        if (a.status === b.status) return 0;
+        return a.status === 'ActiveVault' ? -1 : 1;
+      });
       const priceData = await fetchPrices();
       prices = priceData.prices;
       pools = priceData.pools;
@@ -237,8 +241,8 @@
       <div class="vaults-container">
         {#each vaults as vault}
           <div class="vault-card" transition:fade>
-            <div class="card-header">
-              <h2>Vault {formatVaultName(vault.pub_key)}</h2>
+            <div class="card-header" class:retiring={vault.status === 'RetiringVault'}>
+              <h2>Vault {formatVaultName(vault.pub_key)}{vault.status === 'RetiringVault' ? ' (Retiring)' : ''}</h2>
               <div class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key, 'vault pubkey')}>
                 {shortenAddress(vault.pub_key)}
               </div>
@@ -422,6 +426,10 @@
   .card-header {
     background-color: #4A90E2;
     padding: 1rem;
+  }
+
+  .card-header.retiring {
+    background-color: #9B51E0;
   }
 
   .card-header h2 {
