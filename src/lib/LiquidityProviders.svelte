@@ -26,6 +26,9 @@
     activeTab = value;
   });
 
+  // Add a temporary store for the address input
+  let addressInput = '';
+
   onMount(async () => {
     try {
       // Fetch pools list
@@ -114,12 +117,15 @@
   }
 
   function handleAddressInput(event) {
-    selectedAddress = event.target.value;
+    // Update temporary input value instead of selectedAddress
+    addressInput = event.target.value;
   }
 
   // Update the handleDetailSubmit function
   function handleDetailSubmit() {
-    if (selectedPool && selectedAddress) {
+    if (selectedPool && addressInput) {
+      // Only update selectedAddress when submitting
+      selectedAddress = addressInput;
       activeTabStore.set('detail');
       updateURL();
       updateTitle(selectedAddress);
@@ -185,10 +191,13 @@
               <input 
                 type="text" 
                 placeholder="Enter LP address" 
-                bind:value={selectedAddress} 
+                bind:value={addressInput}
                 on:input={handleAddressInput}
               />
-              <button on:click={handleDetailSubmit} disabled={!selectedPool || !selectedAddress}>
+              <button 
+                on:click={handleDetailSubmit} 
+                disabled={!selectedPool || !addressInput}
+              >
                 View LP Details
               </button>
             </div>
