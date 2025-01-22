@@ -172,7 +172,7 @@
     <div class="container">
       <div class="header-container">
         <div class="title-container">
-          <h2>LP Details {pool ? `for ${getShortPoolName(pool)}` : ''} {address ? `(${address.slice(-4)})` : ''}</h2>
+          <h2>{address ? `${address.slice(-4).toUpperCase()}` : ''} LP Details - {pool ? ` ${getShortPoolName(pool)}` : ''}</h2>
         </div>
         <button class="copy-url-button" on:click={copyPageUrl} title="Copy page URL">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
