@@ -217,6 +217,12 @@
       await findPoolForLP(address);
     }
     if (selectedPool) {
+      // Update URL with search parameters
+      const searchParams = new URLSearchParams();
+      searchParams.set('pool', selectedPool);
+      searchParams.set('address', address);
+      window.history.pushState({}, '', `/lp?${searchParams.toString()}`);
+      
       route.set({ view: 'detail', params: { pool: selectedPool, address: address } });
     } else {
       error = 'Unable to find pool for this LP';
