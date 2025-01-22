@@ -258,48 +258,76 @@
     max-width: 500px;
     margin: 0 auto;
     padding: 30px;
-    background-color: #2c2c2c;
-    border-radius: 8px;
+    background-color: #242424;
+    border-radius: 12px;
+    border: 1px solid #333;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   .lp-detail-selector h3 {
     color: #4A90E2;
     text-align: center;
-    margin: 0 0 20px 0;
-    font-size: 20px;
+    margin: 0 0 24px 0;
+    font-size: 22px;
+    font-weight: 600;
   }
 
   .lp-detail-selector select,
   .lp-detail-selector input {
     width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background-color: var(--surface-color-dark);
-    color: white;
-    font-size: 16px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #1a1a1a;
+    color: #fff;
+    font-size: 15px;
+    transition: all 0.2s ease;
+  }
+
+  .lp-detail-selector select:hover,
+  .lp-detail-selector input:hover {
+    border-color: #4A90E2;
+    background-color: #1f1f1f;
+  }
+
+  .lp-detail-selector select:focus,
+  .lp-detail-selector input:focus {
+    border-color: #4A90E2;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    background-color: #1f1f1f;
   }
 
   .lp-detail-selector button {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background-color: #4A90E2;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     color: white;
     font-size: 16px;
+    font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.2s ease;
+    margin-top: 8px;
   }
 
   .lp-detail-selector button:hover:not(:disabled) {
     background-color: #357abd;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+  }
+
+  .lp-detail-selector button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: none;
   }
 
   .lp-detail-selector button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    background-color: #666;
   }
 
   .loading {
