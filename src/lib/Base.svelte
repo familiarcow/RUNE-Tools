@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import BaseStats from './BaseStats.svelte';
 
   let basePools = [];
   let isLoading = true;
@@ -201,6 +202,8 @@
         </div>
       {/each}
     </div>
+
+    <BaseStats />
   {/if}
 </div>
 
