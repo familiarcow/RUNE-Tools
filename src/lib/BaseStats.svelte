@@ -171,15 +171,23 @@
       pieChart.destroy();
     }
 
-    // Get the most recent date's data
-    const latestDate = new Date(Math.max(...statsData.map(d => new Date(d.DAY))));
-    const latestData = statsData.filter(d => new Date(d.DAY).getTime() === latestDate.getTime());
+    // Get the latest cumulative volumes for each affiliate
+    const affiliateVolumes = new Map();
+    statsData.forEach(entry => {
+      if (!affiliateVolumes.has(entry.Affiliates) || 
+          new Date(entry.DAY) > new Date(affiliateVolumes.get(entry.Affiliates).date)) {
+        affiliateVolumes.set(entry.Affiliates, {
+          volume: entry.CUMU_USD_VOLUME,
+          date: entry.DAY
+        });
+      }
+    });
 
     // Calculate total volume and percentages
-    const totalVolume = latestData.reduce((sum, entry) => sum + entry.CUMU_USD_VOLUME, 0);
-    const data = latestData.map(entry => ({
-      affiliate: entry.Affiliates,
-      percentage: (entry.CUMU_USD_VOLUME / totalVolume) * 100
+    const totalVolume = Array.from(affiliateVolumes.values()).reduce((sum, entry) => sum + entry.volume, 0);
+    const data = Array.from(affiliateVolumes.entries()).map(([affiliate, data]) => ({
+      affiliate,
+      percentage: (data.volume / totalVolume) * 100
     }));
 
     pieChart = new Chart(ctx, {
@@ -226,12 +234,24 @@
       topAffiliatesChart.destroy();
     }
 
-    // Get the most recent date's data
-    const latestDate = new Date(Math.max(...statsData.map(d => new Date(d.DAY))));
-    const latestData = statsData.filter(d => new Date(d.DAY).getTime() === latestDate.getTime());
+    // Get the latest cumulative volumes for each affiliate
+    const affiliateVolumes = new Map();
+    statsData.forEach(entry => {
+      if (!affiliateVolumes.has(entry.Affiliates) || 
+          new Date(entry.DAY) > new Date(affiliateVolumes.get(entry.Affiliates).date)) {
+        affiliateVolumes.set(entry.Affiliates, {
+          volume: entry.CUMU_USD_VOLUME,
+          date: entry.DAY
+        });
+      }
+    });
 
     // Sort by volume and get top 5
-    const topAffiliates = latestData
+    const topAffiliates = Array.from(affiliateVolumes.entries())
+      .map(([affiliate, data]) => ({
+        Affiliates: affiliate,
+        CUMU_USD_VOLUME: data.volume
+      }))
       .sort((a, b) => b.CUMU_USD_VOLUME - a.CUMU_USD_VOLUME)
       .slice(0, 5);
 
