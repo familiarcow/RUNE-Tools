@@ -190,7 +190,6 @@
     gap: 20px;
     padding: 20px;
     background-color: #2c2c2c;
-    border-radius: 12px;
     position: relative;
   }
 
