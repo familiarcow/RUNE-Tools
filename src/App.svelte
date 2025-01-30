@@ -209,7 +209,7 @@
       name: "Trade on THORSwap", 
       icon: "/assets/thorswap.png",
       path: "thorswap", 
-      description: "Trade RUNE and other native assets on THORSwap." 
+      description: "Trade RUNE and other native assets on THORSwap.", 
       externalUrl: "https://app.thorswap.finance/swap/BTC.BTC_THOR.RUNE?ref=-"
     },
         { 
