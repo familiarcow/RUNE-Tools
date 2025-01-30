@@ -207,10 +207,17 @@
     },
     { 
       name: "Trade on THORSwap", 
-      component: () => import("./lib/Thorswap.svelte"), 
       icon: "/assets/thorswap.png",
       path: "thorswap", 
       description: "Trade RUNE and other native assets on THORSwap." 
+      externalUrl: "https://app.thorswap.finance/swap/BTC.BTC_THOR.RUNE?ref=-"
+    },
+        { 
+      name: "Buy RUNE", 
+      component: () => import("./lib/BuyRune.svelte"), 
+      icon: "💳", 
+      path: "buy", 
+      description: "Buy RUNE with ETH or stablecoins" 
     },
     { 
       name: "Shop", 
@@ -218,7 +225,7 @@
       path: "shop", 
       description: "Browse THORChain merchandise", 
       externalUrl: "https://shop.rune.tools" 
-    },
+    }
   ];
 
   const hiddenApps = [];  // Empty again since we moved LP Checker back to apps
