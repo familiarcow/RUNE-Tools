@@ -3,15 +3,10 @@
   import axios from 'axios';
 
   let blockHeight = '';
-  let selectedDate = new Date().toISOString().slice(0, 16); // Format: YYYY-MM-DDThh:mm
-  let result = null;
+  let selectedDate = new Date().toISOString().slice(0, 10); // Format: YYYY-MM-DD
   let loading = false;
   let error = null;
   let blockData = [];
-
-  // Constants for block time calculations
-  const BLOCKS_PER_DAY = 14515; // Average blocks per day
-  const BLOCK_TIME = 6; // Average block time in seconds
 
   onMount(async () => {
     await fetchBlockData();
@@ -29,60 +24,88 @@
     }
   }
 
-  function findNearestBlock(targetDate) {
-    const targetTimestamp = new Date(targetDate).getTime();
-    
-    // Find the closest block by comparing timestamps
-    let closest = blockData.reduce((prev, curr) => {
-      const prevDiff = Math.abs(new Date(prev.DATE).getTime() - targetTimestamp);
-      const currDiff = Math.abs(new Date(curr.DATE).getTime() - targetTimestamp);
-      return currDiff < prevDiff ? curr : prev;
-    });
-
-    // Calculate the exact block using time difference
-    const timeDiff = targetTimestamp - new Date(closest.DATE).getTime();
-    const blockDiff = Math.round(timeDiff / (BLOCK_TIME * 1000));
-    
-    return closest.HEIGHT + blockDiff;
-  }
-
-  function findBlockDate(targetBlock) {
-    // Find the closest known block
-    let closest = blockData.reduce((prev, curr) => {
-      const prevDiff = Math.abs(prev.HEIGHT - targetBlock);
-      const currDiff = Math.abs(curr.HEIGHT - targetBlock);
-      return currDiff < prevDiff ? curr : prev;
-    });
-
-    // Calculate the time difference based on block difference
-    const blockDiff = targetBlock - closest.HEIGHT;
-    const timeDiff = blockDiff * BLOCK_TIME * 1000;
-    return new Date(new Date(closest.DATE).getTime() + timeDiff);
-  }
-
   function handleDateChange(event) {
     selectedDate = event.target.value;
     if (selectedDate && blockData.length > 0) {
-      const estimatedBlock = findNearestBlock(selectedDate);
-      blockHeight = Math.round(estimatedBlock).toString();
+      try {
+        const matchingBlock = blockData.find(block => 
+          block.DATE.startsWith(selectedDate)
+        );
+        
+        if (matchingBlock) {
+          blockHeight = matchingBlock.HEIGHT.toString();
+          error = null;
+        } else {
+          // Find the earliest date in the dataset
+          const earliestBlock = blockData.reduce((prev, curr) => 
+            new Date(prev.DATE) < new Date(curr.DATE) ? prev : curr
+          );
+          
+          if (new Date(selectedDate) < new Date(earliestBlock.DATE)) {
+            error = `No data available before ${earliestBlock.DATE.slice(0, 10)}.`;
+          } else {
+            error = 'No block data available for the selected date';
+          }
+          blockHeight = '';
+        }
+      } catch (err) {
+        error = err.message;
+        blockHeight = '';
+      }
     }
   }
 
   function handleBlockChange(event) {
     blockHeight = event.target.value;
     if (blockHeight && !isNaN(parseInt(blockHeight)) && blockData.length > 0) {
-      const estimatedDate = findBlockDate(parseInt(blockHeight));
-      selectedDate = estimatedDate.toISOString().slice(0, 16);
+      try {
+        const targetBlock = parseInt(blockHeight);
+        
+        // First try exact match
+        const exactMatch = blockData.find(block => block.HEIGHT === targetBlock);
+        if (exactMatch) {
+          selectedDate = exactMatch.DATE.slice(0, 10);
+          error = null;
+          return;
+        }
+
+        // Find the blocks before and after the target
+        const beforeBlock = blockData.reduce((prev, curr) => {
+          if (curr.HEIGHT > targetBlock) return prev;
+          return !prev || curr.HEIGHT > prev.HEIGHT ? curr : prev;
+        }, null);
+
+        const afterBlock = blockData.reduce((prev, curr) => {
+          if (curr.HEIGHT <= targetBlock) return prev;
+          return !prev || curr.HEIGHT < prev.HEIGHT ? curr : prev;
+        }, null);
+
+        if (!beforeBlock) {
+          error = 'Block height is before available data';
+          selectedDate = '';
+          return;
+        }
+
+        if (!afterBlock) {
+          error = 'Block height is after available data';
+          selectedDate = '';
+          return;
+        }
+
+        // Calculate the estimated date using linear interpolation
+        const blockDiff = afterBlock.HEIGHT - beforeBlock.HEIGHT;
+        const timeDiff = new Date(afterBlock.DATE) - new Date(beforeBlock.DATE);
+        const blockProgress = (targetBlock - beforeBlock.HEIGHT) / blockDiff;
+        const estimatedTime = new Date(beforeBlock.DATE).getTime() + (timeDiff * blockProgress);
+        
+        selectedDate = new Date(estimatedTime).toISOString().slice(0, 10);
+        error = null;
+      } catch (err) {
+        error = err.message;
+        selectedDate = '';
+      }
     }
   }
-
-  // Export functions for use in other components
-  export const blockDateUtils = {
-    findNearestBlock,
-    findBlockDate,
-    BLOCKS_PER_DAY,
-    BLOCK_TIME
-  };
 </script>
 
 <div class="block-date-calculator">
@@ -91,9 +114,9 @@
 
     <div class="calculator-grid">
       <div class="input-group">
-        <label for="date">Date & Time</label>
+        <label for="date">Date</label>
         <input
-          type="datetime-local"
+          type="date"
           id="date"
           value={selectedDate}
           on:change={handleDateChange}
@@ -191,23 +214,14 @@
   }
 
   /* Style the calendar input */
-  input[type="datetime-local"] {
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%234A90E2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 44px;
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.7;
+    cursor: pointer;
   }
 
-  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    background: transparent;
-    color: transparent;
-    cursor: pointer;
-    height: 20px;
-    width: 20px;
-    position: absolute;
-    right: 12px;
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
   }
 
   .error-message {
