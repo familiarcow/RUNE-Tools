@@ -220,6 +220,13 @@
       description: "Buy RUNE with ETH or stablecoins" 
     },
     { 
+      name: "Debt", 
+      component: () => import("./lib/Debt.svelte"), 
+      icon: "🪣", 
+      path: "debt", 
+      description: "Check THORChain's debt" 
+    },
+    { 
       name: "Shop", 
       icon: "🏪", 
       path: "shop", 
