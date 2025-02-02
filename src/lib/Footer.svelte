@@ -15,7 +15,7 @@
   let startX = 0;
   let startY = 0;
   let isDragging = false;
-  const totalPages = 3;
+  const totalPages = 4;
   let autoScrollTimer;
   let isUserInteracting = false;
 
@@ -49,6 +49,15 @@
   }
 
   const pages = [
+    {
+      content: {
+        type: 'links',
+        elements: [
+          { text: "RUNE Tools needs your support to stay alive - Donations: " },
+          { text: "thor1jdqm4u6e5zphglmgwhy85yxfyg229wyr2ztklp" }
+        ]
+      }
+    },
     {
       content: {
         type: 'links',
