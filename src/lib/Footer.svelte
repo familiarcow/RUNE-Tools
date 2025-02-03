@@ -4,27 +4,6 @@
   import { cubicInOut } from 'svelte/easing';
   import { audioPlaying } from './stores/audioStore';
 
-  let showToast = false;
-  let toastMessage = "";
-  let toastTimeout;
-
-  const copyDonationAddress = (e) => {
-    e.stopPropagation(); // Prevent page change
-    const address = "thor1jdqm4u6e5zphglmgwhy85yxfyg229wyr2ztklp";
-    navigator.clipboard.writeText(address).then(() => {
-      showToastMessage("Address copied to clipboard!");
-    });
-  };
-
-  const showToastMessage = (message) => {
-    clearTimeout(toastTimeout);
-    toastMessage = message;
-    showToast = true;
-    toastTimeout = setTimeout(() => {
-      showToast = false;
-    }, 2000); // 2 seconds
-  };
-
   const emojis = ['🫡', '✍️', '💪', '🧙‍♂️', '🕺', '🏃‍♂️‍➡️', '🦅', '🐋', '🐉', '⚡️', '🌊', '🍷', '🍻', '🏄‍♂️', '🏆', '🎸', '🚀', '🗿', '🗽', '🏗️', '📠', '🔌', '🔮', '🔭', '💯', '🏴‍☠️', '🥷', '👑', '🪐', '🍦', '🍾', '🎯', '❤️', '☑️', '🆒'];
 
   function getRandomEmoji() {
@@ -36,7 +15,7 @@
   let startX = 0;
   let startY = 0;
   let isDragging = false;
-  const totalPages = 4;
+  const totalPages = 3;
   let autoScrollTimer;
   let isUserInteracting = false;
 
@@ -70,15 +49,6 @@
   }
 
   const pages = [
-    {
-      content: {
-        type: 'links',
-        elements: [
-          { text: "RUNE Tools needs your support to stay alive - Donations: " },
-          { text: "thor1jdqm4u6e5zphglmgwhy85yxfyg229wyr2ztklp", onClick: copyDonationAddress }
-        ]
-      }
-    },
     {
       content: {
         type: 'links',
@@ -343,11 +313,6 @@
       </div>
     {/key}
   </div>
-  {#if showToast}
-    <div class="toast" transition:fade={{ duration: 300 }}>
-      {toastMessage}
-    </div>
-  {/if}
 </footer>
 
 <style>
@@ -485,21 +450,5 @@
   .clickable-text:hover {
     opacity: 1;
     text-shadow: 0 0 8px rgba(49, 253, 157, 0.3);
-  }
-
-  .toast {
-    position: fixed;
-    bottom: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--surface-color, #2c2c2c);
-    color: var(--text-color, #fff);
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    font-size: 0.9rem;
-    max-width: 80%;
-    text-align: center;
   }
 </style> 
