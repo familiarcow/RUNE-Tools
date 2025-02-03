@@ -6,6 +6,8 @@
   const pools = writable([]);
   const currentTab = writable('prices');
   const externalPrices = writable({});
+  const showPoolInfo = writable(false);
+  const showTradeBalanceInUSD = writable(false);
 
   const bitcoinAssets = [
     'BTC.BTC',
@@ -102,8 +104,24 @@
     'ETH.TGT-0X108A850856DB3F85D0269A2693D896B394C80325': 'assets/coins/tgt-logo.png'
   };
 
+  async function getTradeAssets() {
+    try {
+      const response = await fetch("https://thornode.ninerealms.com/thorchain/trade/units");
+      const data = await response.json();
+      return data.reduce((acc, item) => {
+        const formattedAsset = item.asset.replace('~', '.');
+        acc[formattedAsset] = Number(item.depth);
+        return acc;
+      }, {});
+    } catch (error) {
+      console.error('Failed to fetch trade assets:', error);
+      return {};
+    }
+  }
+
   async function getPools() {
     try {
+      const tradeAssets = await getTradeAssets();
       const response = await fetch("https://thornode.ninerealms.com/thorchain/pools");
       const data = await response.json();
       return data
@@ -111,7 +129,10 @@
         .map(pool => ({
           asset: pool.asset,
           usd_price: Number(pool.asset_tor_price) / 1e8,
-          rune_depth: Number(pool.rune_depth)
+          rune_depth: Number(pool.rune_depth),
+          asset_depth: Number(pool.asset_depth),
+          trade_asset_depth: Number(tradeAssets[pool.asset] || 0),
+          balance_asset: Number(pool.balance_asset)
         }))
         .sort((a, b) => b.rune_depth - a.rune_depth);
     } catch (error) {
@@ -148,16 +169,22 @@
 
   $: combinedPoolData = $pools.length > 0 && Object.keys($externalPrices).length > 0
     ? $pools.map(pool => {
-            const externalPrice = getExternalPrice(pool.asset);
+        const externalPrice = getExternalPrice(pool.asset);
         const difference = externalPrice ? ((pool.usd_price - externalPrice) / externalPrice) * 100 : null;
-        console.log(`Combined data for ${pool.asset}: THORChain price: ${pool.usd_price}, External price: ${externalPrice}, Difference: ${difference}`);
-            return {
-              ...pool,
-              externalPrice,
+        const tradeBalanceUSD = (pool.trade_asset_depth / 1e8) * pool.usd_price;
+        const totalPoolDepthUSD = (pool.balance_asset / 1e8) * 2 * pool.usd_price;
+        const tradePoolRatio = (pool.trade_asset_depth / (2 * pool.balance_asset)) * 100;
+        
+        return {
+          ...pool,
+          externalPrice,
           difference,
-            };
+          tradeBalanceUSD,
+          totalPoolDepthUSD,
+          tradePoolRatio
+        };
       }).sort((a, b) => Math.abs(b.difference || 0) - Math.abs(a.difference || 0))
-      : [];
+    : [];
 
   async function fetchData() {
     const poolsData = await getPools();
@@ -191,6 +218,13 @@
       currency: "USD",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
+    }).format(number);
+  }
+
+  function formatNumber(number, decimals = 8) {
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: decimals,
     }).format(number);
   }
 
@@ -242,7 +276,18 @@
     <div class="app-header">
       <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo">
       <h2>THORChain Price Checker</h2>
-      <div class="info-icon" on:click={() => alert('Compare THORChain prices with external market prices')}>ⓘ</div>
+      <div class="info-icon" on:click={() => alert('Compare THORChain prices with external market prices (from CoinGecko)')}>ⓘ</div>
+    </div>
+
+    <div class="settings-bar">
+      <button class="settings-button" on:click={() => showPoolInfo.update(v => !v)}>
+        ⚙️ {$showPoolInfo ? 'Hide' : 'Show'} Pool Info
+      </button>
+      {#if $showPoolInfo}
+        <button class="settings-button" on:click={() => showTradeBalanceInUSD.update(v => !v)}>
+          💱 Show Trade Balance in {$showTradeBalanceInUSD ? 'Asset' : 'USD'}
+        </button>
+      {/if}
     </div>
 
     <div class="tabs">
@@ -272,11 +317,18 @@
                     <th>THORChain Price</th>
                     <th>External Price</th>
                     <th>Difference</th>
+                    {#if $showPoolInfo}
+                      <th>Trade Balance {$showTradeBalanceInUSD ? '(USD)' : '(Asset)'}</th>
+                      <th>Total Pool Depth USD</th>
+                      <th>Trade/Pool Ratio</th>
+                    {/if}
                   </tr>
                 </thead>
                 <tbody>
                   {#each combinedPoolData as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
+                    {@const balanceUSD = pool.balance_asset * pool.usd_price}
+                    {@const totalPoolDepthUSD = pool.balance_asset * 2 * pool.usd_price}
                     <tr>
                       <td class="asset-cell">
                         <div class="logo-container">
@@ -300,6 +352,15 @@
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                       <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
                       <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
+                      {#if $showPoolInfo}
+                        <td class="balance-cell">
+                          {$showTradeBalanceInUSD 
+                            ? formatNumberUSD((pool.trade_asset_depth / 1e8) * pool.usd_price)
+                            : formatNumber(pool.trade_asset_depth / 1e8)}
+                        </td>
+                        <td class="price-cell">{formatNumberUSD(pool.totalPoolDepthUSD)}</td>
+                        <td class="ratio-cell">{pool.tradePoolRatio.toFixed(2)}%</td>
+                      {/if}
                     </tr>
                   {/each}
                 </tbody>
@@ -459,6 +520,34 @@
     opacity: 1;
   }
 
+  .settings-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .settings-button {
+    background: #2c2c2c;
+    border: 1px solid #3a3a3c;
+    color: #4A90E2;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+
+  .settings-button:hover {
+    border-color: #4A90E2;
+    background: #1a1a1a;
+  }
+
+  .settings-toggle, .balance-toggle {
+    display: none;
+  }
+
   .tabs {
     display: flex;
     gap: 10px;
@@ -584,8 +673,19 @@
     width: 120px;
   }
 
+  .balance-cell {
+    width: 140px;
+    font-family: monospace;
+  }
+
   .difference-cell {
     width: 100px;
+  }
+
+  .ratio-cell {
+    width: 100px;
+    text-align: right;
+    font-family: monospace;
   }
 
   .comparison-section {
@@ -609,6 +709,20 @@
   @media (max-width: 768px) {
     .container {
       padding: 10px;
+    }
+
+    .settings-bar {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .settings-button {
+      width: 100%;
+    }
+
+    .info-icon {
+      position: static;
+      margin-top: 10px;
     }
 
     .tabs {
