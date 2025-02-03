@@ -212,7 +212,7 @@
       description: "Trade RUNE and other native assets on THORSwap.", 
       externalUrl: "https://app.thorswap.finance/swap/BTC.BTC_THOR.RUNE?ref=-"
     },
-        { 
+    { 
       name: "Buy RUNE", 
       component: () => import("./lib/BuyRune.svelte"), 
       icon: "💳", 
@@ -225,6 +225,13 @@
       icon: "🪣", 
       path: "debt", 
       description: "Check THORChain's debt" 
+    },
+    { 
+      name: "Trade Assets", 
+      component: () => import("./lib/TradeAssets.svelte"), 
+      icon: "💱", 
+      path: "trade-assets", 
+      description: "Track THORChain's trade assets and vault balances" 
     },
     { 
       name: "Shop", 
