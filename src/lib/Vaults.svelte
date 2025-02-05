@@ -370,7 +370,7 @@
 
                 {#if vault.membership && vault.membership.length > 0}
                   <div transition:slide={{ duration: 300 }}>
-                    <h4>Signers</h4>
+                    <h4>Signers ({vault.membership.length})</h4>
                     <div class="signers-container">
                       {#each vault.membership as signer}
                         <div class="signer-tag clickable" on:click={() => copyToClipboard(signer, 'signer pubkey')}>
