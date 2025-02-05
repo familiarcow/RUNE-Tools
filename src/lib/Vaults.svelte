@@ -171,11 +171,13 @@
       ]);
       
       const data = await vaultsResponse.json();
+      
       // Sort vaults - Active first, then Retiring
       vaults = data.sort((a, b) => {
         if (a.status === b.status) return 0;
         return a.status === 'ActiveVault' ? -1 : 1;
       });
+      
       const priceData = await fetchPrices();
       prices = priceData.prices;
       pools = priceData.pools;
@@ -365,6 +367,19 @@
                     </div>
                   {/each}
                 </div>
+
+                {#if vault.membership && vault.membership.length > 0}
+                  <div transition:slide={{ duration: 300 }}>
+                    <h4>Signers</h4>
+                    <div class="signers-container">
+                      {#each vault.membership as signer}
+                        <div class="signer-tag clickable" on:click={() => copyToClipboard(signer, 'signer pubkey')}>
+                          {signer.slice(-4).toUpperCase()}
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
               {/if}
             </div>
           </div>
@@ -695,5 +710,42 @@
   .address-row .chain-icon {
     width: 24px;
     height: 24px;
+  }
+
+  /* Signers styles */
+  .signers-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background: var(--surface-color-secondary);
+    border-radius: 4px;
+  }
+
+  .debug-info {
+    font-family: monospace;
+    font-size: 0.8rem;
+    padding: 0.5rem;
+    background: #333;
+    color: #fff;
+    margin: 0.5rem 0;
+    border-radius: 4px;
+  }
+
+  .signer-tag {
+    background: var(--surface-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--text-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .signer-tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   }
 </style>
