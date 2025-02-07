@@ -15,7 +15,7 @@
   let startX = 0;
   let startY = 0;
   let isDragging = false;
-  const totalPages = 3;
+  const totalPages = 4;
   let autoScrollTimer;
   let isUserInteracting = false;
 
@@ -60,6 +60,13 @@
           { href: "https://x.com/RuneDotTools", text: "Follow on 𝕏" },
           { type: 'sound' }
         ]
+      }
+    },
+    {
+      content: {
+        type: 'thorswap',
+        href: "https://cbbtc.exchange",
+        text: "cbBTC.Exchange 🔵 Swap from Base to Bitcoin & more"
       }
     },
     {

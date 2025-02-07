@@ -191,14 +191,7 @@
       path: "treasury", 
       description: "Track THORChain's treasury balances and flows" 
     },
-    { 
-      name: "Base", 
-      component: () => import("./lib/Base.svelte"), 
-      icon: "/assets/chains/BASE.svg", 
-      path: "base", 
-      description: "Track Base chain stats and pools on THORChain" 
-    },
-    { 
+        { 
       name: "Thorchad", 
       component: () => import("./lib/Thorchad.svelte"), 
       icon: "🧙‍♂️", 
@@ -206,18 +199,26 @@
       description: "THORChad your profile picture" 
     },
     { 
+      name: "Base", 
+      component: () => import("./lib/Base.svelte"), 
+      icon: "/assets/chains/BASE.svg", 
+      path: "base", 
+      description: "Track Base chain stats and pools on THORChain" 
+    },
+
+        { 
+      name: "cbBTC Exchange", 
+      icon: "/assets/cbtx-logo.png",
+      path: "cbtx", 
+      description: "Trade from Base to Bitcoin & more for the lowest fees",  
+      externalUrl: "https://cbbtc.exchange"
+    },
+    { 
       name: "Trade on THORSwap", 
       icon: "/assets/thorswap.png",
       path: "thorswap", 
       description: "Trade RUNE and other native assets on THORSwap.", 
       externalUrl: "https://app.thorswap.finance/swap/BTC.BTC_THOR.RUNE?ref=-"
-    },
-    { 
-      name: "Buy RUNE", 
-      component: () => import("./lib/BuyRune.svelte"), 
-      icon: "💳", 
-      path: "buy", 
-      description: "Buy RUNE with ETH or stablecoins" 
     },
     { 
       name: "Debt", 
@@ -229,7 +230,7 @@
     { 
       name: "Trade Assets", 
       component: () => import("./lib/TradeAssets.svelte"), 
-      icon: "💱", 
+      icon: "💼", 
       path: "trade-assets", 
       description: "Track THORChain's trade assets and vault balances" 
     },
