@@ -102,9 +102,12 @@
   async function fetchAllData() {
     const poolsData = await fetchPools();
     
-    // Fetch savers for all available pools
+    // Only fetch savers for pools with savers_depth > 0
     const saversPromises = poolsData
-      .filter(pool => pool.status === "Available")
+      .filter(pool => 
+        pool.status === "Available" && 
+        Number(pool.savers_depth) > 0
+      )
       .map(pool => fetchSaversForAsset(pool.asset));
     const saversResults = await Promise.all(saversPromises);
     const allSavers = saversResults.flat();
