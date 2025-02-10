@@ -70,7 +70,7 @@
 
   async function fetchSaversForAsset(asset) {
     try {
-      const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/pool/${asset}/savers`);
+      const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/pool/${asset}/savers?height=${BLOCK_HEIGHT}`);
       const data = await response.json();
       return data.map(position => ({
         ...position,
@@ -85,7 +85,7 @@
 
   async function fetchBorrowersForAsset(asset) {
     try {
-      const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/pool/${asset}/borrowers`);
+      const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/pool/${asset}/borrowers?height=${BLOCK_HEIGHT}`);
       const data = await response.json();
       return data.map(position => ({
         ...position,
