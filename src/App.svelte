@@ -228,6 +228,13 @@
       description: "Check THORChain's debt" 
     },
     { 
+      name: "TCY Claims", 
+      component: () => import("./lib/TCYClaims.svelte"), 
+      icon: "🪙", 
+      path: "tcy-claims", 
+      description: "Check TCY claims" 
+    },
+    { 
       name: "Trade Assets", 
       component: () => import("./lib/TradeAssets.svelte"), 
       icon: "💼", 
