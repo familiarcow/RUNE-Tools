@@ -115,6 +115,13 @@
       description: "Inspect THORChain's native asset vaults" 
     },
     { 
+      name: "Liquidity Cap", 
+      component: () => import("./lib/LiquidityCap.svelte"), 
+      icon: "💰", 
+      path: "liquidity-cap", 
+      description: "Check THORChain's liquidity cap"
+    },
+    { 
       name: "Rune", 
       component: () => import("./lib/Rune.svelte"), 
       icon: "🌙", 
