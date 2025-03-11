@@ -17,6 +17,7 @@
   let bondvaluebtc = 0;
   let bondAddressSuffix = "";
   let isMobile = false;
+  let nodeStatus = "";
 
   $: currentCurrency = 'USD';
   const currencies = ['USD', 'EUR', 'GBP', 'JPY'];
@@ -147,6 +148,7 @@
   const fetchData = async () => {
     try {
       const nodeData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/node/${node_address}`);
+      nodeStatus = nodeData.status;
       const bondProviders = nodeData.bond_providers.providers;
       let total_bond = 0;
       for (const provider of bondProviders) {
@@ -308,32 +310,44 @@
               </span>
             </div>
           </div>
-          <div class="card next-award">
-            <h3>Next Award</h3>
-            <div class="main-value">
-              {numFormat((my_award / 1e8).toFixed(1))}
-              <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-            </div>
-            <div class="sub-values">
-              <span class="usd-value">{formattedNextAward}</span>
-              <span class="btc-value">
-                {nextAwardBtcValue.toFixed(6)}
-                <img src="/assets/coins/bitcoin-btc-logo.svg" alt="BTC" class="btc-icon" />
-              </span>
-            </div>
-          </div>
-          <div class="card apy">
-            <h3>APY</h3>
-            <div class="main-value">{(APY * 100).toFixed(2)}%</div>
-            <div class="sub-values">
-              <span class="usd-value">{formattedAPY}/yr</span>
-              <span class="rune-value">
-                {numFormat(((APY * my_bond) / 1e8).toFixed(0))}
+            <div class="card next-award">
+              <h3>Next Award</h3>
+              <div class="main-value">
+                {numFormat((my_award / 1e8).toFixed(1))}
                 <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-                /yr
-              </span>
+              </div>
+              <div class="sub-values">
+                <span class="usd-value">{formattedNextAward}</span>
+                <span class="btc-value">
+                  {nextAwardBtcValue.toFixed(6)}
+                  <img src="/assets/coins/bitcoin-btc-logo.svg" alt="BTC" class="btc-icon" />
+                </span>
+              </div>
             </div>
-          </div>
+            {#if nodeStatus === "Standby"}
+              <div class="card node-status">
+                <h3>Node Status</h3>
+                <div class="main-value status-text">
+                  {nodeStatus}
+                </div>
+                <div class="sub-values">
+                  <span class="info-text">Node is churned out</span>
+                </div>
+              </div>
+            {:else}
+              <div class="card apy">
+                <h3>APY</h3>
+                <div class="main-value">{(APY * 100).toFixed(2)}%</div>
+                <div class="sub-values">
+                  <span class="usd-value">{formattedAPY}/yr</span>
+                  <span class="rune-value">
+                    {numFormat(((APY * my_bond) / 1e8).toFixed(0))}
+                    <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                    /yr
+                  </span>
+                </div>
+              </div>
+            {/if}
           <div class="card links">
             <div class="link-list">
               <div class="rune-price">
@@ -851,5 +865,19 @@
       font-size: 12px;
       padding: 10px 20px;
     }
+  }
+
+  .status-text {
+    color: #ff9800;
+    font-size: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .info-text {
+    color: #a9a9a9;
+    font-size: 12px;
+    text-align: center;
+    width: 100%;
   }
 </style>
