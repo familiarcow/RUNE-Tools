@@ -181,6 +181,11 @@
               {:else}
                 <span class="status active">Active</span>
               {/if}
+            </td>
+            <td>
+              <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
+                {expandedRows.has(node.node_address) ? '▼' : '▶'}
+              </button>
               <button 
                 class="star-btn" 
                 on:click={() => toggleStar(node.node_address)}
@@ -191,11 +196,6 @@
                 {:else}
                   ☆
                 {/if}
-              </button>
-            </td>
-            <td>
-              <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
-                {expandedRows.has(node.node_address) ? '▼' : '▶'}
               </button>
               {node.node_address.slice(-4)}
             </td>
@@ -284,6 +284,11 @@
           <tr>
             <td>
               <span class="status standby">Standby</span>
+            </td>
+            <td>
+              <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
+                {expandedRows.has(node.node_address) ? '▼' : '▶'}
+              </button>
               <button 
                 class="star-btn" 
                 on:click={() => toggleStar(node.node_address)}
@@ -294,11 +299,6 @@
                 {:else}
                   ☆
                 {/if}
-              </button>
-            </td>
-            <td>
-              <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
-                {expandedRows.has(node.node_address) ? '▼' : '▶'}
               </button>
               {node.node_address.slice(-4)}
             </td>
@@ -453,14 +453,6 @@
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid #2c2c2c;
-    display: table-cell;
-    vertical-align: middle;
-  }
-
-  td:first-child {
-    display: flex;
-    align-items: center;
-    gap: 8px;
   }
 
   .expand-btn {
@@ -568,7 +560,6 @@
     border-radius: 4px;
     font-size: 12px;
     font-weight: 600;
-    margin-right: 8px;
   }
 
   .status.active {
