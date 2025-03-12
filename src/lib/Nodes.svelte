@@ -15,6 +15,10 @@
   let isPaused = false;
   let refreshInterval;
 
+  // Add sort state
+  let sortField = 'total_bond';
+  let sortDirection = 'desc';
+
   // Add tweened stores for animated values
   const tweenedBondedRune = tweened(0, {
     duration: 1000,
@@ -159,7 +163,52 @@
     return (1 + APR / 365) ** 365 - 1;
   };
 
-  // Modify fetchNodes to track all value changes
+  // Sort function for nodes
+  const sortNodes = (nodes, field, direction) => {
+    return [...nodes].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (field) {
+        case 'total_bond':
+        case 'current_award':
+          comparison = Number(b[field]) - Number(a[field]);
+          break;
+        case 'apy':
+          const aAPY = calculateAPY(a) || 0;
+          const bAPY = calculateAPY(b) || 0;
+          comparison = bAPY - aAPY;
+          break;
+        case 'version':
+          comparison = a.version.localeCompare(b.version, undefined, { numeric: true });
+          break;
+        case 'active_since':
+          comparison = Number(b.active_block_height) - Number(a.active_block_height);
+          break;
+        case 'slash':
+          comparison = Number(b.slash_points) - Number(a.slash_points);
+          break;
+        default:
+          return 0;
+      }
+      
+      return direction === 'asc' ? -comparison : comparison;
+    });
+  };
+
+  // Handle sort click
+  const handleSort = (field) => {
+    if (sortField === field) {
+      sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortField = field;
+      sortDirection = 'desc';
+    }
+    
+    activeNodes = sortNodes(activeNodes, sortField, sortDirection);
+    standbyNodes = sortNodes(standbyNodes, sortField, sortDirection);
+  };
+
+  // Update fetchNodes to use sorting
   const fetchNodes = async () => {
     if (isPaused) return;
     
@@ -179,9 +228,17 @@
 
       updateChainInfo(nodes);
       
-      // Update active and standby nodes with data-update attributes
-      const newActiveNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Active'));
-      const newStandbyNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Standby'));
+      // Update active and standby nodes with sorting
+      const newActiveNodes = sortNodes(
+        sortNodesByStarAndBond(nodes.filter(node => node.status === 'Active')),
+        sortField,
+        sortDirection
+      );
+      const newStandbyNodes = sortNodes(
+        sortNodesByStarAndBond(nodes.filter(node => node.status === 'Standby')),
+        sortField,
+        sortDirection
+      );
 
       // Mark updated nodes with ALL changed fields
       newActiveNodes.forEach(node => {
@@ -323,12 +380,66 @@
         <tr>
           <th title="Current status of the node">Status</th>
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
-          <th title="Total amount of RUNE bonded to this node">Total Bond</th>
-          <th title="Current block reward for this node">Current Award</th>
-          <th title="Estimated Annual Percentage Yield based on current rewards">APY</th>
-          <th title="THORNode software version">Version</th>
-          <th title="Block height when node became active">Active Since</th>
-          <th title="Accumulated penalty points for node misbehavior">Slash Points</th>
+          <th 
+            class="sortable" 
+            title="Total amount of RUNE bonded to this node"
+            on:click={() => handleSort('total_bond')}
+          >
+            Total Bond
+            {#if sortField === 'total_bond'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Current block reward for this node"
+            on:click={() => handleSort('current_award')}
+          >
+            Current Award
+            {#if sortField === 'current_award'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Estimated Annual Percentage Yield based on current rewards"
+            on:click={() => handleSort('apy')}
+          >
+            APY
+            {#if sortField === 'apy'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="THORNode software version"
+            on:click={() => handleSort('version')}
+          >
+            Version
+            {#if sortField === 'version'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Block height when node became active"
+            on:click={() => handleSort('active_since')}
+          >
+            Active Since
+            {#if sortField === 'active_since'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Accumulated penalty points for node misbehavior"
+            on:click={() => handleSort('slash')}
+          >
+            Slash Points
+            {#if sortField === 'slash'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
           {#each sortedChains as chain}
             <th class="chain-col">
               <div class="chain-title" title="Block height difference for {chain}. ✓ means synced, negative numbers show blocks behind, ? means unknown">
@@ -545,9 +656,36 @@
         <tr>
           <th title="Current status of the node">Status</th>
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
-          <th title="Total amount of RUNE bonded to this node">Total Bond</th>
-          <th title="THORNode software version">Version</th>
-          <th title="Accumulated penalty points for node misbehavior">Slash Points</th>
+          <th 
+            class="sortable" 
+            title="Total amount of RUNE bonded to this node"
+            on:click={() => handleSort('total_bond')}
+          >
+            Total Bond
+            {#if sortField === 'total_bond'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="THORNode software version"
+            on:click={() => handleSort('version')}
+          >
+            Version
+            {#if sortField === 'version'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Accumulated penalty points for node misbehavior"
+            on:click={() => handleSort('slash')}
+          >
+            Slash Points
+            {#if sortField === 'slash'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -1410,5 +1548,29 @@
   .monospace {
     font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
     font-size: 0.8125rem;
+  }
+
+  .sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 20px !important;
+  }
+
+  .sortable:hover {
+    background-color: #222;
+  }
+
+  .sort-indicator {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #4A90E2;
+    font-size: 12px;
+  }
+
+  .sortable:hover .sort-indicator {
+    opacity: 0.8;
   }
 </style>
