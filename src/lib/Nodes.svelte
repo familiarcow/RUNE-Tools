@@ -341,11 +341,11 @@
             <td>
               <div class="status-container">
                 {#if node.requested_to_leave}
-                  <span class="status leaving">Leaving</span>
+                  <span class="status-circle leaving" title="Node is Leaving"></span>
                 {:else if node.forced_to_leave}
-                  <span class="status forced">Forced</span>
+                  <span class="status-circle forced" title="Node is Forced to Leave"></span>
                 {:else}
-                  <span class="status active">Active</span>
+                  <span class="status-circle active" title="Active Node"></span>
                 {/if}
                 {#if getLeaveStatus(node, nodes)}
                   {@const status = getLeaveStatus(node, nodes)}
@@ -432,52 +432,87 @@
             <tr class="expanded-row">
               <td colspan="{9 + sortedChains.length}">
                 <div class="bond-providers">
-                  <h4>Bond Details</h4>
-                  <div class="bond-summary">
-                    <div class="summary-item">
-                      <span class="label">Total Bond:</span>
-                      <span class="value rune-amount">
-                        {formatRune(node.total_bond)}
-                        <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-                      </span>
+                  <div class="bond-header">
+                    <h4>Bond Details</h4>
+                    <div class="bond-header-separator"></div>
+                  </div>
+                  <div class="bond-content">
+                    <div class="bond-summary">
+                      <div class="summary-item">
+                        <span class="label">Total Bond:</span>
+                        <span class="value rune-amount">
+                          {formatRune(node.total_bond)}
+                          <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                        </span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">Node Operator Fee:</span>
+                        <span class="value">{(Number(node.bond_providers.node_operator_fee) / 100).toFixed(2)}%</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">Status Since:</span>
+                        <span class="value">
+                          <span class="block-number">{formatNumber(node.status_since)}</span>
+                        </span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">Node Operator:</span>
+                        <span class="value address">
+                          {node.node_operator_address}
+                          <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                              <polyline points="15 3 21 3 21 9"></polyline>
+                              <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                          </a>
+                        </span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">Vault Membership:</span>
+                        <span class="value signer-list">
+                          {#each node.signer_membership as signer}
+                            <span class="signer-pill">{signer.slice(-4)}</span>
+                          {/each}
+                        </span>
+                      </div>
                     </div>
-                    <div class="summary-item">
-                      <span class="label">Node Operator Fee:</span>
-                      <span class="value">{(Number(node.bond_providers.node_operator_fee) / 100).toFixed(2)}%</span>
+                    <div class="bond-table-container">
+                      <div class="table-header">Bond Providers</div>
+                      <table class="bond-table">
+                        <thead>
+                          <tr>
+                            <th>Provider Address</th>
+                            <th>Bond Amount</th>
+                            <th>Share</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {#each node.bond_providers.providers as provider}
+                            <tr>
+                              <td class="address">
+                                {provider.bond_address}
+                                <a href="https://runescan.io/address/{provider.bond_address}" target="_blank" rel="noopener noreferrer" class="outlink">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                  </svg>
+                                </a>
+                              </td>
+                              <td>
+                                <span class="rune-amount">
+                                  {formatRune(provider.bond)}
+                                  <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                                </span>
+                              </td>
+                              <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
+                            </tr>
+                          {/each}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                  <table class="bond-table">
-                    <thead>
-                      <tr>
-                        <th>Provider Address</th>
-                        <th>Bond Amount</th>
-                        <th>Share</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {#each node.bond_providers.providers as provider}
-                        <tr>
-                          <td class="address">
-                            {provider.bond_address}
-                            <a href="https://runescan.io/address/{provider.bond_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <line x1="10" y1="14" x2="21" y2="3"></line>
-                              </svg>
-                            </a>
-                          </td>
-                          <td>
-                            <span class="rune-amount">
-                              {formatRune(provider.bond)}
-                              <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-                            </span>
-                          </td>
-                          <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
-                        </tr>
-                      {/each}
-                    </tbody>
-                  </table>
                 </div>
               </td>
             </tr>
@@ -504,7 +539,9 @@
         {#each standbyNodes as node}
           <tr>
             <td>
-                  <span class="status standby">Standby</span>
+              <div class="status-container">
+                <span class="status-circle standby" title="Standby Node"></span>
+              </div>
             </td>
             <td>
               <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
@@ -540,52 +577,87 @@
             <tr class="expanded-row">
               <td colspan="7">
                 <div class="bond-providers">
-                  <h4>Bond Details</h4>
-                  <div class="bond-summary">
-                    <div class="summary-item">
-                      <span class="label">Total Bond:</span>
-                      <span class="value rune-amount">
-                        {formatRune(node.total_bond)}
-                        <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-                      </span>
+                  <div class="bond-header">
+                    <h4>Bond Details</h4>
+                    <div class="bond-header-separator"></div>
+                  </div>
+                  <div class="bond-content">
+                    <div class="bond-summary">
+                      <div class="summary-item">
+                        <span class="label">Total Bond:</span>
+                        <span class="value rune-amount">
+                          {formatRune(node.total_bond)}
+                          <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                        </span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">Node Operator Fee:</span>
+                        <span class="value">{(Number(node.bond_providers.node_operator_fee) / 100).toFixed(2)}%</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">Status Since:</span>
+                        <span class="value">
+                          <span class="block-number">{formatNumber(node.status_since)}</span>
+                        </span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">Node Operator:</span>
+                        <span class="value address">
+                          {node.node_operator_address}
+                          <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                              <polyline points="15 3 21 3 21 9"></polyline>
+                              <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                          </a>
+                        </span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">Signer Membership:</span>
+                        <span class="value signer-list">
+                          {#each node.signer_membership as signer}
+                            <span class="signer-pill">{signer.slice(-4)}</span>
+                          {/each}
+                        </span>
+                      </div>
                     </div>
-                    <div class="summary-item">
-                      <span class="label">Node Operator Fee:</span>
-                      <span class="value">{(Number(node.bond_providers.node_operator_fee) / 100).toFixed(2)}%</span>
+                    <div class="bond-table-container">
+                      <div class="table-header">Bond Providers</div>
+                      <table class="bond-table">
+                        <thead>
+                          <tr>
+                            <th>Provider Address</th>
+                            <th>Bond Amount</th>
+                            <th>Share</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {#each node.bond_providers.providers as provider}
+                            <tr>
+                              <td class="address">
+                                {provider.bond_address}
+                                <a href="https://runescan.io/address/{provider.bond_address}" target="_blank" rel="noopener noreferrer" class="outlink">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                  </svg>
+                                </a>
+                              </td>
+                              <td>
+                                <span class="rune-amount">
+                                  {formatRune(provider.bond)}
+                                  <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                                </span>
+                              </td>
+                              <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
+                            </tr>
+                          {/each}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                  <table class="bond-table">
-                    <thead>
-                      <tr>
-                        <th>Provider Address</th>
-                        <th>Bond Amount</th>
-                        <th>Share</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {#each node.bond_providers.providers as provider}
-                        <tr>
-                          <td class="address">
-                            {provider.bond_address}
-                            <a href="https://runescan.io/address/{provider.bond_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <line x1="10" y1="14" x2="21" y2="3"></line>
-                              </svg>
-                            </a>
-                          </td>
-                          <td>
-                            <span class="rune-amount">
-                              {formatRune(provider.bond)}
-                              <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-                            </span>
-                          </td>
-                          <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
-                        </tr>
-                      {/each}
-                    </tbody>
-                  </table>
                 </div>
               </td>
             </tr>
@@ -716,16 +788,134 @@
   }
 
   .bond-providers {
-    padding: 12px;
+    padding: 16px;
+    background: #262626;
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin: 8px;
   }
 
-  /* Update bond table styles for consistency */
-  .bond-table td {
-    padding: 6px 8px;
+  .bond-header {
+    margin-bottom: 20px;
+  }
+
+  .bond-header h4 {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+  }
+
+  .bond-header-separator {
+    height: 2px;
+    background: linear-gradient(90deg, #4A90E2 0%, rgba(74, 144, 226, 0.1) 100%);
+    border-radius: 1px;
+  }
+
+  .bond-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .bond-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 16px;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    border: 1px solid #333;
+  }
+
+  .summary-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    min-width: 250px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  .summary-item:hover {
+    background-color: rgba(74, 144, 226, 0.05);
+  }
+
+  .summary-item .label {
+    color: #999;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    min-width: 120px;
+  }
+
+  .summary-item .value {
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .bond-table-container {
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    border: 1px solid #333;
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #fff;
+    background-color: #303030;
+    border-bottom: 1px solid #333;
+  }
+
+  .bond-table {
+    width: 100%;
+    margin: 0;
+    background-color: transparent;
   }
 
   .bond-table th {
-    padding: 8px;
+    background-color: #303030;
+    color: #999;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #333;
+  }
+
+  .bond-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #2c2c2c;
+  }
+
+  .bond-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .bond-table tr:hover {
+    background-color: rgba(74, 144, 226, 0.05);
+  }
+
+  .signer-pill {
+    background-color: #303030;
+    color: #4A90E2;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+  }
+
+  .block-number {
+    color: #4A90E2;
+  }
+
+  .summary-item .address {
+    color: #4A90E2;
   }
 
   .expand-btn {
@@ -781,81 +971,141 @@
     font-size: 0.8125rem;
   }
 
-  .bond-summary {
+  .leave-status {
     display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
-    padding: 12px;
-    background-color: #2c2c2c;
-    border-radius: 6px;
-  }
-
-  .summary-item {
-    display: flex;
-    gap: 8px;
     align-items: center;
   }
 
-  .summary-item .label {
-    color: #888;
-    font-size: 0.8125rem;
+  .leave-icon {
+    width: 14px;
+    height: 14px;
   }
 
-  .summary-item .value {
+  .leave-icon.oldest,
+  .leave-icon.lowest {
+    fill: #ffd700;
+  }
+
+  .leave-icon.worst,
+  .leave-icon.leaving {
+    fill: #ff6b6b;
+  }
+
+  .providers-count {
+    display: inline-block;
+    background-color: rgba(74, 144, 226, 0.2);
     color: #4A90E2;
+    font-size: 0.6875rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-left: 6px;
     font-weight: 500;
+    min-width: 14px;
+    text-align: center;
   }
 
-  .bond-table {
-    width: 100%;
-    margin-top: 8px;
-    background-color: #1a1a1a;
-    font-size: 0.8125rem;
-  }
-
-  .bond-table th,
-  .bond-table td {
-    padding: 8px;
-    text-align: left;
-    border-bottom: 1px solid #2c2c2c;
-  }
-
-  .bond-table th {
-    background-color: #2c2c2c;
-    color: #ffffff;
+  .apy-value {
+    color: #2ecc71;
     font-weight: 500;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+  }
+
+  .header-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+
+  .pause-button {
+    background-color: #4A90E2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .pause-button:hover {
+    background-color: #357ABD;
+  }
+
+  .cell-update {
+    animation: cell-flash 1s ease-out;
+  }
+
+  @keyframes cell-flash {
+    0% {
+      background-color: rgba(74, 144, 226, 0.3);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  .value-transition {
+    transition: color 0.3s ease;
+  }
+
+  .value-update {
+    color: #4A90E2;
+  }
+
+  td {
+    transition: background-color 0.3s ease;
+  }
+
+  .main-row:hover {
+    background-color: rgba(74, 144, 226, 0.05) !important;
+    transition: background-color 0.3s ease;
+  }
+
+  .rune-amount {
+    transition: all 0.3s ease;
+  }
+
+  .chain-status {
+    transition: all 0.3s ease;
   }
 
   .status {
+    transition: all 0.3s ease;
+  }
+
+  .apy-value {
+    transition: all 0.3s ease;
+  }
+
+  .signer-list {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .signer-pill {
+    background-color: rgba(74, 144, 226, 0.15);
+    color: #4A90E2;
     padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   }
 
-  .status.active {
-    background-color: rgba(40, 167, 69, 0.15);
-    color: #2ecc71;
+  .block-number {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
   }
 
-  .status.standby {
-    background-color: rgba(255, 193, 7, 0.15);
-    color: #ffd700;
+  .date-separator {
+    margin: 0 4px;
+    color: #666;
   }
 
-  .status.leaving {
-    background-color: rgba(220, 53, 69, 0.15);
-    color: #ff6b6b;
-  }
-
-  .status.forced {
-    background-color: rgba(220, 53, 69, 0.15);
-    color: #ff6b6b;
+  .block-date {
+    color: #888;
+    font-size: 0.8125rem;
   }
 
   .chain-col {
@@ -1026,5 +1276,242 @@
 
   .apy-value {
     transition: all 0.3s ease;
+  }
+
+  .signer-list {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .signer-pill {
+    background-color: rgba(74, 144, 226, 0.15);
+    color: #4A90E2;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  }
+
+  .block-number {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
+  }
+
+  .date-separator {
+    margin: 0 4px;
+    color: #666;
+  }
+
+  .block-date {
+    color: #888;
+    font-size: 0.8125rem;
+  }
+
+  .status-circle {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+  }
+
+  .status-circle.active {
+    background-color: #2ecc71;
+    box-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
+  }
+
+  .status-circle.standby {
+    background-color: #ffd700;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+  }
+
+  .status-circle.leaving {
+    background-color: #ff6b6b;
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+  }
+
+  .status-circle.forced {
+    background-color: #e74c3c;
+    box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
+  }
+
+  .status-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .leave-status {
+    display: flex;
+    align-items: center;
+  }
+
+  .leave-icon {
+    width: 14px;
+    height: 14px;
+    margin-left: 4px;
+  }
+
+  .leave-icon.oldest,
+  .leave-icon.lowest {
+    fill: #ffd700;
+  }
+
+  .leave-icon.worst,
+  .leave-icon.leaving {
+    fill: #ff6b6b;
+  }
+
+  .providers-count {
+    display: inline-block;
+    background-color: rgba(74, 144, 226, 0.2);
+    color: #4A90E2;
+    font-size: 0.6875rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-left: 6px;
+    font-weight: 500;
+    min-width: 14px;
+    text-align: center;
+  }
+
+  .apy-value {
+    color: #2ecc71;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .header-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+
+  .pause-button {
+    background-color: #4A90E2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .pause-button:hover {
+    background-color: #357ABD;
+  }
+
+  .cell-update {
+    animation: cell-flash 1s ease-out;
+  }
+
+  @keyframes cell-flash {
+    0% {
+      background-color: rgba(74, 144, 226, 0.3);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  .value-transition {
+    transition: color 0.3s ease;
+  }
+
+  .value-update {
+    color: #4A90E2;
+  }
+
+  td {
+    transition: background-color 0.3s ease;
+  }
+
+  .main-row:hover {
+    background-color: rgba(74, 144, 226, 0.05) !important;
+    transition: background-color 0.3s ease;
+  }
+
+  .rune-amount {
+    transition: all 0.3s ease;
+  }
+
+  .chain-status {
+    transition: all 0.3s ease;
+  }
+
+  .status {
+    transition: all 0.3s ease;
+  }
+
+  .apy-value {
+    transition: all 0.3s ease;
+  }
+
+  .signer-list {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .signer-pill {
+    background-color: rgba(74, 144, 226, 0.15);
+    color: #4A90E2;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  }
+
+  .block-number {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
+  }
+
+  .date-separator {
+    margin: 0 4px;
+    color: #666;
+  }
+
+  .block-date {
+    color: #888;
+    font-size: 0.8125rem;
+  }
+
+  .status-circle {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+  }
+
+  .status-circle.active {
+    background-color: #2ecc71;
+    box-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
+  }
+
+  .status-circle.standby {
+    background-color: #ffd700;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+  }
+
+  .status-circle.leaving {
+    background-color: #ff6b6b;
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+  }
+
+  .status-circle.forced {
+    background-color: #e74c3c;
+    box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
+  }
+
+  .status-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
   }
 </style>
