@@ -140,6 +140,14 @@
     const interval = setInterval(fetchNodes, 5 * 60 * 1000);
     return () => clearInterval(interval);
   });
+
+  // Component for displaying RUNE amount with icon
+  const RuneAmount = ({ amount }) => `
+    <span class="rune-amount">
+      ${amount}
+      <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+    </span>
+  `;
 </script>
 
 <div class="nodes-container">
@@ -199,8 +207,18 @@
               </button>
               {node.node_address.slice(-4)}
             </td>
-            <td>{formatRune(node.total_bond)} RUNE</td>
-            <td>{formatRune(node.current_award)} RUNE</td>
+            <td>
+              <span class="rune-amount">
+                {formatRune(node.total_bond)}
+                <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+              </span>
+            </td>
+            <td>
+              <span class="rune-amount">
+                {formatRune(node.current_award)}
+                <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+              </span>
+            </td>
             <td>{node.bond_providers?.providers?.length || 0}</td>
             <td>{node.ip_address}</td>
             <td>{node.version}</td>
@@ -222,7 +240,10 @@
                   <div class="bond-summary">
                     <div class="summary-item">
                       <span class="label">Total Bond:</span>
-                      <span class="value">{formatRune(node.total_bond)} RUNE</span>
+                      <span class="value rune-amount">
+                        {formatRune(node.total_bond)}
+                        <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                      </span>
                     </div>
                     <div class="summary-item">
                       <span class="label">Node Operator Fee:</span>
@@ -250,7 +271,12 @@
                               </svg>
                             </a>
                           </td>
-                          <td>{formatRune(provider.bond)} RUNE</td>
+                          <td>
+                            <span class="rune-amount">
+                              {formatRune(provider.bond)}
+                              <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                            </span>
+                          </td>
                           <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
                         </tr>
                       {/each}
@@ -302,7 +328,12 @@
               </button>
               {node.node_address.slice(-4)}
             </td>
-            <td>{formatRune(node.total_bond)} RUNE</td>
+            <td>
+              <span class="rune-amount">
+                {formatRune(node.total_bond)}
+                <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+              </span>
+            </td>
             <td>{node.bond_providers?.providers?.length || 0}</td>
             <td>{node.ip_address}</td>
             <td>{node.version}</td>
@@ -316,7 +347,10 @@
                   <div class="bond-summary">
                     <div class="summary-item">
                       <span class="label">Total Bond:</span>
-                      <span class="value">{formatRune(node.total_bond)} RUNE</span>
+                      <span class="value rune-amount">
+                        {formatRune(node.total_bond)}
+                        <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                      </span>
                     </div>
                     <div class="summary-item">
                       <span class="label">Node Operator Fee:</span>
@@ -344,7 +378,12 @@
                               </svg>
                             </a>
                           </td>
-                          <td>{formatRune(provider.bond)} RUNE</td>
+                          <td>
+                            <span class="rune-amount">
+                              {formatRune(provider.bond)}
+                              <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                            </span>
+                          </td>
                           <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
                         </tr>
                       {/each}
@@ -651,5 +690,22 @@
 
   .chain-icon {
     font-size: 10px;
+  }
+
+  .rune-amount {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .rune-icon {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+  }
+
+  .value .rune-icon {
+    width: 16px;
+    height: 16px;
   }
 </style>
