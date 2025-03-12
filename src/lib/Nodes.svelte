@@ -206,7 +206,7 @@
           <th title="Node's IP address">IP Address</th>
           <th title="THORNode software version">Version</th>
           <th title="Block height when node became active">Active Since</th>
-          <th title="Accumulated penalty points for node misbehavior">Slash Points</th>
+          <th title="Accumulated penalty points for node misbehavior">Slash</th>
           {#each sortedChains as chain}
             <th class="chain-col">
               <div class="chain-title" title="Block height difference for {chain}. ✓ means synced, negative numbers show blocks behind, ? means unknown">
