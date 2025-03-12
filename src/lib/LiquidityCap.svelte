@@ -163,16 +163,32 @@
       <div class="summary-card" transition:fade>
         <div class="metric main">
           <h2>Total Vault Value</h2>
-          <div class="value">{formatNumber(totalVaultValueInRune)} RUNE</div>
+          <div class="value">
+            {formatNumber(totalVaultValueInRune)}
+            <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+          </div>
         </div>
         <div class="metric main">
           <h2>Security Budget (Bottom 2/3)</h2>
-          <div class="value">{formatNumber(totalSecurityBudget)} RUNE</div>
+          <div class="value">
+            {formatNumber(totalSecurityBudget)}
+            <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+          </div>
         </div>
         <div class="metric main">
           <h2>Security Delta</h2>
           <div class="value" class:negative={securityDelta < 0}>
-            {securityDelta >= 0 ? '+' : ''}{formatNumber(securityDelta)} RUNE
+            {securityDelta >= 0 ? '+' : ''}{formatNumber(securityDelta)}
+            <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+          </div>
+          <div class="security-gauge">
+            <div class="gauge-track">
+              <div 
+                class="gauge-fill" 
+                class:negative={securityDelta < 0}
+                style="width: {Math.min(Math.abs(securityDelta) / totalVaultValueInRune * 100, 100)}%"
+              ></div>
+            </div>
           </div>
           <div class="status-text" class:negative={securityDelta < 0}>
             {securityDelta < 0 ? 'Network Underbonded' : 'Network Well Bonded'}
@@ -181,9 +197,9 @@
       </div>
 
       <div class="secondary-info" transition:fade>
-        <span>Total Node Bond: {formatNumber(totalNodeBond)} RUNE</span>
+        <span>Total Node Bond: {formatNumber(totalNodeBond)} <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" /></span>
         <span class="separator">|</span>
-        <span>Total Pooled RUNE: {formatNumber(totalPooledRune)} RUNE</span>
+        <span>Total Pooled RUNE: {formatNumber(totalPooledRune)} <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" /></span>
       </div>
 
       <div class="assets-table" transition:fade>
@@ -237,12 +253,17 @@
   main {
     padding: 1rem;
     color: var(--text-color);
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   }
 
   .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
+    width: 100%;
   }
 
   h1 {
@@ -301,6 +322,16 @@
     font-size: 1.8rem;
     font-weight: bold;
     margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .rune-icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    object-fit: contain;
   }
 
   .value.negative {
@@ -433,7 +464,24 @@
     color: var(--text-color);
   }
 
+  .secondary-info span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .secondary-info .rune-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
   @media (max-width: 768px) {
+    main {
+      padding: 0.5rem;
+      height: auto;
+      min-height: 100%;
+    }
+
     .container {
       padding: 0 0.5rem;
     }
@@ -442,10 +490,12 @@
       grid-template-columns: 1fr;
       gap: 1rem;
       padding: 1rem;
+      margin-bottom: 0.5rem;
     }
 
     .metric.main {
       padding: 1rem;
+      min-height: auto;
     }
 
     .value {
@@ -454,14 +504,38 @@
 
     .assets-table {
       padding: 1rem;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     table {
       font-size: 0.85rem;
+      min-width: 100%;
     }
 
     th, td {
       padding: 0.5rem;
+      white-space: nowrap;
+    }
+
+    .secondary-info {
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: flex-end;
+      padding: 0.75rem;
+    }
+
+    .separator {
+      display: none;
+    }
+
+    .security-gauge {
+      padding: 0 0.5rem;
+    }
+
+    .gauge-labels {
+      font-size: 0.7rem;
     }
 
     .logo-container {
@@ -482,6 +556,27 @@
     .chain-icon {
       width: 10px;
       height: 10px;
+    }
+
+    .rune-icon {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    .secondary-info .rune-icon {
+      width: 0.9rem;
+      height: 0.9rem;
+    }
+  }
+
+  /* Add specific iOS fixes */
+  @supports (-webkit-touch-callout: none) {
+    main {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .assets-table {
+      -webkit-overflow-scrolling: touch;
     }
   }
 </style>
