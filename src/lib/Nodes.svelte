@@ -318,26 +318,64 @@
   .table-container {
     margin-bottom: 40px;
     overflow-x: auto;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    border-radius: 12px;
+    background-color: #2c2c2c;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .table-container::-webkit-scrollbar {
+    display: none;
   }
 
   table {
     width: 100%;
-    border-collapse: collapse;
-    background-color: #1a1a1a;
-    border-radius: 8px;
-    overflow: hidden;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: #2c2c2c;
   }
 
-  th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #2c2c2c;
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
 
   th {
-    background-color: #2c2c2c;
-    color: #ffffff;
+    background-color: #1a1a1a;
+    color: #888;
     font-weight: 600;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 2px solid #3a3a3c;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  /* Add a pseudo-element to create a shadow effect under the sticky header */
+  th::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 2px;
+    background-color: #3a3a3c;
+  }
+
+  tbody tr:first-child td {
+    padding-top: 12px;
+  }
+
+  td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #2c2c2c;
   }
 
   .expand-btn {
