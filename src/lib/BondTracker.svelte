@@ -16,6 +16,7 @@
   let nodeOperatorFee = 0;
   let bondvaluebtc = 0;
   let bondAddressSuffix = "";
+  let nodeAddressSuffix = "";
   let isMobile = false;
   let nodeStatus = "";
 
@@ -89,6 +90,7 @@
       my_bond_address = urlBondAddress;
       node_address = urlNodeAddress;
       bondAddressSuffix = urlBondAddress.slice(-4);
+      nodeAddressSuffix = urlNodeAddress.slice(-4);
       showData = true;
       fetchData();
     }
@@ -183,6 +185,7 @@
     event.preventDefault();
     if (my_bond_address && node_address) {
       bondAddressSuffix = my_bond_address.slice(-4);
+      nodeAddressSuffix = node_address.slice(-4);
       showData = true;
       updateURL();
       fetchData();
@@ -254,6 +257,10 @@
 
       node_address = randomNode.node_address;
       my_bond_address = randomBondProvider.bond_address;
+      
+      // Update suffixes
+      bondAddressSuffix = my_bond_address.slice(-4);
+      nodeAddressSuffix = node_address.slice(-4);
       
       // Update the URL with the new addresses
       const url = new URL(window.location);
@@ -360,7 +367,7 @@
                   <span class="link-value">{countdown}</span>
                 </div>
                 <div class="info-item">
-                  <span class="link-label">Node Fee</span>
+                  <span class="link-label">{nodeAddressSuffix} Fee</span>
                   <span class="link-value">{(nodeOperatorFee * 100).toFixed(2)}%</span>
                 </div>
               </div>
