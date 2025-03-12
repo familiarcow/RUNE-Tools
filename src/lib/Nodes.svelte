@@ -337,7 +337,12 @@
       </thead>
       <tbody>
         {#each activeNodes as node}
-          <tr class="main-row">
+          <tr class="main-row" 
+            class:row-leaving={node.requested_to_leave || node.forced_to_leave}
+            class:row-oldest={getLeaveStatus(node, nodes)?.type === 'oldest'}
+            class:row-worst={getLeaveStatus(node, nodes)?.type === 'worst'}
+            class:row-lowest={getLeaveStatus(node, nodes)?.type === 'lowest'}
+          >
             <td>
               <div class="status-container">
                 {#if node.requested_to_leave}
@@ -759,12 +764,12 @@
   }
 
   /* Alternating row colors */
-  tr.main-row:nth-child(4n + 1),
-  tr.main-row:nth-child(4n + 2) {
+  tr.main-row:nth-child(4n + 1):not(.row-leaving, .row-oldest, .row-worst, .row-lowest),
+  tr.main-row:nth-child(4n + 2):not(.row-leaving, .row-oldest, .row-worst, .row-lowest) {
     background-color: rgba(255, 255, 255, 0.01);
   }
 
-  .main-row:hover {
+  .main-row:not(.row-leaving, .row-oldest, .row-worst, .row-lowest):hover {
     background-color: rgba(74, 144, 226, 0.05) !important;
   }
 
@@ -1342,5 +1347,38 @@
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+
+  /* Status-based row highlighting */
+  .row-leaving {
+    background-color: rgba(255, 107, 107, 0.1) !important;
+  }
+
+  .row-leaving:hover {
+    background-color: rgba(255, 107, 107, 0.15) !important;
+  }
+
+  .row-oldest {
+    background-color: rgba(255, 215, 0, 0.1) !important;
+  }
+
+  .row-oldest:hover {
+    background-color: rgba(255, 215, 0, 0.15) !important;
+  }
+
+  .row-worst {
+    background-color: rgba(231, 76, 60, 0.1) !important;
+  }
+
+  .row-worst:hover {
+    background-color: rgba(231, 76, 60, 0.15) !important;
+  }
+
+  .row-lowest {
+    background-color: rgba(241, 196, 15, 0.1) !important;
+  }
+
+  .row-lowest:hover {
+    background-color: rgba(241, 196, 15, 0.15) !important;
   }
 </style>
