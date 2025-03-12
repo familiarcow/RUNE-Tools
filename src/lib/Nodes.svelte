@@ -350,6 +350,7 @@
             class:row-oldest={getLeaveStatus(node, nodes)?.type === 'oldest'}
             class:row-worst={getLeaveStatus(node, nodes)?.type === 'worst'}
             class:row-lowest={getLeaveStatus(node, nodes)?.type === 'lowest'}
+            class:row-starred={starredNodes.has(node.node_address)}
           >
             <td>
               <div class="status-container">
@@ -550,7 +551,9 @@
       </thead>
       <tbody>
         {#each standbyNodes as node}
-          <tr>
+          <tr class="main-row"
+            class:row-starred={starredNodes.has(node.node_address)}
+          >
             <td>
               <div class="status-container">
                 <span class="status-circle standby" title="Standby Node"></span>
@@ -772,12 +775,12 @@
   }
 
   /* Alternating row colors */
-  tr.main-row:nth-child(4n + 1):not(.row-leaving, .row-oldest, .row-worst, .row-lowest),
-  tr.main-row:nth-child(4n + 2):not(.row-leaving, .row-oldest, .row-worst, .row-lowest) {
+  tr.main-row:nth-child(4n + 1):not(.row-leaving, .row-oldest, .row-worst, .row-lowest, .row-starred),
+  tr.main-row:nth-child(4n + 2):not(.row-leaving, .row-oldest, .row-worst, .row-lowest, .row-starred) {
     background-color: rgba(255, 255, 255, 0.01);
   }
 
-  .main-row:not(.row-leaving, .row-oldest, .row-worst, .row-lowest):hover {
+  .main-row:not(.row-leaving, .row-oldest, .row-worst, .row-lowest, .row-starred):hover {
     background-color: rgba(74, 144, 226, 0.05) !important;
   }
 
@@ -1364,6 +1367,14 @@
   }
 
   /* Status-based row highlighting */
+  .row-starred {
+    background-color: rgba(255, 140, 0, 0.1) !important;
+  }
+
+  .row-starred:hover {
+    background-color: rgba(255, 140, 0, 0.15) !important;
+  }
+
   .row-leaving {
     background-color: rgba(255, 107, 107, 0.1) !important;
   }
