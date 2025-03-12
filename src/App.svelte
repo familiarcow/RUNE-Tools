@@ -117,7 +117,7 @@
     { 
       name: "Liquidity Cap", 
       component: () => import("./lib/LiquidityCap.svelte"), 
-      icon: "💰", 
+      icon: "🧢", 
       path: "liquidity-cap", 
       description: "Check THORChain's liquidity cap"
     },
