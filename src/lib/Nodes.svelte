@@ -14,6 +14,7 @@
   let currentBlockHeight = 0;
   let isPaused = false;
   let refreshInterval;
+  let searchQuery = '';
 
   // Add sort state
   let sortField = 'total_bond';
@@ -66,7 +67,7 @@
       const aStarred = starredNodes.has(a.node_address);
       const bStarred = starredNodes.has(b.node_address);
       if (aStarred !== bStarred) {
-        return bStarred ? 1 : -1;
+        return aStarred ? -1 : 1; // Changed from bStarred to aStarred to put starred nodes at top
       }
       // Then sort by bond amount
       return Number(b.total_bond) - Number(a.total_bond);
@@ -211,7 +212,32 @@
     standbyNodes = sortNodes(standbyNodes, sortField, sortDirection);
   };
 
-  // Update fetchNodes to use sorting
+  // Filter nodes based on search query
+  const filterNodes = (nodes, query) => {
+    if (!query) return nodes;
+    
+    const searchTerm = query.toLowerCase().trim();
+    return nodes.filter(node => {
+      // Check node address
+      if (node.node_address.toLowerCase().includes(searchTerm)) return true;
+      
+      // Check operator address
+      if (node.node_operator_address.toLowerCase().includes(searchTerm)) return true;
+      
+      // Check bond providers
+      if (node.bond_providers?.providers?.some(provider => 
+        provider.bond_address.toLowerCase().includes(searchTerm)
+      )) return true;
+
+      return false;
+    });
+  };
+
+  // Reactive statements for filtered nodes
+  $: filteredActiveNodes = filterNodes(activeNodes, searchQuery);
+  $: filteredStandbyNodes = filterNodes(standbyNodes, searchQuery);
+
+  // Update fetchNodes to maintain filtered nodes
   const fetchNodes = async () => {
     if (isPaused) return;
     
@@ -231,20 +257,25 @@
 
       updateChainInfo(nodes);
       
-      // Update active and standby nodes with sorting
-      const newActiveNodes = sortNodes(
-        sortNodesByStarAndBond(nodes.filter(node => node.status === 'Active')),
-        sortField,
-        sortDirection
-      );
-      const newStandbyNodes = sortNodes(
-        sortNodesByStarAndBond(nodes.filter(node => node.status === 'Standby')),
-        sortField,
-        sortDirection
-      );
+      // First sort by star status and bond
+      const activeNodesList = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Active'));
+      const standbyNodesList = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Standby'));
+
+      // Then apply any active sort if not the initial load
+      if (sortField !== 'total_bond' || sortDirection !== 'desc') {
+        activeNodes = sortNodes(activeNodesList, sortField, sortDirection);
+        standbyNodes = sortNodes(standbyNodesList, sortField, sortDirection);
+      } else {
+        activeNodes = activeNodesList;
+        standbyNodes = standbyNodesList;
+      }
+
+      // Update filtered nodes
+      filteredActiveNodes = filterNodes(activeNodes, searchQuery);
+      filteredStandbyNodes = filterNodes(standbyNodes, searchQuery);
 
       // Mark updated nodes with ALL changed fields
-      newActiveNodes.forEach(node => {
+      filteredActiveNodes.forEach(node => {
         const oldNode = activeNodes.find(n => n.node_address === node.node_address);
         if (oldNode) {
           node.hasUpdates = {};
@@ -274,16 +305,12 @@
 
       // Clear updates after a delay
       const clearUpdates = () => {
-        activeNodes = activeNodes.map(node => ({
+        filteredActiveNodes = filteredActiveNodes.map(node => ({
           ...node,
           hasUpdates: undefined
         }));
       };
 
-      activeNodes = newActiveNodes;
-      standbyNodes = newStandbyNodes;
-
-      // Schedule cleanup of update markers
       setTimeout(clearUpdates, 1000);
 
     } catch (error) {
@@ -364,6 +391,23 @@
 
 <div class="nodes-container">
   <div class="header-controls">
+    <div class="search-container">
+      <input 
+        type="text" 
+        bind:value={searchQuery}
+        placeholder="Search by address, operator, or bond provider..."
+        class="search-input"
+      />
+      {#if searchQuery}
+        <button 
+          class="clear-search" 
+          on:click={() => searchQuery = ''}
+          title="Clear search"
+        >
+          ×
+        </button>
+      {/if}
+    </div>
     <button class="pause-button" on:click={togglePause} title={isPaused ? "Resume Updates" : "Pause Updates"}>
       {#if isPaused}
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -376,7 +420,7 @@
       {/if}
     </button>
   </div>
-  <h2>Active Nodes ({activeNodes.length})</h2>
+  <h2>Active Nodes ({filteredActiveNodes.length})</h2>
   <div class="table-container">
     <table>
       <thead>
@@ -467,7 +511,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each activeNodes as node}
+        {#each filteredActiveNodes as node}
           <tr class="main-row" 
             class:row-leaving={node.requested_to_leave || node.forced_to_leave}
             class:row-oldest={getLeaveStatus(node, nodes)?.type === 'oldest'}
@@ -497,7 +541,7 @@
                       </svg>
                     {:else if status.type === 'worst'}
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="leave-icon worst">
-                        <path d="M22.834,6.874l1.149-5.689c.069-.367-.072-.741-.366-.972-.293-.231-.692-.278-1.03-.123l-4.033,1.87c-1.886-1.235-4.135-1.96-6.554-1.96S7.333,.725,5.446,1.96L1.414,.09C1.076-.065,.677-.019,.383,.089,.089,.443-.052,.817,.017,1.185L1.166,6.873c-.74,1.557-1.166,3.291-1.166,5.127,0,6.617,5.383,12,12,12s12-5.383,12-12c0-1.836-.426-3.569-1.166-5.126Zm-10.834,15.126c-5.514,0-10-4.486-10-10S6.486,2,12,2s10,4.486,10,10-4.486,10-10,10Zm5.666-5.746c.412,.368,.448,1,.08,1.412-.197,.222-.471,.334-.746,.334-.237,0-.475-.084-.666-.254-.018-.016-2.003-1.746-4.334-1.746s-4.316,1.73-4.336,1.747c-.412,.367-1.044,.33-1.411-.084-.366-.412-.331-1.042,.081-1.409,.103-.092,2.559-2.254,5.666-2.254s5.563,2.162,5.666,2.254Zm1.133-8.855c.332,.44,.244,1.068-.197,1.4l-1.675,1.262c.043,.14,.073,.285,.073,.439,0,.828-.672,1.5-1.5,1.5s-1.5-.672-1.5-1.5c0-.466,.217-.878,.551-1.153,0,0,0-.001,.002-.002l2.846-2.145c.442-.333,1.068-.244,1.4,.197Zm-11.726,2.662l-1.675-1.262c-.441-.332-.529-.96-.197-1.4,.333-.441,.958-.529,1.4-.197l2.846,2.145s0,.001,.002,.002c.334,.275,.551,.686,.551,1.153,0,.828-.672,1.5-1.5,1.5s-1.5-.672-1.5-1.5c0-.154,.03-.3,.073-.439Z"/>
+                        <path d="M22.834,6.874l1.149-5.689c.069-.367-.072-.741-.366-.972-.293-.231-.692-.278-1.03-.123l-4.033,1.87c-1.886-1.235-4.135-1.96-6.554-1.96S7.333,.725,5.446,1.96L1.414,.09C1.076-.065,.677-.019,.383,.089,.089,.443-.052,.817,.017,1.185L1.166,6.873c-.74,1.557-1.166,3.291-1.166,5.127,0,6.617,5.383,12,12,12s12-5.383,12-12c0-1.836-.426-3.569-1.166-5.126Zm-10.834,15.126c-5.514,0-10-4.486-10-10S6.486,2,12,2s10,4.486,10,10-4.486,10-10,10Zm5.666-5.746c.412,.368,.448,1,.08,1.412-.197,.222-.471,.334-.334-.746,.334-.237,0-.475-.084-.666-.254-.018-.016-2.003-1.746-4.334-1.746s-4.316,1.73-4.336,1.747c-.412,.367-1.044,.33-1.411-.084-.366-.412-.331-1.042,.081-1.409,.103-.092,2.559-2.254,5.666-2.254s5.563,2.162,5.666,2.254Zm1.133-8.855c.332,.44,.244,1.068-.197,1.4l-1.675,1.262c.043,.14,.073,.285,.073,.439,0,.828-.672,1.5-1.5,1.5s-1.5-.672-1.5-1.5c0-.466,.217-.878,.551-1.153,0,0,0-.001,.002-.002l2.846-2.145c.442-.333,1.068-.244,1.4,.197Zm-11.726,2.662l-1.675-1.262c-.441-.332-.529-.96-.197-1.4,.333-.441,.958-.529,1.4-.197l2.846,2.145s0,.001,.002,.002c.334,.275,.551,.686,.551,1.153,0,.828-.672,1.5-1.5,1.5s-1.5-.672-1.5-1.5c0-.154,.03-.3,.073-.439Z"/>
                       </svg>
                     {:else if status.type === 'leaving'}
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="leave-icon leaving">
@@ -663,7 +707,7 @@
     </table>
   </div>
 
-  <h2>Standby Nodes ({standbyNodes.length})</h2>
+  <h2>Standby Nodes ({filteredStandbyNodes.length})</h2>
   <div class="table-container">
     <table>
       <thead>
@@ -713,7 +757,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each standbyNodes as node}
+        {#each filteredStandbyNodes as node}
           <tr class="main-row"
             class:row-starred={starredNodes.has(node.node_address)}
           >
@@ -1192,8 +1236,58 @@
 
   .header-controls {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 16px;
+    gap: 16px;
+  }
+
+  .search-container {
+    position: relative;
+    flex-grow: 1;
+    max-width: 600px;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 8px 32px 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #3a3a3c;
+    background-color: #1a1a1a;
+    color: #fff;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: #4A90E2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  }
+
+  .search-input::placeholder {
+    color: #666;
+  }
+
+  .clear-search {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+  }
+
+  .clear-search:hover {
+    color: #fff;
   }
 
   .pause-button {
@@ -1396,8 +1490,58 @@
 
   .header-controls {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 16px;
+    gap: 16px;
+  }
+
+  .search-container {
+    position: relative;
+    flex-grow: 1;
+    max-width: 600px;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 8px 32px 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #3a3a3c;
+    background-color: #1a1a1a;
+    color: #fff;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: #4A90E2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  }
+
+  .search-input::placeholder {
+    color: #666;
+  }
+
+  .clear-search {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+  }
+
+  .clear-search:hover {
+    color: #fff;
   }
 
   .pause-button {
