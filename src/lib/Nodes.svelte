@@ -8,6 +8,8 @@
   let maxChainHeights = {};
   let uniqueChains = new Set();
   let starredNodes = new Set();
+  let lastChurnHeight = 0;
+  let currentBlockHeight = 0;
 
   // Load starred nodes from localStorage
   const loadStarredNodes = () => {
@@ -118,13 +120,41 @@
     return new Date(timestamp).toLocaleDateString();
   };
 
+  // Calculate APY for a node
+  const calculateAPY = (node) => {
+    if (!lastChurnHeight) return null;
+    
+    const currentTime = Date.now() / 1000;
+    const timeDiff = currentTime - lastChurnHeight;
+    const timeDiffInYears = timeDiff / (60 * 60 * 24 * 365.25);
+    
+    if (timeDiffInYears <= 0) return null;
+    
+    const currentAward = Number(node.current_award);
+    const totalBond = Number(node.total_bond);
+    
+    if (totalBond <= 0) return null;
+    
+    const APR = currentAward / totalBond / timeDiffInYears;
+    return (1 + APR / 365) ** 365 - 1;
+  };
+
   // Fetch nodes data
   const fetchNodes = async () => {
     try {
-      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/nodes');
-      const data = await response.json();
-      console.log('Sample node data:', data[0]?.observe_chains);
-      nodes = data;
+      const [nodesResponse, churnsResponse] = await Promise.all([
+        fetch('https://thornode.thorchain.liquify.com/thorchain/nodes'),
+        fetch('https://midgard.ninerealms.com/v2/churns')
+      ]);
+
+      const [nodesData, churnsData] = await Promise.all([
+        nodesResponse.json(),
+        churnsResponse.json()
+      ]);
+
+      nodes = nodesData;
+      lastChurnHeight = Number(churnsData[0].date) / 1e9; // Convert nanoseconds to seconds
+
       updateChainInfo(nodes);
       activeNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Active'));
       standbyNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Standby'));
@@ -203,10 +233,11 @@
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
           <th title="Total amount of RUNE bonded to this node">Total Bond</th>
           <th title="Current block reward for this node">Current Award</th>
+          <th title="Estimated Annual Percentage Yield based on current rewards">APY</th>
           <th title="Node's IP address">IP Address</th>
           <th title="THORNode software version">Version</th>
           <th title="Block height when node became active">Active Since</th>
-          <th title="Accumulated penalty points for node misbehavior">Slash</th>
+          <th title="Accumulated penalty points for node misbehavior">Slash Points</th>
           {#each sortedChains as chain}
             <th class="chain-col">
               <div class="chain-title" title="Block height difference for {chain}. ✓ means synced, negative numbers show blocks behind, ? means unknown">
@@ -245,7 +276,7 @@
                       </svg>
                     {:else if status.type === 'worst'}
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="leave-icon worst">
-                        <path d="M22.834,6.874l1.149-5.689c.069-.367-.072-.741-.366-.972-.293-.231-.692-.278-1.03-.123l-4.033,1.87c-1.886-1.235-4.135-1.96-6.554-1.96S7.333,.725,5.446,1.96L1.414,.09C1.076-.065,.677-.019,.383,.213,.089,.443-.052,.817,.017,1.185L1.166,6.873c-.74,1.557-1.166,3.291-1.166,5.127,0,6.617,5.383,12,12,12s12-5.383,12-12c0-1.836-.426-3.569-1.166-5.126Zm-10.834,15.126c-5.514,0-10-4.486-10-10S6.486,2,12,2s10,4.486,10,10-4.486,10-10,10Zm5.666-5.746c.412,.368,.448,1,.08,1.412-.197,.222-.471,.334-.746,.334-.237,0-.475-.084-.666-.254-.018-.016-2.003-1.746-4.334-1.746s-4.316,1.73-4.336,1.747c-.412,.367-1.044,.33-1.411-.084-.366-.412-.331-1.042,.081-1.409,.103-.092,2.559-2.254,5.666-2.254s5.563,2.162,5.666,2.254Zm1.133-8.855c.332,.44,.244,1.068-.197,1.4l-1.675,1.262c.043,.14,.073,.285,.073,.439,0,.828-.672,1.5-1.5,1.5s-1.5-.672-1.5-1.5c0-.466,.217-.878,.551-1.153,0,0,0-.001,.002-.002l2.846-2.145c.442-.333,1.068-.244,1.4,.197Zm-11.726,2.662l-1.675-1.262c-.441-.332-.529-.96-.197-1.4,.333-.441,.958-.529,1.4-.197l2.846,2.145s0,.001,.002,.002c.334,.275,.551,.686,.551,1.153,0,.828-.672,1.5-1.5,1.5s-1.5-.672-1.5-1.5c0-.154,.03-.3,.073-.439Z"/>
+                        <path d="M22.834,6.874l1.149-5.689c.069-.367-.072-.741-.366-.972-.293-.231-.692-.278-1.03-.123l-4.033,1.87c-1.886-1.235-4.135-1.96-6.554-1.96S7.333,.725,5.446,1.96L1.414,.09C1.076-.065,.677-.019,.383,.089,.089,.443-.052,.817,.017,1.185L1.166,6.873c-.74,1.557-1.166,3.291-1.166,5.127,0,6.617,5.383,12,12,12s12-5.383,12-12c0-1.836-.426-3.569-1.166-5.126Zm-10.834,15.126c-5.514,0-10-4.486-10-10S6.486,2,12,2s10,4.486,10,10-4.486,10-10,10Zm5.666-5.746c.412,.368,.448,1,.08,1.412-.197,.222-.471,.334-.746,.334-.237,0-.475-.084-.666-.254-.018-.016-2.003-1.746-4.334-1.746s-4.316,1.73-4.336,1.747c-.412,.367-1.044,.33-1.411-.084-.366-.412-.331-1.042,.081-1.409,.103-.092,2.559-2.254,5.666-2.254s5.563,2.162,5.666,2.254Zm1.133-8.855c.332,.44,.244,1.068-.197,1.4l-1.675,1.262c.043,.14,.073,.285,.073,.439,0,.828-.672,1.5-1.5,1.5s-1.5-.672-1.5-1.5c0-.466,.217-.878,.551-1.153,0,0,0-.001,.002-.002l2.846-2.145c.442-.333,1.068-.244,1.4,.197Zm-11.726,2.662l-1.675-1.262c-.441-.332-.529-.96-.197-1.4,.333-.441,.958-.529,1.4-.197l2.846,2.145s0,.001,.002,.002c.334,.275,.551,.686,.551,1.153,0,.828-.672,1.5-1.5,1.5s-1.5-.672-1.5-1.5c0-.154,.03-.3,.073-.439Z"/>
                       </svg>
                     {:else if status.type === 'leaving'}
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="leave-icon leaving">
@@ -287,6 +318,13 @@
                 {formatRune(node.current_award)}
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
               </span>
+            </td>
+            <td>
+              {#if calculateAPY(node) !== null}
+                <span class="apy-value">{(calculateAPY(node) * 100).toFixed(2)}%</span>
+              {:else}
+                <span class="apy-value">-</span>
+              {/if}
             </td>
             <td>{node.ip_address}</td>
             <td>{node.version}</td>
@@ -569,14 +607,15 @@
   }
 
   /* Adjust specific column widths */
-  td:nth-child(1) { width: 90px; }  /* Status */
-  td:nth-child(2) { width: 120px; } /* Address */
-  td:nth-child(3) { width: 120px; } /* Total Bond */
-  td:nth-child(4) { width: 120px; } /* Current Award */
-  td:nth-child(5) { width: 130px; } /* IP Address */
-  td:nth-child(6) { width: 100px; }  /* Version */
-  td:nth-child(7) { width: 120px; } /* Active Since */
-  td:nth-child(8) { width: 100px; }  /* Slash Points */
+  td:nth-child(1) { width: auto; min-width: 75px; }  /* Status */
+  td:nth-child(2) { width: auto; min-width: 105px; } /* Address */
+  td:nth-child(3) { width: auto; min-width: 95px; } /* Total Bond */
+  td:nth-child(4) { width: auto; min-width: 95px; } /* Current Award */
+  td:nth-child(5) { width: auto; min-width: 70px; } /* APY */
+  td:nth-child(6) { width: auto; min-width: 95px; max-width: 130px; } /* IP Address */
+  td:nth-child(7) { width: auto; min-width: 65px; } /* Version */
+  td:nth-child(8) { width: auto; min-width: 95px; } /* Active Since */
+  td:nth-child(9) { width: auto; min-width: 65px; } /* Slash Points */
 
   .expanded-row {
     background-color: #262626 !important;
@@ -823,5 +862,11 @@
     font-weight: 500;
     min-width: 14px;
     text-align: center;
+  }
+
+  .apy-value {
+    color: #2ecc71;
+    font-weight: 500;
+    font-size: 0.875rem;
   }
 </style>
