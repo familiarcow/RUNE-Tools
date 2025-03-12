@@ -323,13 +323,33 @@
     border-radius: 12px;
     background-color: #2c2c2c;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
   }
 
-  /* Hide scrollbar for Chrome, Safari and Opera */
+  /* Webkit (Chrome, Safari, Edge) scrollbar styling */
   .table-container::-webkit-scrollbar {
-    display: none;
+    width: 8px;
+    height: 8px;
+  }
+
+  .table-container::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
+  }
+
+  .table-container::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .table-container::-webkit-scrollbar-thumb:hover {
+    background: #5a5a5a;
+  }
+
+  /* Firefox scrollbar styling */
+  .table-container {
+    scrollbar-width: thin;
+    scrollbar-color: #4a4a4a #1a1a1a;
   }
 
   table {
