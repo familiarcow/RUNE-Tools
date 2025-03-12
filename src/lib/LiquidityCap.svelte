@@ -8,6 +8,7 @@
   let totalVaultValueInRune = 0;
   let totalSecurityBudget = 0;
   let totalNodeBond = 0;
+  let totalPooledRune = 0;
   let securityDelta = 0;
 
   // Asset logos configuration
@@ -83,6 +84,9 @@
         const assetPrice = Number(pool.balance_rune) / Number(pool.balance_asset);
         assetPrices[pool.asset] = assetPrice;
       });
+
+      // Calculate total pooled RUNE
+      totalPooledRune = pools.reduce((sum, pool) => sum + Number(pool.balance_rune) / 1e8, 0);
 
       // Calculate total assets and their RUNE values
       const assets = new Map();
@@ -178,6 +182,8 @@
 
       <div class="secondary-info" transition:fade>
         <span>Total Node Bond: {formatNumber(totalNodeBond)} RUNE</span>
+        <span class="separator">|</span>
+        <span>Total Pooled RUNE: {formatNumber(totalPooledRune)} RUNE</span>
       </div>
 
       <div class="assets-table" transition:fade>
@@ -321,6 +327,14 @@
     background: var(--surface-color-light);
     border-radius: 4px;
     opacity: 0.8;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .separator {
+    color: var(--border-color);
   }
 
   .assets-table {
