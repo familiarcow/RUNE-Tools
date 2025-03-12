@@ -203,7 +203,6 @@
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
           <th title="Total amount of RUNE bonded to this node">Total Bond</th>
           <th title="Current block reward for this node">Current Award</th>
-          <th title="Number of bond providers for this node">Providers</th>
           <th title="Node's IP address">IP Address</th>
           <th title="THORNode software version">Version</th>
           <th title="Block height when node became active">Active Since</th>
@@ -273,6 +272,9 @@
                 {/if}
               </button>
               {node.node_address.slice(-4)}
+              <span class="providers-count" title="Number of bond providers">
+                {node.bond_providers?.providers?.length || 0}
+              </span>
             </td>
             <td>
               <span class="rune-amount">
@@ -286,7 +288,6 @@
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
               </span>
             </td>
-            <td>{node.bond_providers?.providers?.length || 0}</td>
             <td>{node.ip_address}</td>
             <td>{node.version}</td>
             <td>{formatNumber(node.active_block_height)}</td>
@@ -366,7 +367,6 @@
           <th title="Current status of the node">Status</th>
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
           <th title="Total amount of RUNE bonded to this node">Total Bond</th>
-          <th title="Number of bond providers for this node">Providers</th>
           <th title="Node's IP address">IP Address</th>
           <th title="THORNode software version">Version</th>
           <th title="Accumulated penalty points for node misbehavior">Slash Points</th>
@@ -394,6 +394,9 @@
                 {/if}
               </button>
               {node.node_address.slice(-4)}
+              <span class="providers-count" title="Number of bond providers">
+                {node.bond_providers?.providers?.length || 0}
+              </span>
             </td>
             <td>
               <span class="rune-amount">
@@ -401,7 +404,6 @@
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
               </span>
             </td>
-            <td>{node.bond_providers?.providers?.length || 0}</td>
             <td>{node.ip_address}</td>
             <td>{node.version}</td>
             <td>{node.slash_points}</td>
@@ -568,14 +570,13 @@
 
   /* Adjust specific column widths */
   td:nth-child(1) { width: 90px; }  /* Status */
-  td:nth-child(2) { width: 100px; } /* Address */
+  td:nth-child(2) { width: 120px; } /* Address */
   td:nth-child(3) { width: 120px; } /* Total Bond */
   td:nth-child(4) { width: 120px; } /* Current Award */
-  td:nth-child(5) { width: 80px; }  /* Providers */
-  td:nth-child(6) { width: 130px; } /* IP Address */
-  td:nth-child(7) { width: 100px; } /* Version */
-  td:nth-child(8) { width: 120px; } /* Active Since */
-  td:nth-child(9) { width: 100px; } /* Slash Points */
+  td:nth-child(5) { width: 130px; } /* IP Address */
+  td:nth-child(6) { width: 100px; }  /* Version */
+  td:nth-child(7) { width: 120px; } /* Active Since */
+  td:nth-child(8) { width: 100px; }  /* Slash Points */
 
   .expanded-row {
     background-color: #262626 !important;
@@ -809,5 +810,18 @@
   .leave-icon.worst,
   .leave-icon.leaving {
     fill: #ff6b6b;
+  }
+
+  .providers-count {
+    display: inline-block;
+    background-color: rgba(74, 144, 226, 0.2);
+    color: #4A90E2;
+    font-size: 0.6875rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-left: 6px;
+    font-weight: 500;
+    min-width: 14px;
+    text-align: center;
   }
 </style>
