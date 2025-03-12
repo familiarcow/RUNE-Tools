@@ -304,8 +304,16 @@
 
 <div class="nodes-container">
   <div class="header-controls">
-    <button class="pause-button" on:click={togglePause}>
-      {isPaused ? "Resume" : "Pause"} Updates
+    <button class="pause-button" on:click={togglePause} title={isPaused ? "Resume Updates" : "Pause Updates"}>
+      {#if isPaused}
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      {:else}
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+      {/if}
     </button>
   </div>
   <h2>Active Nodes ({activeNodes.length})</h2>
@@ -1027,11 +1035,14 @@
     color: white;
     border: none;
     border-radius: 4px;
-    padding: 8px 16px;
-    font-size: 0.875rem;
-    font-weight: 500;
+    padding: 8px;
     cursor: pointer;
     transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
   }
 
   .pause-button:hover {
@@ -1228,11 +1239,14 @@
     color: white;
     border: none;
     border-radius: 4px;
-    padding: 8px 16px;
-    font-size: 0.875rem;
-    font-weight: 500;
+    padding: 8px;
     cursor: pointer;
     transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
   }
 
   .pause-button:hover {
