@@ -229,6 +229,11 @@
         provider.bond_address.toLowerCase().includes(searchTerm)
       )) return true;
 
+      // Check signer membership (vault membership)
+      if (node.signer_membership?.some(signer => 
+        signer.toLowerCase().includes(searchTerm)
+      )) return true;
+
       return false;
     });
   };
@@ -395,7 +400,7 @@
       <input 
         type="text" 
         bind:value={searchQuery}
-        placeholder="Search by address, operator, or bond provider..."
+        placeholder="Search by address, operator, bond provider, or vault membership..."
         class="search-input"
       />
       {#if searchQuery}
