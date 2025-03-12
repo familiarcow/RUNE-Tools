@@ -460,40 +460,40 @@
   }
 
   .chain-col {
-    padding: 4px 2px !important;
+    padding: 2px 1px !important;
     text-align: center !important;
-    width: 45px !important;
-    min-width: 45px !important;
-    max-width: 45px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
   }
 
   .chain-title {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: #ffffff;
-    padding: 2px;
+    padding: 1px;
     display: flex;
     justify-content: center;
     align-items: center;
   }
 
   .chain-header-icon {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     object-fit: contain;
   }
 
   .chain-status {
     font-family: monospace;
-    font-size: 11px;
+    font-size: 10px;
     display: inline-block;
-    min-width: 24px;
+    min-width: 20px;
     text-align: center;
     background: rgba(74, 144, 226, 0.1);
-    padding: 1px 2px;
+    padding: 0px 1px;
     border-radius: 2px;
   }
 
