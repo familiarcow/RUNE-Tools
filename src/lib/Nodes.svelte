@@ -376,7 +376,7 @@
         {#each standbyNodes as node}
           <tr>
             <td>
-              <span class="status standby">Standby</span>
+                  <span class="status standby">Standby</span>
             </td>
             <td>
               <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
@@ -468,40 +468,41 @@
 
 <style>
   .nodes-container {
-    padding: 20px;
+    padding: 16px 32px;
     max-width: 100%;
     overflow-x: auto;
   }
 
   h2 {
     color: #4A90E2;
-    margin: 20px 0;
+    margin: 16px 0 12px;
+    font-size: 1.25rem;
   }
 
   .table-container {
-    margin-bottom: 40px;
+    margin-bottom: 32px;
     overflow-x: auto;
-    max-height: calc(100vh - 200px);
+    max-height: calc(100vh - 180px);
     overflow-y: auto;
-    border-radius: 12px;
+    border-radius: 8px;
     background-color: #2c2c2c;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    padding: 0 1px;
   }
 
-  /* Webkit (Chrome, Safari, Edge) scrollbar styling */
   .table-container::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   .table-container::-webkit-scrollbar-track {
     background: #1a1a1a;
-    border-radius: 4px;
+    border-radius: 3px;
   }
 
   .table-container::-webkit-scrollbar-thumb {
     background: #4a4a4a;
-    border-radius: 4px;
+    border-radius: 3px;
     transition: background 0.2s;
   }
 
@@ -509,17 +510,15 @@
     background: #5a5a5a;
   }
 
-  /* Firefox scrollbar styling */
-  .table-container {
-    scrollbar-width: thin;
-    scrollbar-color: #4a4a4a #1a1a1a;
-  }
-
   table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     background-color: #2c2c2c;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    max-width: 1600px;
+    margin: 0 auto;
   }
 
   thead {
@@ -531,34 +530,72 @@
   th {
     background-color: #1a1a1a;
     color: #888;
-    font-weight: 600;
-    padding: 12px 16px;
+    font-weight: 500;
+    padding: 8px 8px;
     text-align: left;
-    border-bottom: 2px solid #3a3a3c;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    border-bottom: 1px solid #3a3a3c;
+    font-size: 0.8125rem;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
   }
 
-  /* Add a pseudo-element to create a shadow effect under the sticky header */
   th::after {
     content: '';
     position: absolute;
     left: 0;
-    bottom: -2px;
+    bottom: -1px;
     width: 100%;
-    height: 2px;
+    height: 1px;
     background-color: #3a3a3c;
   }
 
-  tbody tr:first-child td {
-    padding-top: 12px;
-  }
-
   td {
-    padding: 12px;
+    padding: 6px 8px;
     text-align: left;
     border-bottom: 1px solid #2c2c2c;
+    vertical-align: middle;
+  }
+
+  /* Alternating row colors */
+  tr.main-row:nth-child(4n + 1),
+  tr.main-row:nth-child(4n + 2) {
+    background-color: rgba(255, 255, 255, 0.01);
+  }
+
+  .main-row:hover {
+    background-color: rgba(74, 144, 226, 0.05) !important;
+  }
+
+  /* Adjust specific column widths */
+  td:nth-child(1) { width: 90px; }  /* Status */
+  td:nth-child(2) { width: 100px; } /* Address */
+  td:nth-child(3) { width: 120px; } /* Total Bond */
+  td:nth-child(4) { width: 120px; } /* Current Award */
+  td:nth-child(5) { width: 80px; }  /* Providers */
+  td:nth-child(6) { width: 130px; } /* IP Address */
+  td:nth-child(7) { width: 100px; } /* Version */
+  td:nth-child(8) { width: 120px; } /* Active Since */
+  td:nth-child(9) { width: 100px; } /* Slash Points */
+
+  .expanded-row {
+    background-color: #262626 !important;
+  }
+
+  .expanded-row td {
+    padding: 0;
+  }
+
+  .bond-providers {
+    padding: 12px;
+  }
+
+  /* Update bond table styles for consistency */
+  .bond-table td {
+    padding: 6px 8px;
+  }
+
+  .bond-table th {
+    padding: 8px;
   }
 
   .expand-btn {
@@ -566,8 +603,14 @@
     border: none;
     color: #4A90E2;
     cursor: pointer;
-    padding: 0 8px;
-    font-size: 12px;
+    padding: 0 4px;
+    font-size: 10px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+
+  .expand-btn:hover {
+    opacity: 1;
   }
 
   .star-btn {
@@ -575,31 +618,23 @@
     border: none;
     color: #ffd700;
     cursor: pointer;
-    padding: 0 4px;
-    font-size: 16px;
-    transition: transform 0.2s;
+    padding: 0 2px;
+    font-size: 14px;
+    transition: transform 0.15s;
   }
 
   .star-btn:hover {
-    transform: scale(1.2);
+    transform: scale(1.15);
   }
 
   tr:has(.star-btn:has(★)) {
-    background-color: rgba(255, 215, 0, 0.05);
-  }
-
-  .expanded-row {
-    background-color: #2c2c2c;
-  }
-
-  .bond-providers {
-    padding: 20px;
+    background-color: rgba(255, 215, 0, 0.03);
   }
 
   .outlink {
     display: inline-flex;
     align-items: center;
-    margin-left: 8px;
+    margin-left: 6px;
     color: #4A90E2;
     opacity: 0.7;
     transition: opacity 0.2s;
@@ -612,40 +647,45 @@
   .address {
     display: flex;
     align-items: center;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
   }
 
   .bond-summary {
     display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
-    padding: 15px;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 12px;
     background-color: #2c2c2c;
     border-radius: 6px;
   }
 
   .summary-item {
     display: flex;
-    gap: 10px;
+    gap: 8px;
+    align-items: center;
   }
 
   .summary-item .label {
     color: #888;
+    font-size: 0.8125rem;
   }
 
   .summary-item .value {
     color: #4A90E2;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .bond-table {
     width: 100%;
-    margin-top: 10px;
+    margin-top: 8px;
     background-color: #1a1a1a;
+    font-size: 0.8125rem;
   }
 
   .bond-table th,
   .bond-table td {
-    padding: 10px;
+    padding: 8px;
     text-align: left;
     border-bottom: 1px solid #2c2c2c;
   }
@@ -653,62 +693,52 @@
   .bond-table th {
     background-color: #2c2c2c;
     color: #ffffff;
-    font-weight: 600;
-  }
-
-  .bond-table .address {
-    font-family: monospace;
-    font-size: 14px;
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .status {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
   }
 
   .status.active {
-    background-color: #28a745;
-    color: white;
+    background-color: rgba(40, 167, 69, 0.15);
+    color: #2ecc71;
   }
 
   .status.standby {
-    background-color: #ffc107;
-    color: black;
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #ffd700;
   }
 
   .status.leaving {
-    background-color: #dc3545;
-    color: white;
+    background-color: rgba(220, 53, 69, 0.15);
+    color: #ff6b6b;
   }
 
   .status.forced {
-    background-color: #dc3545;
-    color: white;
-  }
-
-  .status.ready {
-    background-color: #28a745;
-    color: white;
-  }
-
-  .status.standby {
-    background-color: #ffc107;
-    color: black;
+    background-color: rgba(220, 53, 69, 0.15);
+    color: #ff6b6b;
   }
 
   .chain-col {
-    padding: 2px 1px !important;
+    padding: 2px !important;
     text-align: center !important;
-    width: 28px !important;
-    min-width: 28px !important;
-    max-width: 28px !important;
+    width: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
   }
 
   .chain-title {
-    font-size: 10px;
-    font-weight: 600;
+    font-size: 9px;
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -720,66 +750,45 @@
   }
 
   .chain-header-icon {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-  }
-
-  .chain-status {
-    font-family: monospace;
-    font-size: 10px;
-    display: inline-block;
-    min-width: 20px;
-    text-align: center;
-    background: rgba(74, 144, 226, 0.1);
-    padding: 0px 1px;
-    border-radius: 2px;
-  }
-
-  @media (max-width: 1200px) {
-    .chain-heights {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .provider-list {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .chain-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-  }
-
-  .chain-icon {
-    font-size: 10px;
-  }
-
-  .rune-amount {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .rune-icon {
     width: 14px;
     height: 14px;
     object-fit: contain;
   }
 
+  .chain-status {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 9px;
+    display: inline-block;
+    min-width: 18px;
+    text-align: center;
+    background: rgba(74, 144, 226, 0.08);
+    padding: 0px 1px;
+    border-radius: 2px;
+    color: #4A90E2;
+  }
+
+  .rune-amount {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+  }
+
+  .rune-icon {
+    width: 12px;
+    height: 12px;
+    object-fit: contain;
+  }
+
   .value .rune-icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 
   .status-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
 
   .leave-status {
@@ -788,17 +797,17 @@
   }
 
   .leave-icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 
   .leave-icon.oldest,
   .leave-icon.lowest {
-    fill: #ffc107;
+    fill: #ffd700;
   }
 
   .leave-icon.worst,
   .leave-icon.leaving {
-    fill: #dc3545;
+    fill: #ff6b6b;
   }
 </style>
