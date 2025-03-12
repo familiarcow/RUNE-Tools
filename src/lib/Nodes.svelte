@@ -173,6 +173,9 @@
         case 'current_award':
           comparison = Number(b[field]) - Number(a[field]);
           break;
+        case 'operator':
+          comparison = a.node_operator_address.localeCompare(b.node_operator_address);
+          break;
         case 'apy':
           const aAPY = calculateAPY(a) || 0;
           const bAPY = calculateAPY(b) || 0;
@@ -382,6 +385,16 @@
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
           <th 
             class="sortable" 
+            title="Node operator's THORChain address (showing last 4 characters)"
+            on:click={() => handleSort('operator')}
+          >
+            Operator
+            {#if sortField === 'operator'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
             title="Total amount of RUNE bonded to this node"
             on:click={() => handleSort('total_bond')}
           >
@@ -515,6 +528,7 @@
                 {node.bond_providers?.providers?.length || 0}
               </span>
             </td>
+            <td class="monospace">{node.node_operator_address.slice(-4)}</td>
             <td class:cell-update={node.hasUpdates?.bond}>
               <span class="rune-amount" class:value-update={node.hasUpdates?.bond}>
                 {formatRune(node.total_bond)}
@@ -658,6 +672,16 @@
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
           <th 
             class="sortable" 
+            title="Node operator's THORChain address (showing last 4 characters)"
+            on:click={() => handleSort('operator')}
+          >
+            Operator
+            {#if sortField === 'operator'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
             title="Total amount of RUNE bonded to this node"
             on:click={() => handleSort('total_bond')}
           >
@@ -718,6 +742,7 @@
                 {node.bond_providers?.providers?.length || 0}
               </span>
             </td>
+            <td class="monospace">{node.node_operator_address.slice(-4)}</td>
             <td>
               <span class="rune-amount">
                 {formatRune(node.total_bond)}
