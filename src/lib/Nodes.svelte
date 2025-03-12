@@ -315,10 +315,10 @@
         <tr>
           <th title="Current status of the node">Status</th>
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
+          <th title="Node's IP address">IP Address</th>
           <th title="Total amount of RUNE bonded to this node">Total Bond</th>
           <th title="Current block reward for this node">Current Award</th>
           <th title="Estimated Annual Percentage Yield based on current rewards">APY</th>
-          <th title="Node's IP address">IP Address</th>
           <th title="THORNode software version">Version</th>
           <th title="Block height when node became active">Active Since</th>
           <th title="Accumulated penalty points for node misbehavior">Slash Points</th>
@@ -391,6 +391,7 @@
                 {node.bond_providers?.providers?.length || 0}
               </span>
             </td>
+            <td>{node.ip_address}</td>
             <td class:cell-update={node.hasUpdates?.bond}>
               <span class="rune-amount" class:value-update={node.hasUpdates?.bond}>
                 {formatRune(node.total_bond)}
@@ -412,7 +413,6 @@
                 <span class="apy-value">-</span>
               {/if}
             </td>
-            <td>{node.ip_address}</td>
             <td>{node.version}</td>
             <td>{formatNumber(node.active_block_height)}</td>
             <td class:cell-update={node.hasUpdates?.slash}>
@@ -529,8 +529,8 @@
         <tr>
           <th title="Current status of the node">Status</th>
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
-          <th title="Total amount of RUNE bonded to this node">Total Bond</th>
           <th title="Node's IP address">IP Address</th>
+          <th title="Total amount of RUNE bonded to this node">Total Bond</th>
           <th title="THORNode software version">Version</th>
           <th title="Accumulated penalty points for node misbehavior">Slash Points</th>
         </tr>
@@ -563,13 +563,13 @@
                 {node.bond_providers?.providers?.length || 0}
               </span>
             </td>
+            <td>{node.ip_address}</td>
             <td>
               <span class="rune-amount">
                 {formatRune(node.total_bond)}
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
               </span>
             </td>
-            <td>{node.ip_address}</td>
             <td>{node.version}</td>
             <td>{node.slash_points}</td>
           </tr>
@@ -979,6 +979,7 @@
   .leave-icon {
     width: 14px;
     height: 14px;
+    margin-left: 4px;
   }
 
   .leave-icon.oldest,
@@ -1179,177 +1180,6 @@
   .leave-icon {
     width: 14px;
     height: 14px;
-  }
-
-  .leave-icon.oldest,
-  .leave-icon.lowest {
-    fill: #ffd700;
-  }
-
-  .leave-icon.worst,
-  .leave-icon.leaving {
-    fill: #ff6b6b;
-  }
-
-  .providers-count {
-    display: inline-block;
-    background-color: rgba(74, 144, 226, 0.2);
-    color: #4A90E2;
-    font-size: 0.6875rem;
-    padding: 1px 4px;
-    border-radius: 3px;
-    margin-left: 6px;
-    font-weight: 500;
-    min-width: 14px;
-    text-align: center;
-  }
-
-  .apy-value {
-    color: #2ecc71;
-    font-weight: 500;
-    font-size: 0.875rem;
-  }
-
-  .header-controls {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 16px;
-  }
-
-  .pause-button {
-    background-color: #4A90E2;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-
-  .pause-button:hover {
-    background-color: #357ABD;
-  }
-
-  .cell-update {
-    animation: cell-flash 1s ease-out;
-  }
-
-  @keyframes cell-flash {
-    0% {
-      background-color: rgba(74, 144, 226, 0.3);
-    }
-    100% {
-      background-color: transparent;
-    }
-  }
-
-  .value-transition {
-    transition: color 0.3s ease;
-  }
-
-  .value-update {
-    color: #4A90E2;
-  }
-
-  td {
-    transition: background-color 0.3s ease;
-  }
-
-  .main-row:hover {
-    background-color: rgba(74, 144, 226, 0.05) !important;
-    transition: background-color 0.3s ease;
-  }
-
-  .rune-amount {
-    transition: all 0.3s ease;
-  }
-
-  .chain-status {
-    transition: all 0.3s ease;
-  }
-
-  .status {
-    transition: all 0.3s ease;
-  }
-
-  .apy-value {
-    transition: all 0.3s ease;
-  }
-
-  .signer-list {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-
-  .signer-pill {
-    background-color: rgba(74, 144, 226, 0.15);
-    color: #4A90E2;
-    padding: 2px 6px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-  }
-
-  .block-number {
-    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-    font-size: 0.8125rem;
-  }
-
-  .date-separator {
-    margin: 0 4px;
-    color: #666;
-  }
-
-  .block-date {
-    color: #888;
-    font-size: 0.8125rem;
-  }
-
-  .status-circle {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-  }
-
-  .status-circle.active {
-    background-color: #2ecc71;
-    box-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
-  }
-
-  .status-circle.standby {
-    background-color: #ffd700;
-    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
-  }
-
-  .status-circle.leaving {
-    background-color: #ff6b6b;
-    box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
-  }
-
-  .status-circle.forced {
-    background-color: #e74c3c;
-    box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
-  }
-
-  .status-container {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .leave-status {
-    display: flex;
-    align-items: center;
-  }
-
-  .leave-icon {
-    width: 14px;
-    height: 14px;
     margin-left: 4px;
   }
 
@@ -1511,7 +1341,6 @@
   .status-container {
     display: flex;
     align-items: center;
-    justify-content: center;
-    height: 100%;
+    gap: 6px;
   }
 </style>
