@@ -677,13 +677,29 @@
                             <tr>
                               <td class="address">
                                 {provider.bond_address}
-                                <a href="https://runescan.io/address/{provider.bond_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                    <polyline points="15 3 21 3 21 9"></polyline>
-                                    <line x1="10" y1="14" x2="21" y2="3"></line>
-                                  </svg>
-                                </a>
+                                <div class="action-buttons">
+                                  <a href="http://rune.tools/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    class="track-rewards-btn"
+                                    title="Track bond rewards">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M12 2v20M2 12h20"/>
+                                    </svg>
+                                    Track Rewards
+                                  </a>
+                                  <a href="https://viewblock.io/thorchain/address/{provider.bond_address}" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    class="viewblock-btn"
+                                    title="View in Viewblock">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                      <polyline points="15 3 21 3 21 9"/>
+                                      <line x1="10" y1="14" x2="21" y2="3"/>
+                                    </svg>
+                                  </a>
+                                </div>
                               </td>
                               <td>
                                 <span class="rune-amount">
@@ -860,13 +876,29 @@
                             <tr>
                               <td class="address">
                                 {provider.bond_address}
-                                <a href="https://runescan.io/address/{provider.bond_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                    <polyline points="15 3 21 3 21 9"></polyline>
-                                    <line x1="10" y1="14" x2="21" y2="3"></line>
-                                  </svg>
-                                </a>
+                                <div class="action-buttons">
+                                  <a href="http://rune.tools/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    class="track-rewards-btn"
+                                    title="Track bond rewards">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M12 2v20M2 12h20"/>
+                                    </svg>
+                                    Track Rewards
+                                  </a>
+                                  <a href="https://viewblock.io/thorchain/address/{provider.bond_address}" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    class="viewblock-btn"
+                                    title="View in Viewblock">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                      <polyline points="15 3 21 3 21 9"/>
+                                      <line x1="10" y1="14" x2="21" y2="3"/>
+                                    </svg>
+                                  </a>
+                                </div>
                               </td>
                               <td>
                                 <span class="rune-amount">
@@ -1192,6 +1224,7 @@
     align-items: center;
     font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
     font-size: 0.8125rem;
+    gap: 8px;
   }
 
   .leave-status {
@@ -1741,5 +1774,47 @@
 
   .sortable:hover .sort-indicator {
     opacity: 0.8;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    margin-left: 8px;
+    align-items: center;
+  }
+
+  .track-rewards-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid #4A90E2;
+    border-radius: 4px;
+    color: #4A90E2;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    background: rgba(74, 144, 226, 0.1);
+  }
+
+  .track-rewards-btn:hover {
+    background: rgba(74, 144, 226, 0.2);
+    border-color: #5a9ee8;
+  }
+
+  .viewblock-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: #666;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .viewblock-btn:hover {
+    color: #4A90E2;
+    background: rgba(74, 144, 226, 0.1);
   }
 </style>
