@@ -1,5 +1,7 @@
 <script>
   import { onMount } from 'svelte';
+  import { tweened } from 'svelte/motion';
+  import { cubicOut } from 'svelte/easing';
 
   let nodes = [];
   let activeNodes = [];
@@ -10,6 +12,24 @@
   let starredNodes = new Set();
   let lastChurnHeight = 0;
   let currentBlockHeight = 0;
+  let isPaused = false;
+  let refreshInterval;
+
+  // Add tweened stores for animated values
+  const tweenedBondedRune = tweened(0, {
+    duration: 1000,
+    easing: cubicOut
+  });
+
+  const tweenedPooledRune = tweened(0, {
+    duration: 1000,
+    easing: cubicOut
+  });
+
+  const tweenedCurrentAward = tweened(0, {
+    duration: 1000,
+    easing: cubicOut
+  });
 
   // Load starred nodes from localStorage
   const loadStarredNodes = () => {
@@ -139,8 +159,10 @@
     return (1 + APR / 365) ** 365 - 1;
   };
 
-  // Fetch nodes data
+  // Modify fetchNodes to track all value changes
   const fetchNodes = async () => {
+    if (isPaused) return;
+    
     try {
       const [nodesResponse, churnsResponse] = await Promise.all([
         fetch('https://thornode.thorchain.liquify.com/thorchain/nodes'),
@@ -153,22 +175,79 @@
       ]);
 
       nodes = nodesData;
-      lastChurnHeight = Number(churnsData[0].date) / 1e9; // Convert nanoseconds to seconds
+      lastChurnHeight = Number(churnsData[0].date) / 1e9;
 
       updateChainInfo(nodes);
-      activeNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Active'));
-      standbyNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Standby'));
+      
+      // Update active and standby nodes with data-update attributes
+      const newActiveNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Active'));
+      const newStandbyNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Standby'));
+
+      // Mark updated nodes with ALL changed fields
+      newActiveNodes.forEach(node => {
+        const oldNode = activeNodes.find(n => n.node_address === node.node_address);
+        if (oldNode) {
+          node.hasUpdates = {};
+          // Track all numeric and status changes
+          if (oldNode.total_bond !== node.total_bond) node.hasUpdates.bond = true;
+          if (oldNode.current_award !== node.current_award) node.hasUpdates.award = true;
+          if (oldNode.slash_points !== node.slash_points) node.hasUpdates.slash = true;
+          if (oldNode.version !== node.version) node.hasUpdates.version = true;
+          if (oldNode.status !== node.status) node.hasUpdates.status = true;
+          if (oldNode.active_block_height !== node.active_block_height) node.hasUpdates.active_since = true;
+          
+          // Track chain height changes
+          node.hasUpdates.chains = {};
+          (node.observe_chains || []).forEach(chain => {
+            const oldChain = (oldNode.observe_chains || []).find(c => c.chain === chain.chain);
+            if (!oldChain || oldChain.height !== chain.height) {
+              node.hasUpdates.chains[chain.chain] = true;
+            }
+          });
+
+          // Track APY changes
+          const oldAPY = calculateAPY(oldNode);
+          const newAPY = calculateAPY(node);
+          if (oldAPY !== newAPY) node.hasUpdates.apy = true;
+        }
+      });
+
+      // Clear updates after a delay
+      const clearUpdates = () => {
+        activeNodes = activeNodes.map(node => ({
+          ...node,
+          hasUpdates: undefined
+        }));
+      };
+
+      activeNodes = newActiveNodes;
+      standbyNodes = newStandbyNodes;
+
+      // Schedule cleanup of update markers
+      setTimeout(clearUpdates, 1000);
+
     } catch (error) {
       console.error('Error fetching nodes:', error);
+    }
+  };
+
+  const togglePause = () => {
+    isPaused = !isPaused;
+    if (!isPaused) {
+      // Immediately fetch when unpausing
+      fetchNodes();
+      // Reset the interval
+      clearInterval(refreshInterval);
+      refreshInterval = setInterval(fetchNodes, 6000);
     }
   };
 
   onMount(() => {
     loadStarredNodes();
     fetchNodes();
-    // Refresh data every 5 minutes
-    const interval = setInterval(fetchNodes, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    // Refresh data every 6 seconds
+    refreshInterval = setInterval(fetchNodes, 6000);
+    return () => clearInterval(refreshInterval);
   });
 
   // Component for displaying RUNE amount with icon
@@ -224,6 +303,11 @@
 </script>
 
 <div class="nodes-container">
+  <div class="header-controls">
+    <button class="pause-button" on:click={togglePause}>
+      {isPaused ? "Resume" : "Pause"} Updates
+    </button>
+  </div>
   <h2>Active Nodes ({activeNodes.length})</h2>
   <div class="table-container">
     <table>
@@ -268,7 +352,7 @@
                   <div class="leave-status" title={status.description}>
                     {#if status.type === 'oldest'}
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="leave-icon oldest">
-                        <path d="M10,2.5c0-1.381,1.119-2.5,2.5-2.5s2.5,1.119,2.5,2.5-1.119,2.5-2.5,2.5-2.5-1.119-2.5-2.5Zm10,11.5v9c0,.552-.448,1-1,1s-1-.448-1-1V14.599c-1.368-.779-2.816-1.941-4.017-3.196-.063,1.363-.041,3.026-.015,4.879l.021,1.681c.008,.809-.301,1.571-.87,2.146-.32,.323-.704,.555-1.118,.704v2.187c0,.552-.448,1-1,1s-1-.448-1-1v-2h-2v2c0,.552-.448,1-1,1s-1-.448-1-1v-2.188c-.427-.154-.819-.394-1.144-.732-.573-.597-.871-1.382-.837-2.212,.307-7.653,2.608-11.868,6.481-11.868,1.73-.109,2.959,1.409,3.808,2.709,1.264,1.707,3.377,3.515,5.14,4.396,.339,.169,.553,.516,.553,.895Zm-8.311-5.465c-.304-.346-.728-.535-1.189-.535-3.789,0-4.389,7.615-4.483,9.948-.034,.557,.44,1.064,1,1.052h3.971c.541,.012,1.019-.476,1-1.016l-.021-1.675c-.036-2.675-.065-4.789,.129-6.452,.056-.485-.092-.966-.407-1.322Z"/>
+                        <path d="M10,2.5c0-1.381,1.119-2.5,2.5-2.5s2.5,1.119,2.5,2.5-1.119,2.5-2.5,2.5-2.5-1.119-2.5-2.5Zm10,11.5v9c0,.552-.448,1-1,1s-1-.448-1-1V14.599c-1.368-.779-2.816-1.941-4.017-3.196-.063,1.363-.041,3.026-.015,4.879l.021,1.681c.008,.809-.301,1.571-.87,2.146-.32,.323-.704,.555-1.118,.704v2.187c0,.552-.448,1-1,1s-1-.448-1-1v-2h-2v2c0,.552-.448,1-1,1s-1-.448-1-1v-2.188c-.427-.154-.819-.394-1.144-.732-.573-.597-.871-1.382-.837-2.212,.307-7.653,2.608-11.868,6.481-11.868,1.73-.109,2.959,1.409,3.808,2.709,1.264,1.707,3.377,3.515,5.14,4.396,.339,.169,.553,.553,.553,.895Zm-8.311-5.465c-.304-.346-.728-.535-1.189-.535-3.789,0-4.389,7.615-4.483,9.948-.034,.557,.44,1.064,1,1.052h3.971c.541,.012,1.019-.476,1-1.016l-.021-1.675c-.036-2.675-.065-4.789,.129-6.452,.056-.485-.092-.966-.407-1.322Z"/>
                       </svg>
                     {:else if status.type === 'lowest'}
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="leave-icon lowest">
@@ -307,21 +391,23 @@
                 {node.bond_providers?.providers?.length || 0}
               </span>
             </td>
-            <td>
-              <span class="rune-amount">
+            <td class:cell-update={node.hasUpdates?.bond}>
+              <span class="rune-amount" class:value-update={node.hasUpdates?.bond}>
                 {formatRune(node.total_bond)}
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
               </span>
             </td>
-            <td>
-              <span class="rune-amount">
+            <td class:cell-update={node.hasUpdates?.award}>
+              <span class="rune-amount" class:value-update={node.hasUpdates?.award}>
                 {formatRune(node.current_award)}
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
               </span>
             </td>
             <td>
               {#if calculateAPY(node) !== null}
-                <span class="apy-value">{(calculateAPY(node) * 100).toFixed(2)}%</span>
+                <span class="apy-value">
+                  {(calculateAPY(node) * 100).toFixed(2)}%
+                </span>
               {:else}
                 <span class="apy-value">-</span>
               {/if}
@@ -329,7 +415,11 @@
             <td>{node.ip_address}</td>
             <td>{node.version}</td>
             <td>{formatNumber(node.active_block_height)}</td>
-            <td>{node.slash_points}</td>
+            <td class:cell-update={node.hasUpdates?.slash}>
+              <span class="value-transition" class:value-update={node.hasUpdates?.slash}>
+                {node.slash_points}
+              </span>
+            </td>
             {#each sortedChains as chain}
               <td class="chain-col">
                 <span class="chain-status">
@@ -868,5 +958,73 @@
     color: #2ecc71;
     font-weight: 500;
     font-size: 0.875rem;
+  }
+
+  .header-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+
+  .pause-button {
+    background-color: #4A90E2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .pause-button:hover {
+    background-color: #357ABD;
+  }
+
+  .cell-update {
+    animation: cell-flash 1s ease-out;
+  }
+
+  @keyframes cell-flash {
+    0% {
+      background-color: rgba(74, 144, 226, 0.3);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  .value-transition {
+    transition: color 0.3s ease;
+  }
+
+  .value-update {
+    color: #4A90E2;
+  }
+
+  td {
+    transition: background-color 0.3s ease;
+  }
+
+  .main-row:hover {
+    background-color: rgba(74, 144, 226, 0.05) !important;
+    transition: background-color 0.3s ease;
+  }
+
+  .rune-amount {
+    transition: all 0.3s ease;
+  }
+
+  .chain-status {
+    transition: all 0.3s ease;
+  }
+
+  .status {
+    transition: all 0.3s ease;
+  }
+
+  .apy-value {
+    transition: all 0.3s ease;
   }
 </style>
