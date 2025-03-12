@@ -52,6 +52,13 @@
       description: "Check THORChain's active mimir votes" 
     },
     { 
+      name: "Nodes", 
+      component: () => import("./lib/Nodes.svelte"), 
+      icon: "📡", 
+      path: "nodes", 
+      description: "Explore THORChain's Nodes"
+    },
+    { 
       name: "Earnings", 
       component: () => import("./lib/Earnings.svelte"), 
       icon: "💰", 
