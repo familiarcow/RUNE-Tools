@@ -932,7 +932,8 @@
   .nodes-container {
     padding: 16px 32px;
     max-width: 100%;
-    overflow-x: auto;
+    overflow-x: hidden;
+    width: 100%;
   }
 
   h2 {
@@ -950,6 +951,8 @@
     background-color: #2c2c2c;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     padding: 0 1px;
+    width: 100%;
+    min-width: 100%;
   }
 
   .table-container::-webkit-scrollbar {
@@ -979,8 +982,8 @@
     background-color: #2c2c2c;
     font-size: 0.875rem;
     line-height: 1.4;
-    max-width: 1600px;
-    margin: 0 auto;
+    table-layout: fixed;
+    min-width: max-content;
   }
 
   thead {
