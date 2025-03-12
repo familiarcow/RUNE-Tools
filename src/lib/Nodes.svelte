@@ -323,7 +323,6 @@
         <tr>
           <th title="Current status of the node">Status</th>
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
-          <th title="Node's IP address">IP Address</th>
           <th title="Total amount of RUNE bonded to this node">Total Bond</th>
           <th title="Current block reward for this node">Current Award</th>
           <th title="Estimated Annual Percentage Yield based on current rewards">APY</th>
@@ -405,7 +404,6 @@
                 {node.bond_providers?.providers?.length || 0}
               </span>
             </td>
-            <td>{node.ip_address}</td>
             <td class:cell-update={node.hasUpdates?.bond}>
               <span class="rune-amount" class:value-update={node.hasUpdates?.bond}>
                 {formatRune(node.total_bond)}
@@ -452,6 +450,10 @@
                   </div>
                   <div class="bond-content">
                     <div class="bond-summary">
+                      <div class="summary-item">
+                        <span class="label">IP Address:</span>
+                        <span class="value monospace">{node.ip_address}</span>
+                      </div>
                       <div class="summary-item">
                         <span class="label">Total Bond:</span>
                         <span class="value rune-amount">
@@ -543,7 +545,6 @@
         <tr>
           <th title="Current status of the node">Status</th>
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
-          <th title="Node's IP address">IP Address</th>
           <th title="Total amount of RUNE bonded to this node">Total Bond</th>
           <th title="THORNode software version">Version</th>
           <th title="Accumulated penalty points for node misbehavior">Slash Points</th>
@@ -579,7 +580,6 @@
                 {node.bond_providers?.providers?.length || 0}
               </span>
             </td>
-            <td>{node.ip_address}</td>
             <td>
               <span class="rune-amount">
                 {formatRune(node.total_bond)}
@@ -1405,5 +1405,10 @@
 
   .row-lowest:hover {
     background-color: rgba(241, 196, 15, 0.15) !important;
+  }
+
+  .monospace {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
   }
 </style>
