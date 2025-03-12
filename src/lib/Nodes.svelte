@@ -7,6 +7,45 @@
   let expandedRows = new Set();
   let maxChainHeights = {};
   let uniqueChains = new Set();
+  let starredNodes = new Set();
+
+  // Load starred nodes from localStorage
+  const loadStarredNodes = () => {
+    const saved = localStorage.getItem('thorchain-starred-nodes');
+    if (saved) {
+      starredNodes = new Set(JSON.parse(saved));
+    }
+  };
+
+  // Save starred nodes to localStorage
+  const saveStarredNodes = () => {
+    localStorage.setItem('thorchain-starred-nodes', JSON.stringify([...starredNodes]));
+  };
+
+  // Toggle star status for a node
+  const toggleStar = (nodeAddress) => {
+    if (starredNodes.has(nodeAddress)) {
+      starredNodes.delete(nodeAddress);
+    } else {
+      starredNodes.add(nodeAddress);
+    }
+    starredNodes = starredNodes; // Trigger reactivity
+    saveStarredNodes();
+  };
+
+  // Sort nodes by star status and bond
+  const sortNodesByStarAndBond = (nodes) => {
+    return [...nodes].sort((a, b) => {
+      // First sort by star status
+      const aStarred = starredNodes.has(a.node_address);
+      const bStarred = starredNodes.has(b.node_address);
+      if (aStarred !== bStarred) {
+        return bStarred ? 1 : -1;
+      }
+      // Then sort by bond amount
+      return Number(b.total_bond) - Number(a.total_bond);
+    });
+  };
 
   $: sortedChains = [...uniqueChains].sort();
 
@@ -62,11 +101,6 @@
     return chain ? chain.height : null;
   };
 
-  // Sort nodes by total bond in descending order
-  const sortNodesByBond = (nodes) => {
-    return [...nodes].sort((a, b) => Number(b.total_bond) - Number(a.total_bond));
-  };
-
   // Toggle row expansion
   const toggleRow = (nodeAddress) => {
     if (expandedRows.has(nodeAddress)) {
@@ -92,14 +126,15 @@
       console.log('Sample node data:', data[0]?.observe_chains);
       nodes = data;
       updateChainInfo(nodes);
-      activeNodes = sortNodesByBond(nodes.filter(node => node.status === 'Active'));
-      standbyNodes = sortNodesByBond(nodes.filter(node => node.status === 'Standby'));
+      activeNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Active'));
+      standbyNodes = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Standby'));
     } catch (error) {
       console.error('Error fetching nodes:', error);
     }
   };
 
   onMount(() => {
+    loadStarredNodes();
     fetchNodes();
     // Refresh data every 5 minutes
     const interval = setInterval(fetchNodes, 5 * 60 * 1000);
@@ -146,6 +181,17 @@
               {:else}
                 <span class="status active">Active</span>
               {/if}
+              <button 
+                class="star-btn" 
+                on:click={() => toggleStar(node.node_address)}
+                title={starredNodes.has(node.node_address) ? "Unstar node" : "Star node"}
+              >
+                {#if starredNodes.has(node.node_address)}
+                  ★
+                {:else}
+                  ☆
+                {/if}
+              </button>
             </td>
             <td>
               <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
@@ -238,6 +284,17 @@
           <tr>
             <td>
               <span class="status standby">Standby</span>
+              <button 
+                class="star-btn" 
+                on:click={() => toggleStar(node.node_address)}
+                title={starredNodes.has(node.node_address) ? "Unstar node" : "Star node"}
+              >
+                {#if starredNodes.has(node.node_address)}
+                  ★
+                {:else}
+                  ☆
+                {/if}
+              </button>
             </td>
             <td>
               <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
@@ -396,6 +453,14 @@
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid #2c2c2c;
+    display: table-cell;
+    vertical-align: middle;
+  }
+
+  td:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .expand-btn {
@@ -405,6 +470,24 @@
     cursor: pointer;
     padding: 0 8px;
     font-size: 12px;
+  }
+
+  .star-btn {
+    background: none;
+    border: none;
+    color: #ffd700;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 16px;
+    transition: transform 0.2s;
+  }
+
+  .star-btn:hover {
+    transform: scale(1.2);
+  }
+
+  tr:has(.star-btn:has(★)) {
+    background-color: rgba(255, 215, 0, 0.05);
   }
 
   .expanded-row {
@@ -485,6 +568,7 @@
     border-radius: 4px;
     font-size: 12px;
     font-weight: 600;
+    margin-right: 8px;
   }
 
   .status.active {
