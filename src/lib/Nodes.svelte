@@ -1287,7 +1287,6 @@
   .nodes-container {
     padding: 16px 128px;
     max-width: 100%;
-    overflow-x: hidden;
     width: 100%;
   }
 
@@ -1351,38 +1350,19 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     padding: 0 1px;
     width: 100%;
-    min-width: 100%;
-  }
-
-  .table-container::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .table-container::-webkit-scrollbar-track {
-    background: #1a1a1a;
-    border-radius: 3px;
-  }
-
-  .table-container::-webkit-scrollbar-thumb {
-    background: #4a4a4a;
-    border-radius: 3px;
-    transition: background 0.2s;
-  }
-
-  .table-container::-webkit-scrollbar-thumb:hover {
-    background: #5a5a5a;
+    display: block;
+    -webkit-overflow-scrolling: touch;
   }
 
   table {
-    width: 100%;
+    width: max-content; /* Change from fixed percentage to max-content */
+    min-width: 100%;    /* Ensure table is at least as wide as container */
     border-collapse: separate;
     border-spacing: 0;
     background-color: #2c2c2c;
     font-size: 0.875rem;
     line-height: 1.4;
-    table-layout: fixed;
-    min-width: max-content;
+    table-layout: fixed;  /* Keep fixed layout for predictable column widths */
   }
 
   thead {
@@ -1430,22 +1410,69 @@
     background-color: rgba(74, 144, 226, 0.05) !important;
   }
 
-  /* Column width controls */
-  th:nth-child(1), td:nth-child(1) { width: 30px; min-width: 30px; max-width: 30px; }  /* Star */
-  th:nth-child(2), td:nth-child(2) { width: 50px; min-width: 50px; max-width: 50px; }  /* Status */
-  th:nth-child(3), td:nth-child(3) { width: 40px; min-width: 40px; max-width: 40px; }  /* ISP */
-  th:nth-child(4), td:nth-child(4) { width: 40px; min-width: 40px; max-width: 40px; }  /* Country */
-  th:nth-child(5), td:nth-child(5) { width: 105px; min-width: 105px; max-width: 105px; }  /* Address */
-  th:nth-child(6), td:nth-child(6) { width: 105px; min-width: 105px; max-width: 105px; }   /* Operator */
-  th:nth-child(7), td:nth-child(7) { width: 125px; min-width: 125px; max-width: 125px; }   /* Total Bond */
-  th:nth-child(8), td:nth-child(8) { width: 125px; min-width: 125px; max-width: 125px; }   /* Current Award */
-  th:nth-child(9), td:nth-child(9) { width: 125px; min-width: 125px; max-width: 125px; }   /* APY */
-  th:nth-child(10), td:nth-child(10) { width: 60px; min-width: 60px; max-width: 60px; }  /* Version */
-  th:nth-child(11), td:nth-child(11) { width: 100px; min-width: 100px; max-width: 100px; } /* Active Since */
-  th:nth-child(12), td:nth-child(12) { width: 60px; min-width: 80px; max-width: 80px; } /* Slash Points */
+  /* Column width controls - make them more strict */
+  th:nth-child(1), td:nth-child(1) { width: 30px !important; min-width: 30px !important; max-width: 30px !important; }  /* Star */
+  th:nth-child(2), td:nth-child(2) { width: 50px !important; min-width: 50px !important; max-width: 50px !important; }  /* Status */
+  th:nth-child(3), td:nth-child(3) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* ISP */
+  th:nth-child(4), td:nth-child(4) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* Country */
+  th:nth-child(5), td:nth-child(5) { width: 105px !important; min-width: 105px !important; max-width: 105px !important; }  /* Address */
+  th:nth-child(6), td:nth-child(6) { width: 105px !important; min-width: 105px !important; max-width: 105px !important; }  /* Operator */
+  th:nth-child(7), td:nth-child(7) { width: 125px !important; min-width: 125px !important; max-width: 125px !important; }  /* Total Bond */
+  th:nth-child(8), td:nth-child(8) { width: 125px !important; min-width: 125px !important; max-width: 125px !important; }  /* Current Award */
+  th:nth-child(9), td:nth-child(9) { width: 125px !important; min-width: 125px !important; max-width: 125px !important; }  /* APY */
+  th:nth-child(10), td:nth-child(10) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Version */
+  th:nth-child(11), td:nth-child(11) { width: 100px !important; min-width: 100px !important; max-width: 100px !important; }  /* Active Since */
+  th:nth-child(12), td:nth-child(12) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* Slash Points */
 
-  /* Remove any old column width controls if they exist */
-  td { width: auto; }
+  /* Force all cells to maintain their layout */
+  th, td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+  }
+
+  /* Add mobile-specific styles */
+  @media (max-width: 768px) {
+    .nodes-container {
+      padding: 8px;
+    }
+
+    .table-container {
+      margin: 0 -8px 32px -8px;
+      border-radius: 0;
+      max-height: none;
+      width: 100vw;  /* Use viewport width */
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    table {
+      font-size: 0.8125rem;
+    }
+
+    th, td {
+      padding: 6px 4px;
+    }
+
+    /* Ensure expanded rows don't break layout */
+    .expanded-row td {
+      white-space: normal;
+    }
+  }
+
+  /* iOS specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    .table-container {
+      overflow-x: scroll;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+      transform: translateZ(0);  /* Force GPU acceleration */
+    }
+  }
 
   .expanded-row {
     background-color: #262626 !important;
