@@ -724,7 +724,7 @@
             {:else}
               <td>
                 <span class="loading">
-                  {#if isLoadingIpInfo}Loading...{:else}Unknown{/if}
+                  {#if isLoadingIpInfo}Loading...{:else}?{/if}
                 </span>
               </td>
             {/if}
@@ -737,7 +737,7 @@
             {:else}
               <td>
                 <span class="loading">
-                  {#if isLoadingIpInfo}Loading...{:else}Unknown{/if}
+                  {#if isLoadingIpInfo}Loading...{:else}?{/if}
                 </span>
               </td>
             {/if}
@@ -1057,7 +1057,7 @@
             {:else}
               <td>
                 <span class="loading">
-                  {#if isLoadingIpInfo}Loading...{:else}Unknown{/if}
+                  {#if isLoadingIpInfo}Loading...{:else}?{/if}
                 </span>
               </td>
             {/if}
@@ -1070,7 +1070,7 @@
             {:else}
               <td>
                 <span class="loading">
-                  {#if isLoadingIpInfo}Loading...{:else}Unknown{/if}
+                  {#if isLoadingIpInfo}Loading...{:else}?{/if}
                 </span>
               </td>
             {/if}
