@@ -397,11 +397,16 @@
         case 'slash':
           comparison = Number(b.slash_points) - Number(a.slash_points);
           break;
+        case 'vault':
+          const aVault = a.signer_membership?.length > 0 ? a.signer_membership[a.signer_membership.length - 1] : '';
+          const bVault = b.signer_membership?.length > 0 ? b.signer_membership[b.signer_membership.length - 1] : '';
+          comparison = aVault.localeCompare(bVault);
+          break;
         default:
           return 0;
       }
       
-      return direction === 'asc' ? -comparison : comparison;
+      return direction === 'asc' ? comparison : -comparison;
     });
   };
 
@@ -593,6 +598,30 @@
       console.error('Failed to copy text: ', err);
     }
   };
+
+  // Add vault color mapping
+  let vaultColorMap = new Map();
+  const colors = [
+    'rgba(74, 144, 226, 0.2)',   // Blue
+    'rgba(46, 204, 113, 0.2)',   // Green
+    'rgba(155, 89, 182, 0.2)',   // Purple
+    'rgba(241, 196, 15, 0.2)',   // Yellow
+    'rgba(231, 76, 60, 0.2)',    // Red
+    'rgba(52, 152, 219, 0.2)',   // Light Blue
+    'rgba(230, 126, 34, 0.2)',   // Orange
+    'rgba(26, 188, 156, 0.2)',   // Turquoise
+  ];
+  let nextColorIndex = 0;
+
+  // Function to get consistent color for a vault
+  const getVaultColor = (vaultId) => {
+    if (!vaultId) return 'transparent';
+    if (!vaultColorMap.has(vaultId)) {
+      vaultColorMap.set(vaultId, colors[nextColorIndex % colors.length]);
+      nextColorIndex++;
+    }
+    return vaultColorMap.get(vaultId);
+  };
 </script>
 
 <div class="nodes-container">
@@ -727,6 +756,16 @@
           >
             Slash
             {#if sortField === 'slash'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Current vault the node is a signer for (last 4 digits)"
+            on:click={() => handleSort('vault')}
+          >
+            Vault
+            {#if sortField === 'vault'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
@@ -878,6 +917,15 @@
                 {node.slash_points}
               </span>
             </td>
+            <td class="monospace">
+              {#if node.signer_membership?.length > 0}
+                <span class="vault-id" style="background-color: {getVaultColor(node.signer_membership[node.signer_membership.length - 1])}">
+                  {node.signer_membership[node.signer_membership.length - 1].slice(-4)}
+                </span>
+              {:else}
+                -
+              {/if}
+            </td>
             {#each sortedChains as chain}
               <td class="chain-col">
                 <span class="chain-status">
@@ -888,7 +936,7 @@
           </tr>
           {#if expandedRows.has(node.node_address)}
             <tr class="expanded-row">
-              <td colspan="{9 + sortedChains.length}">
+              <td colspan="{10 + sortedChains.length}">
                 <div class="bond-providers">
                   <div class="bond-header">
                     <h4>Node Details - {node.node_address.slice(-4)}</h4>
@@ -1625,14 +1673,15 @@
   th:nth-child(2), td:nth-child(2) { width: 50px !important; min-width: 50px !important; max-width: 50px !important; }  /* Status */
   th:nth-child(3), td:nth-child(3) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* ISP */
   th:nth-child(4), td:nth-child(4) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* Country */
-  th:nth-child(5), td:nth-child(5) { width: 105px !important; min-width: 105px !important; max-width: 105px !important; }  /* Address */
-  th:nth-child(6), td:nth-child(6) { width: 105px !important; min-width: 105px !important; max-width: 105px !important; }  /* Operator */
-  th:nth-child(7), td:nth-child(7) { width: 125px !important; min-width: 125px !important; max-width: 125px !important; }  /* Total Bond */
-  th:nth-child(8), td:nth-child(8) { width: 125px !important; min-width: 125px !important; max-width: 125px !important; }  /* Current Award */
-  th:nth-child(9), td:nth-child(9) { width: 125px !important; min-width: 125px !important; max-width: 125px !important; }  /* APY */
+  th:nth-child(5), td:nth-child(5) { width: 100px !important; min-width: 100px !important; max-width: 100px !important; }  /* Address */
+  th:nth-child(6), td:nth-child(6) { width: 100px !important; min-width: 100px !important; max-width: 100px !important; }  /* Operator */
+  th:nth-child(7), td:nth-child(7) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }  /* Total Bond */
+  th:nth-child(8), td:nth-child(8) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }  /* Current Award */
+  th:nth-child(9), td:nth-child(9) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* APY */
   th:nth-child(10), td:nth-child(10) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Version */
-  th:nth-child(11), td:nth-child(11) { width: 100px !important; min-width: 100px !important; max-width: 100px !important; }  /* Active Since */
-  th:nth-child(12), td:nth-child(12) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* Slash Points */
+  th:nth-child(11), td:nth-child(11) { width: 90px !important; min-width: 90px !important; max-width: 90px !important; }  /* Active Since */
+  th:nth-child(12), td:nth-child(12) { width: 70px !important; min-width: 70px !important; max-width: 70px !important; }  /* Slash Points */
+  th:nth-child(13), td:nth-child(13) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Vault */
 
   /* Force all cells to maintain their layout */
   th, td {
@@ -2751,5 +2800,14 @@
 
   .unjailed {
     color: #2ecc71;
+  }
+
+  .vault-id {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
+    transition: all 0.2s ease;
   }
 </style>
