@@ -255,6 +255,13 @@
       path: "trade-assets", 
       description: "Track THORChain's trade assets and vault balances" 
     },
+    {
+      name: "Secured Assets",
+      component: () => import("./lib/SecuredAssets.svelte"),
+      icon: "🧪",
+      path: "secured-assets",
+      description: "Track THORChain's secured assets"
+    },
     { 
       name: "Shop", 
       icon: "🏪", 
