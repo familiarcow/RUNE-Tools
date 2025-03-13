@@ -686,6 +686,8 @@
     // Check if node is within the available spots
     return index < (nodesLeavingCount + newNodesPerChurn);
   };
+
+  $: eligibleStandbyNodes = standbyNodes.filter(node => Number(node.total_bond) / 1e8 >= minimumBondInRune).length;
 </script>
 
 <div class="nodes-container">
@@ -1204,9 +1206,17 @@
     </table>
   </div>
 
-  <h2>Standby Nodes ({filteredStandbyNodes.length})</h2>
+  <h2>Standby Nodes</h2>
   {#if nodesLeavingCount > 0 || newNodesPerChurn > 0}
     <div class="churn-summary">
+      <div class="churn-info">
+        <span class="churn-label">Total Standby:</span>
+        <span class="churn-value">{filteredStandbyNodes.length}</span>
+      </div>
+      <div class="churn-info">
+        <span class="churn-label">Eligible Nodes:</span>
+        <span class="churn-value eligible">{eligibleStandbyNodes}</span>
+      </div>
       <div class="churn-info">
         <span class="churn-label">Nodes Leaving:</span>
         <span class="churn-value">{nodesLeavingCount}</span>
@@ -1300,6 +1310,7 @@
             class:row-starred={starredNodes.has(node.node_address)}
             class:row-jailed={node.jail && node.jail.release_height > currentBlockHeight}
             class:row-joining={node.likelyToJoin}
+            class:row-ineligible={Number(node.total_bond) / 1e8 < minimumBondInRune}
           >
             <td>
               <button 
@@ -2965,5 +2976,23 @@
       flex-direction: column;
       gap: 12px;
     }
+  }
+
+  .eligible-count {
+    color: #2ecc71;
+    font-size: 0.875rem;
+    font-weight: normal;
+  }
+
+  .churn-value.eligible {
+    color: #2ecc71;
+  }
+
+  .row-ineligible {
+    background-color: rgba(231, 76, 60, 0.1) !important;
+  }
+
+  .row-ineligible:hover {
+    background-color: rgba(231, 76, 60, 0.15) !important;
   }
 </style>
