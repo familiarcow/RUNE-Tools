@@ -579,7 +579,7 @@
             title="Node Country"
             on:click={() => handleSort('country')}
           >
-            Country
+            🏳️
             {#if sortField === 'country'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
