@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { tweened } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
+  import ipInfoData from '../../public/ip-info.json';
 
   let nodes = [];
   let activeNodes = [];
@@ -14,10 +15,11 @@
   let currentBlockHeight = 0;
   let isPaused = false;
   let isLoading = false;
-  let isLoadingIpInfo = false; // Add separate loading state for IP info
+  let isLoadingIpInfo = false;
   let refreshInterval;
   let searchQuery = '';
   let ipInfoMap = new Map(); // Store IP info for reuse
+  let useApiFallback = false; // Flag to control API usage
 
   // Country code to emoji mapping
   const countryToEmoji = {
@@ -123,76 +125,125 @@
     if (newIps.length === 0) return;
     
     isLoadingIpInfo = true;
-    
-    // Split nodes into batches of 100
-    for (let i = 0; i < newIps.length; i += batchSize) {
-      const batch = newIps.slice(i, i + batchSize)
-        .map(ip => ({ query: ip }));
-      batches.push(batch);
-    }
 
-    // Process each batch
-    for (const batch of batches) {
-      try {
-        const response = await fetch('http://ip-api.com/batch', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(batch)
+    // First try to get info from the JSON file
+    newIps.forEach(ip => {
+      const ipInfo = ipInfoData[ip];
+      if (ipInfo) {
+        ipInfoMap.set(ip, ipInfo);
+        
+        // Update any nodes with this IP immediately
+        nodes = nodes.map(node => {
+          if (node.ip_address === ip) {
+            return { ...node, ...ipInfo };
+          }
+          return node;
         });
+        
+        // Update active and standby nodes immediately
+        activeNodes = activeNodes.map(node => {
+          if (node.ip_address === ip) {
+            return { ...node, ...ipInfo };
+          }
+          return node;
+        });
+        
+        standbyNodes = standbyNodes.map(node => {
+          if (node.ip_address === ip) {
+            return { ...node, ...ipInfo };
+          }
+          return node;
+        });
+      }
+    });
 
-        if (!response.ok) {
-          console.error('Failed to fetch IP info:', response.statusText);
-          continue;
+    // If we're using API fallback or have missing IPs, fetch from API
+    if (useApiFallback) {
+      // Split remaining IPs into batches of 100
+      const remainingIps = newIps.filter(ip => !ipInfoMap.has(ip));
+      if (remainingIps.length > 0) {
+        for (let i = 0; i < remainingIps.length; i += batchSize) {
+          const batch = remainingIps.slice(i, i + batchSize)
+            .map(ip => ({ query: ip }));
+          batches.push(batch);
         }
 
-        const data = await response.json();
-        
-        // Store results in the map and update nodes immediately
-        data.forEach((result, index) => {
-          if (result.status === 'success') {
-            const ip = batch[index].query;
-            const ipInfo = {
-              isp: result.isp,
-              countryCode: result.countryCode
-            };
-            ipInfoMap.set(ip, ipInfo);
-            
-            // Update any nodes with this IP immediately
-            nodes = nodes.map(node => {
-              if (node.ip_address === ip) {
-                return { ...node, ...ipInfo };
-              }
-              return node;
+        // Process each batch
+        for (const batch of batches) {
+          try {
+            const response = await fetch('http://ip-api.com/batch', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(batch)
             });
+
+            if (!response.ok) {
+              console.error('Failed to fetch IP info:', response.statusText);
+              continue;
+            }
+
+            const data = await response.json();
             
-            // Update active and standby nodes immediately
-            activeNodes = activeNodes.map(node => {
-              if (node.ip_address === ip) {
-                return { ...node, ...ipInfo };
+            // Log the data in the format we need for the JSON file
+            const ipInfoForJson = {};
+            data.forEach((result, index) => {
+              if (result.status === 'success') {
+                const ip = batch[index].query;
+                ipInfoForJson[ip] = {
+                  isp: result.isp,
+                  countryCode: result.countryCode
+                };
               }
-              return node;
             });
+            console.log('IP Info for JSON:', JSON.stringify(ipInfoForJson, null, 2));
             
-            standbyNodes = standbyNodes.map(node => {
-              if (node.ip_address === ip) {
-                return { ...node, ...ipInfo };
+            // Store results in the map and update nodes immediately
+            data.forEach((result, index) => {
+              if (result.status === 'success') {
+                const ip = batch[index].query;
+                const ipInfo = {
+                  isp: result.isp,
+                  countryCode: result.countryCode
+                };
+                ipInfoMap.set(ip, ipInfo);
+                
+                // Update any nodes with this IP immediately
+                nodes = nodes.map(node => {
+                  if (node.ip_address === ip) {
+                    return { ...node, ...ipInfo };
+                  }
+                  return node;
+                });
+                
+                // Update active and standby nodes immediately
+                activeNodes = activeNodes.map(node => {
+                  if (node.ip_address === ip) {
+                    return { ...node, ...ipInfo };
+                  }
+                  return node;
+                });
+                
+                standbyNodes = standbyNodes.map(node => {
+                  if (node.ip_address === ip) {
+                    return { ...node, ...ipInfo };
+                  }
+                  return node;
+                });
               }
-              return node;
             });
+          } catch (error) {
+            console.error('Error fetching IP info:', error);
           }
-        });
-        
-        // Force UI updates
-        nodes = [...nodes];
-        activeNodes = [...activeNodes];
-        standbyNodes = [...standbyNodes];
-      } catch (error) {
-        console.error('Error fetching IP info:', error);
+        }
       }
     }
-
+    
+    // Force UI updates
+    nodes = [...nodes];
+    activeNodes = [...activeNodes];
+    standbyNodes = [...standbyNodes];
     isLoadingIpInfo = false;
   };
 
