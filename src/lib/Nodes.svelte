@@ -552,18 +552,8 @@
     <table>
       <thead>
         <tr>
+          <th title="Star node to track it">★</th>
           <th title="Current status of the node">Status</th>
-          <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
-          <th 
-            class="sortable" 
-            title="Node operator's THORChain address (showing last 4 characters)"
-            on:click={() => handleSort('operator')}
-          >
-            Operator
-            {#if sortField === 'operator'}
-              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-            {/if}
-          </th>
           <th 
             class="sortable" 
             title="Internet Service Provider"
@@ -581,6 +571,17 @@
           >
             🏳️
             {#if sortField === 'country'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
+          <th 
+            class="sortable" 
+            title="Node operator's THORChain address (showing last 4 characters)"
+            on:click={() => handleSort('operator')}
+          >
+            Operator
+            {#if sortField === 'operator'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
@@ -667,6 +668,19 @@
             class:row-starred={starredNodes.has(node.node_address)}
           >
             <td>
+              <button 
+                class="star-btn" 
+                on:click={() => toggleStar(node.node_address)}
+                title={starredNodes.has(node.node_address) ? "Unstar node" : "Star node"}
+              >
+                {#if starredNodes.has(node.node_address)}
+                  ★
+                {:else}
+                  ☆
+                {/if}
+              </button>
+            </td>
+            <td>
               <div class="status-container">
                 {#if node.requested_to_leave}
                   <span class="status-circle leaving" title="Node is Leaving"></span>
@@ -690,35 +704,6 @@
                   </div>
                 {/if}
               </div>
-            </td>
-            <td>
-              <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
-                {expandedRows.has(node.node_address) ? '▼' : '▶'}
-              </button>
-              <button 
-                class="star-btn" 
-                on:click={() => toggleStar(node.node_address)}
-                title={starredNodes.has(node.node_address) ? "Unstar node" : "Star node"}
-              >
-                {#if starredNodes.has(node.node_address)}
-                  ★
-                {:else}
-                  ☆
-                {/if}
-              </button>
-              {node.node_address.slice(-4)}
-              <span class="providers-count" title="Number of bond providers">
-                {node.bond_providers?.providers?.length || 0}
-              </span>
-            </td>
-            <td class="monospace">{node.node_operator_address.slice(-4)}
-              <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </a>
             </td>
             {#if node.isp}
               <td>
@@ -756,6 +741,27 @@
                 </span>
               </td>
             {/if}
+            <td>{node.node_address.slice(-4)}
+              <span class="providers-count" title="Number of bond providers">
+                {(node.bond_providers?.providers || []).length}
+              </span>
+              <button 
+                class="expand-btn" 
+                on:click={() => toggleRow(node.node_address)}
+                title={expandedRows.has(node.node_address) ? "Hide details" : "Show details"}
+              >
+                {expandedRows.has(node.node_address) ? '▼' : '▶'}
+              </button>
+            </td>
+            <td class="monospace">{node.node_operator_address.slice(-4)}
+              <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </a>
+            </td>
             <td class:cell-update={node.hasUpdates?.bond}>
               <span class="rune-amount" class:value-update={node.hasUpdates?.bond}>
                 {formatRune(node.total_bond)}
@@ -853,13 +859,23 @@
                             <th>Provider Address</th>
                             <th>Bond Amount</th>
                             <th>Share</th>
+                            <th>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {#each node.bond_providers.providers as provider}
+                          {#each (node.bond_providers?.providers || []) as provider}
                             <tr>
                               <td class="address">
                                 {provider.bond_address}
+                              </td>
+                              <td>
+                                <span class="rune-amount">
+                                  {formatRune(provider.bond)}
+                                  <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                                </span>
+                              </td>
+                              <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
+                              <td class="actions-cell">
                                 <div class="action-buttons">
                                   <a href="http://rune.tools/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
                                     target="_blank" 
@@ -869,7 +885,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                       <path d="M12 2v20M2 12h20"/>
                                     </svg>
-                                    Track Rewards
+                                    Track
                                   </a>
                                   <a href="https://viewblock.io/thorchain/address/{provider.bond_address}" 
                                     target="_blank" 
@@ -884,13 +900,6 @@
                                   </a>
                                 </div>
                               </td>
-                              <td>
-                                <span class="rune-amount">
-                                  {formatRune(provider.bond)}
-                                  <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-                                </span>
-                              </td>
-                              <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
                             </tr>
                           {/each}
                         </tbody>
@@ -911,18 +920,8 @@
     <table>
       <thead>
         <tr>
+          <th title="Star node to track it">★</th>
           <th title="Current status of the node">Status</th>
-          <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
-          <th 
-            class="sortable" 
-            title="Node operator's THORChain address (showing last 4 characters)"
-            on:click={() => handleSort('operator')}
-          >
-            Operator
-            {#if sortField === 'operator'}
-              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-            {/if}
-          </th>
           <th 
             class="sortable" 
             title="Internet Service Provider"
@@ -938,8 +937,19 @@
             title="Node Country"
             on:click={() => handleSort('country')}
           >
-            Country
+            🏳️
             {#if sortField === 'country'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
+          <th 
+            class="sortable" 
+            title="Node operator's THORChain address (showing last 4 characters)"
+            on:click={() => handleSort('operator')}
+          >
+            Operator
+            {#if sortField === 'operator'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
@@ -955,11 +965,41 @@
           </th>
           <th 
             class="sortable" 
+            title="Current block reward for this node"
+            on:click={() => handleSort('current_award')}
+          >
+            Current Award
+            {#if sortField === 'current_award'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Estimated Annual Percentage Yield based on current rewards"
+            on:click={() => handleSort('apy')}
+          >
+            APY
+            {#if sortField === 'apy'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
             title="THORNode software version"
             on:click={() => handleSort('version')}
           >
             Version
             {#if sortField === 'version'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Block height when node became active"
+            on:click={() => handleSort('active_since')}
+          >
+            Active Since
+            {#if sortField === 'active_since'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
@@ -981,14 +1021,6 @@
             class:row-starred={starredNodes.has(node.node_address)}
           >
             <td>
-              <div class="status-container">
-                <span class="status-circle standby" title="Standby Node"></span>
-              </div>
-            </td>
-            <td>
-              <button class="expand-btn" on:click={() => toggleRow(node.node_address)}>
-                {expandedRows.has(node.node_address) ? '▼' : '▶'}
-              </button>
               <button 
                 class="star-btn" 
                 on:click={() => toggleStar(node.node_address)}
@@ -1000,19 +1032,11 @@
                   ☆
                 {/if}
               </button>
-              {node.node_address.slice(-4)}
-              <span class="providers-count" title="Number of bond providers">
-                {node.bond_providers?.providers?.length || 0}
-              </span>
             </td>
-            <td class="monospace">{node.node_operator_address.slice(-4)}
-              <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </a>
+            <td>
+              <div class="status-container">
+                <span class="status-circle standby" title="Standby Node"></span>
+              </div>
             </td>
             {#if node.isp}
               <td>
@@ -1050,18 +1074,55 @@
                 </span>
               </td>
             {/if}
+            <td>{node.node_address.slice(-4)}
+              <span class="providers-count" title="Number of bond providers">
+                {(node.bond_providers?.providers || []).length}
+              </span>
+              <button 
+                class="expand-btn" 
+                on:click={() => toggleRow(node.node_address)}
+                title={expandedRows.has(node.node_address) ? "Hide details" : "Show details"}
+              >
+                {expandedRows.has(node.node_address) ? '▼' : '▶'}
+              </button>
+            </td>
+            <td class="monospace">{node.node_operator_address.slice(-4)}
+              <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </a>
+            </td>
             <td>
               <span class="rune-amount">
                 {formatRune(node.total_bond)}
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
               </span>
             </td>
+            <td>
+              <span class="rune-amount">
+                {formatRune(node.current_award || 0)}
+                <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+              </span>
+            </td>
+            <td>
+              {#if calculateAPY(node) !== null}
+                <span class="apy-value">
+                  {(calculateAPY(node) * 100).toFixed(2)}%
+                </span>
+              {:else}
+                <span class="apy-value">-</span>
+              {/if}
+            </td>
             <td>{node.version}</td>
+            <td>{formatNumber(node.active_block_height)}</td>
             <td>{node.slash_points}</td>
           </tr>
           {#if expandedRows.has(node.node_address)}
             <tr class="expanded-row">
-              <td colspan="7">
+              <td colspan="11">
                 <div class="bond-providers">
                   <div class="bond-header">
                     <h4>Bond Details</h4>
@@ -1102,7 +1163,7 @@
                       <div class="summary-item">
                         <span class="label">Signer Membership:</span>
                         <span class="value signer-list">
-                          {#each node.signer_membership as signer}
+                          {#each (node.signer_membership || []) as signer}
                             <span class="signer-pill">{signer.slice(-4)}</span>
                           {/each}
                         </span>
@@ -1119,7 +1180,7 @@
                           </tr>
                         </thead>
                         <tbody>
-                          {#each node.bond_providers.providers as provider}
+                          {#each (node.bond_providers?.providers || []) as provider}
                             <tr>
                               <td class="address">
                                 {provider.bond_address}
@@ -1311,17 +1372,18 @@
   }
 
   /* Column width controls */
-  th:nth-child(1), td:nth-child(1) { width: 50px; min-width: 50px; max-width: 50px; }  /* Status */
-  th:nth-child(2), td:nth-child(2) { width: auto; min-width: 105px; }  /* Address */
-  th:nth-child(3), td:nth-child(3) { width: auto; min-width: 95px; }   /* Operator */
-  th:nth-child(4), td:nth-child(4) { width: 50px; min-width: 50px; max-width: 50px; }  /* ISP */
-  th:nth-child(5), td:nth-child(5) { width: 50px; min-width: 50px; max-width: 50px; }  /* Country */
-  th:nth-child(6), td:nth-child(6) { width: auto; min-width: 95px; }   /* Total Bond */
-  th:nth-child(7), td:nth-child(7) { width: auto; min-width: 95px; }   /* Current Award */
-  th:nth-child(8), td:nth-child(8) { width: auto; min-width: 70px; }   /* APY */
-  th:nth-child(9), td:nth-child(9) { width: 60px; min-width: 60px; max-width: 60px; }  /* Version */
-  th:nth-child(10), td:nth-child(10) { width: auto; min-width: 95px; } /* Active Since */
-  th:nth-child(11), td:nth-child(11) { width: auto; min-width: 65px; } /* Slash Points */
+  th:nth-child(1), td:nth-child(1) { width: 30px; min-width: 30px; max-width: 30px; }  /* Star */
+  th:nth-child(2), td:nth-child(2) { width: 50px; min-width: 50px; max-width: 50px; }  /* Status */
+  th:nth-child(3), td:nth-child(3) { width: 50px; min-width: 50px; max-width: 50px; }  /* ISP */
+  th:nth-child(4), td:nth-child(4) { width: 50px; min-width: 50px; max-width: 50px; }  /* Country */
+  th:nth-child(5), td:nth-child(5) { width: auto; min-width: 105px; }  /* Address */
+  th:nth-child(6), td:nth-child(6) { width: auto; min-width: 95px; }   /* Operator */
+  th:nth-child(7), td:nth-child(7) { width: auto; min-width: 95px; }   /* Total Bond */
+  th:nth-child(8), td:nth-child(8) { width: auto; min-width: 95px; }   /* Current Award */
+  th:nth-child(9), td:nth-child(9) { width: auto; min-width: 70px; }   /* APY */
+  th:nth-child(10), td:nth-child(10) { width: 60px; min-width: 60px; max-width: 60px; }  /* Version */
+  th:nth-child(11), td:nth-child(11) { width: auto; min-width: 95px; } /* Active Since */
+  th:nth-child(12), td:nth-child(12) { width: auto; min-width: 65px; } /* Slash Points */
 
   /* Remove any old column width controls if they exist */
   td { width: auto; }
@@ -1405,7 +1467,8 @@
     background-color: #2a2a2a;
     border-radius: 8px;
     border: 1px solid #333;
-    overflow: hidden;
+    overflow-x: auto; /* Add horizontal scroll if needed */
+    max-width: 100%;
   }
 
   .table-header {
@@ -1421,6 +1484,7 @@
     width: 100%;
     margin: 0;
     background-color: transparent;
+    table-layout: auto; /* Change to auto to allow content-based sizing */
   }
 
   .bond-table th {
@@ -1432,11 +1496,42 @@
     letter-spacing: 0.5px;
     padding: 12px 16px;
     border-bottom: 1px solid #333;
+    text-align: left;
   }
 
   .bond-table td {
     padding: 12px 16px;
     border-bottom: 1px solid #2c2c2c;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  /* Add specific column styles */
+  .bond-table td.address {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
+    min-width: 500px; /* Much wider for address */
+  }
+
+  .bond-table td:nth-child(2) { /* Bond Amount */
+    min-width: 150px;
+  }
+
+  .bond-table td:nth-child(3) { /* Share */
+    text-align: right;
+    min-width: 100px;
+  }
+
+  .bond-table td:nth-child(4) { /* Actions */
+    min-width: 150px;
+  }
+
+  /* Add hover effect to show full address */
+  .bond-table td.address:hover {
+    overflow: visible;
+    position: relative;
+    background-color: #262626;
+    z-index: 1;
   }
 
   .bond-table tr:last-child td {
