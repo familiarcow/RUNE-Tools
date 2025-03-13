@@ -17,6 +17,62 @@
   let searchQuery = '';
   let ipInfoMap = new Map(); // Store IP info for reuse
 
+  // Country code to emoji mapping
+  const countryToEmoji = {
+    'AT': '🇦🇹',
+    'AU': '🇦🇺',
+    'CA': '🇨🇦',
+    'DE': '🇩🇪',
+    'FI': '🇫🇮',
+    'FR': '🇫🇷',
+    'GB': '🇬🇧',
+    'IN': '🇮🇳',
+    'JP': '🇯🇵',
+    'NL': '🇳🇱',
+    'PL': '🇵🇱',
+    'SG': '🇸🇬',
+    'US': '🇺🇸'
+  };
+
+  // ISP to logo mapping
+  const ispToLogo = {
+    // Amazon variants
+    'Amazon Technologies Inc.': 'amazon.svg',
+    'Amazon.com': 'amazon.svg',
+    'Amazon.com, Inc.': 'amazon.svg',
+    
+    // Microsoft
+    'Microsoft Corporation': 'azure.svg',
+    
+    // Cloud providers
+    'RouterHosting LLC': 'cloud.svg',
+    'TIMEWARP IT Consulting GmbH': 'cloud.svg',
+    'IPAX GmbH': 'cloud.svg',
+    'MEVSPACE sp. z o.o': 'cloudzy.png',
+    'MEVSPACE sp. z o.o.': 'cloudzy.png',
+    
+    // Other specific providers
+    'Cogent Communications': 'cogent.svg',
+    'Comcast Cable Communications, LLC': 'comcast.svg',
+    'The Constant Company': 'datacamp.svg',
+    'The Constant Company, LLC': 'datacamp.svg',
+    'DIGITALOCEAN': 'digitalocean.svg',
+    'DigitalOcean, LLC': 'digitalocean.svg',
+    'Google LLC': 'google.svg',
+    'Hetzner Online GmbH': 'hetzner.svg',
+    'HOSTINGER': 'hostinger.svg',
+    'Hostinger International Limited': 'hostinger.svg',
+    'Level 3 Communications, Inc.': 'ionos.svg',
+    'Leaseweb DE': 'leaseweb.png',
+    'Leaseweb UK Limited': 'leaseweb.png',
+    'Leaseweb USA, Inc.': 'leaseweb.png',
+    'OVH SAS': 'ovh.svg',
+    'Online S.A.S.': 'ovh.svg',
+    'Zenlayer Inc': 'vultr.svg',
+    'Choopa': 'vultr.svg',
+    'Aussie Broadband': 'cloud.svg'
+  };
+
   // Add sort state
   let sortField = 'total_bond';
   let sortDirection = 'desc';
@@ -69,6 +125,10 @@
       batches.push(batch);
     }
 
+    // Track unique ISPs and countries
+    const uniqueIsps = new Set();
+    const uniqueCountries = new Set();
+
     // Process each batch
     for (const batch of batches) {
       try {
@@ -95,12 +155,26 @@
               isp: result.isp,
               countryCode: result.countryCode
             });
+            uniqueIsps.add(result.isp);
+            uniqueCountries.add(result.countryCode);
           }
         });
       } catch (error) {
         console.error('Error fetching IP info:', error);
       }
     }
+
+    // Log unique ISPs and countries
+    console.log('Unique ISPs:', [...uniqueIsps].sort());
+    console.log('Unique Country Codes:', [...uniqueCountries].sort());
+
+    // Log ISP mapping template
+    console.log(`
+// ISP to image mapping template:
+const ispToImage = {
+  ${[...uniqueIsps].sort().map(isp => `'${isp}': 'assets/isps/${isp.toLowerCase().replace(/[^a-z0-9]/g, '-')}.svg'`).join(',\n  ')}
+};
+    `);
   };
 
   // Toggle star status for a node
@@ -225,6 +299,8 @@
       
       switch (field) {
         case 'total_bond':
+          comparison = Number(b[field]) - Number(a[field]);
+          break;
         case 'current_award':
           comparison = Number(b[field]) - Number(a[field]);
           break;
@@ -232,11 +308,10 @@
           comparison = a.node_operator_address.localeCompare(b.node_operator_address);
           break;
         case 'isp':
-          // First compare by country code, then by ISP
+          comparison = (a.isp || '').localeCompare(b.isp || '');
+          break;
+        case 'country':
           comparison = (a.countryCode || '').localeCompare(b.countryCode || '');
-          if (comparison === 0) {
-            comparison = (a.isp || '').localeCompare(b.isp || '');
-          }
           break;
         case 'apy':
           const aAPY = calculateAPY(a) || 0;
@@ -413,14 +488,6 @@
     return () => clearInterval(refreshInterval);
   });
 
-  // Component for displaying RUNE amount with icon
-  const RuneAmount = ({ amount }) => `
-    <span class="rune-amount">
-      ${amount}
-      <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-    </span>
-  `;
-
   // Determine leave status for a node
   const getLeaveStatus = (node, allNodes) => {
     // Check for requested_to_leave first
@@ -515,21 +582,31 @@
           </th>
           <th 
             class="sortable" 
-            title="Total amount of RUNE bonded to this node"
-            on:click={() => handleSort('total_bond')}
+            title="Internet Service Provider"
+            on:click={() => handleSort('isp')}
           >
-            Total Bond
-            {#if sortField === 'total_bond'}
+            ISP
+            {#if sortField === 'isp'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
           <th 
             class="sortable" 
-            title="Internet Service Provider and Country"
-            on:click={() => handleSort('isp')}
+            title="Node Country"
+            on:click={() => handleSort('country')}
           >
-            ISP / Country
-            {#if sortField === 'isp'}
+            Country
+            {#if sortField === 'country'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Total amount of RUNE bonded to this node"
+            on:click={() => handleSort('total_bond')}
+          >
+            Total Bond
+            {#if sortField === 'total_bond'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
@@ -659,20 +736,41 @@
               </span>
             </td>
             <td class="monospace">{node.node_operator_address.slice(-4)}</td>
+            {#if node.isp}
+              <td>
+                <span class="isp">
+                  {#if ispToLogo[node.isp]}
+                    <img 
+                      src={`assets/isp/${ispToLogo[node.isp]}`} 
+                      alt={node.isp}
+                      class="isp-logo"
+                      title={node.isp}
+                    />
+                  {:else}
+                    {node.isp}
+                  {/if}
+                </span>
+              </td>
+            {:else}
+              <td>
+                <span class="loading">Loading...</span>
+              </td>
+            {/if}
+            {#if node.countryCode}
+              <td>
+                <span class="country-code" title={node.countryCode}>
+                  {countryToEmoji[node.countryCode] || node.countryCode}
+                </span>
+              </td>
+            {:else}
+              <td>
+                <span class="loading">Loading...</span>
+              </td>
+            {/if}
             <td class:cell-update={node.hasUpdates?.bond}>
               <span class="rune-amount" class:value-update={node.hasUpdates?.bond}>
                 {formatRune(node.total_bond)}
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-              </span>
-            </td>
-            <td>
-              <span class="isp-info">
-                {#if node.isp && node.countryCode}
-                  <span class="isp">{node.isp}</span>
-                  <span class="country-code">{node.countryCode}</span>
-                {:else}
-                  <span class="loading">Loading...</span>
-                {/if}
               </span>
             </td>
             <td class:cell-update={node.hasUpdates?.award}>
@@ -838,21 +936,31 @@
           </th>
           <th 
             class="sortable" 
-            title="Total amount of RUNE bonded to this node"
-            on:click={() => handleSort('total_bond')}
+            title="Internet Service Provider"
+            on:click={() => handleSort('isp')}
           >
-            Total Bond
-            {#if sortField === 'total_bond'}
+            ISP
+            {#if sortField === 'isp'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
           <th 
             class="sortable" 
-            title="Internet Service Provider and Country"
-            on:click={() => handleSort('isp')}
+            title="Node Country"
+            on:click={() => handleSort('country')}
           >
-            ISP / Country
-            {#if sortField === 'isp'}
+            Country
+            {#if sortField === 'country'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Total amount of RUNE bonded to this node"
+            on:click={() => handleSort('total_bond')}
+          >
+            Total Bond
+            {#if sortField === 'total_bond'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
@@ -909,20 +1017,41 @@
               </span>
             </td>
             <td class="monospace">{node.node_operator_address.slice(-4)}</td>
+            {#if node.isp}
+              <td>
+                <span class="isp">
+                  {#if ispToLogo[node.isp]}
+                    <img 
+                      src={`assets/isp/${ispToLogo[node.isp]}`} 
+                      alt={node.isp}
+                      class="isp-logo"
+                      title={node.isp}
+                    />
+                  {:else}
+                    {node.isp}
+                  {/if}
+                </span>
+              </td>
+            {:else}
+              <td>
+                <span class="loading">Loading...</span>
+              </td>
+            {/if}
+            {#if node.countryCode}
+              <td>
+                <span class="country-code" title={node.countryCode}>
+                  {countryToEmoji[node.countryCode] || node.countryCode}
+                </span>
+              </td>
+            {:else}
+              <td>
+                <span class="loading">Loading...</span>
+              </td>
+            {/if}
             <td>
               <span class="rune-amount">
                 {formatRune(node.total_bond)}
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-              </span>
-            </td>
-            <td>
-              <span class="isp-info">
-                {#if node.isp && node.countryCode}
-                  <span class="isp">{node.isp}</span>
-                  <span class="country-code">{node.countryCode}</span>
-                {:else}
-                  <span class="loading">Loading...</span>
-                {/if}
               </span>
             </td>
             <td>{node.version}</td>
@@ -1050,27 +1179,38 @@
   /* Add styles for ISP info */
   .isp-info {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    font-size: 0.8125rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
   }
 
   .isp {
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
+    display: flex;
+    align-items: center;
+  }
+
+  .isp-logo {
+    height: 16px;
+    width: auto;
+    max-width: 80px;
+    object-fit: contain;
+    vertical-align: middle;
   }
 
   .country-code {
     color: #4A90E2;
     font-weight: 500;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    justify-content: center;
   }
 
   .loading {
     color: #666;
     font-style: italic;
+    font-size: 0.875rem;
   }
 
   h2 {
@@ -1171,13 +1311,15 @@
   /* Adjust specific column widths */
   td:nth-child(1) { width: auto; min-width: 75px; }  /* Status */
   td:nth-child(2) { width: auto; min-width: 105px; } /* Address */
-  td:nth-child(3) { width: auto; min-width: 95px; } /* Total Bond */
-  td:nth-child(4) { width: auto; min-width: 95px; } /* Current Award */
-  td:nth-child(5) { width: auto; min-width: 70px; } /* APY */
-  td:nth-child(6) { width: auto; min-width: 95px; max-width: 130px; } /* IP Address */
-  td:nth-child(7) { width: auto; min-width: 65px; } /* Version */
-  td:nth-child(8) { width: auto; min-width: 95px; } /* Active Since */
-  td:nth-child(9) { width: auto; min-width: 65px; } /* Slash Points */
+  td:nth-child(3) { width: auto; min-width: 95px; }  /* Operator */
+  td:nth-child(4) { width: auto; min-width: 120px; } /* ISP */
+  td:nth-child(5) { width: auto; min-width: 80px; }  /* Country */
+  td:nth-child(6) { width: auto; min-width: 95px; }  /* Total Bond */
+  td:nth-child(7) { width: auto; min-width: 95px; }  /* Current Award */
+  td:nth-child(8) { width: auto; min-width: 70px; }  /* APY */
+  td:nth-child(9) { width: auto; min-width: 65px; }  /* Version */
+  td:nth-child(10) { width: auto; min-width: 95px; } /* Active Since */
+  td:nth-child(11) { width: auto; min-width: 65px; } /* Slash Points */
 
   .expanded-row {
     background-color: #262626 !important;
