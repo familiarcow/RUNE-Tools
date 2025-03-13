@@ -864,7 +864,7 @@
               <td colspan="{9 + sortedChains.length}">
                 <div class="bond-providers">
                   <div class="bond-header">
-                    <h4>Bond Details</h4>
+                    <h4>Node Details - {node.node_address.slice(-4)}</h4>
                     <div class="bond-header-separator"></div>
                   </div>
                   <div class="bond-content">
@@ -1234,7 +1234,7 @@
               <td colspan="11">
                 <div class="bond-providers">
                   <div class="bond-header">
-                    <h4>Bond Details</h4>
+                    <h4>Node Details - {node.node_address.slice(-4)}</h4>
                     <div class="bond-header-separator"></div>
                   </div>
                   <div class="bond-content">
