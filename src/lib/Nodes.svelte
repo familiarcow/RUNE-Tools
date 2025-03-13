@@ -906,7 +906,7 @@
             <td>
               <div class="status-container">
                 <div class="status-indicators">
-                  <span class="status-circle standby" title="Standby Node"></span>
+                  <span class="status-circle active" title="Active Node"></span>
                   {#if node.requested_to_leave}
                     <span class="leave-emoji" title="Node has requested to leave">🧳</span>
                   {/if}
