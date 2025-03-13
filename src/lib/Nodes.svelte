@@ -23,6 +23,7 @@
   let newNodesPerChurn = 4; // Default value
   let minimumBondInRune = 3000000; // Default value 300k RUNE
   let nodesLeavingCount = 0;
+  let baseUrl = window.location.origin;
 
   // Country code to emoji mapping
   const countryToEmoji = {
@@ -1205,7 +1206,7 @@
                               </td>
                               <td class="actions-cell">
                                 <div class="action-buttons">
-                                  <a href="http://rune.tools/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
+                                  <a href="{baseUrl}/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
                                     target="_blank" 
                                     rel="noopener noreferrer" 
                                     class="track-rewards-btn"
@@ -1621,7 +1622,7 @@
                               </td>
                               <td class="actions-cell">
                                 <div class="action-buttons">
-                                  <a href="http://rune.tools/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
+                                  <a href="{baseUrl}/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
                                     target="_blank" 
                                     rel="noopener noreferrer" 
                                     class="track-rewards-btn"
