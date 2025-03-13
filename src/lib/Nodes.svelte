@@ -691,7 +691,7 @@
             title="Accumulated penalty points for node misbehavior"
             on:click={() => handleSort('slash')}
           >
-            Slash Points
+            Slash
             {#if sortField === 'slash'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
@@ -1283,11 +1283,19 @@
 </div>
 
 <style>
+  /* Update container padding to double the bezels */
   .nodes-container {
-    padding: 16px 64px;
+    padding: 16px 128px;
     max-width: 100%;
     overflow-x: hidden;
     width: 100%;
+  }
+
+  /* Remove side padding below 1462px */
+  @media (max-width: 1462px) {
+    .nodes-container {
+      padding: 16px 0;
+    }
   }
 
   /* Add styles for ISP info */
@@ -1425,16 +1433,16 @@
   /* Column width controls */
   th:nth-child(1), td:nth-child(1) { width: 30px; min-width: 30px; max-width: 30px; }  /* Star */
   th:nth-child(2), td:nth-child(2) { width: 50px; min-width: 50px; max-width: 50px; }  /* Status */
-  th:nth-child(3), td:nth-child(3) { width: 50px; min-width: 50px; max-width: 50px; }  /* ISP */
-  th:nth-child(4), td:nth-child(4) { width: 50px; min-width: 50px; max-width: 50px; }  /* Country */
-  th:nth-child(5), td:nth-child(5) { width: auto; min-width: 105px; }  /* Address */
-  th:nth-child(6), td:nth-child(6) { width: auto; min-width: 95px; }   /* Operator */
-  th:nth-child(7), td:nth-child(7) { width: auto; min-width: 95px; }   /* Total Bond */
-  th:nth-child(8), td:nth-child(8) { width: auto; min-width: 95px; }   /* Current Award */
-  th:nth-child(9), td:nth-child(9) { width: auto; min-width: 70px; }   /* APY */
+  th:nth-child(3), td:nth-child(3) { width: 40px; min-width: 40px; max-width: 40px; }  /* ISP */
+  th:nth-child(4), td:nth-child(4) { width: 40px; min-width: 40px; max-width: 40px; }  /* Country */
+  th:nth-child(5), td:nth-child(5) { width: 105px; min-width: 105px; max-width: 105px; }  /* Address */
+  th:nth-child(6), td:nth-child(6) { width: 105px; min-width: 105px; max-width: 105px; }   /* Operator */
+  th:nth-child(7), td:nth-child(7) { width: 125px; min-width: 125px; max-width: 125px; }   /* Total Bond */
+  th:nth-child(8), td:nth-child(8) { width: 125px; min-width: 125px; max-width: 125px; }   /* Current Award */
+  th:nth-child(9), td:nth-child(9) { width: 125px; min-width: 125px; max-width: 125px; }   /* APY */
   th:nth-child(10), td:nth-child(10) { width: 60px; min-width: 60px; max-width: 60px; }  /* Version */
-  th:nth-child(11), td:nth-child(11) { width: auto; min-width: 95px; } /* Active Since */
-  th:nth-child(12), td:nth-child(12) { width: auto; min-width: 65px; } /* Slash Points */
+  th:nth-child(11), td:nth-child(11) { width: 100px; min-width: 100px; max-width: 100px; } /* Active Since */
+  th:nth-child(12), td:nth-child(12) { width: 60px; min-width: 80px; max-width: 80px; } /* Slash Points */
 
   /* Remove any old column width controls if they exist */
   td { width: auto; }
@@ -1848,9 +1856,7 @@
   .chain-col {
     padding: 2px !important;
     text-align: center !important;
-    width: 24px !important;
-    min-width: 24px !important;
-    max-width: 24px !important;
+    width: 20px !important;
   }
 
   .chain-title {
