@@ -1419,7 +1419,7 @@
     color: #888;
     font-weight: 500;
     padding: 8px 8px;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid #3a3a3c;
     font-size: 0.8125rem;
     letter-spacing: 0.3px;
@@ -2260,6 +2260,7 @@
     user-select: none;
     position: relative;
     padding-right: 20px !important;
+    text-align: center !important;
   }
 
   .sortable:hover {
