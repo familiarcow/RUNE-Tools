@@ -713,6 +713,14 @@
         <span class="active-count">{filteredActiveNodes.length}</span>
         <span class="active-label">Active</span>
       </div>
+      <div class="eligible-nodes-display" title="Number of Eligible Nodes">
+        <span class="eligible-count">{eligibleStandbyNodes}</span>
+        <span class="eligible-label">Eligible</span>
+      </div>
+      <div class="total-bond-display" title="Total Bond of Active Nodes">
+        <span class="bond-amount">{formatNumber((activeNodes.reduce((sum, node) => sum + Number(node.total_bond), 0) / 1e8).toFixed(0))}</span>
+        <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+      </div>
       <button class="pause-button" on:click={togglePause} title={isPaused ? "Resume Updates" : "Pause Updates"}>
         {#if isPaused}
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -881,18 +889,18 @@
                     <span class="leave-emoji" title="Node is forced to leave">🧳</span>
                   {/if}
                   {#key node}
-                    {#if true}
-                      {@const status = getLeaveStatus(node, nodes)}
-                      {#if status?.type === 'oldest'}
-                        <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
-                      {/if}
-                      {#if status?.type === 'worst'}
-                        <span class="leave-emoji" title="Highest slash points">😾</span>
-                      {/if}
-                      {#if status?.type === 'lowest'}
-                        <span class="leave-emoji" title="Lowest total bond">💸</span>
-                      {/if}
+                  {#if true}
+                    {@const status = getLeaveStatus(node, nodes)}
+                    {#if status?.type === 'oldest'}
+                      <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
                     {/if}
+                    {#if status?.type === 'worst'}
+                      <span class="leave-emoji" title="Highest slash points">😾</span>
+                    {/if}
+                    {#if status?.type === 'lowest'}
+                      <span class="leave-emoji" title="Lowest total bond">💸</span>
+                    {/if}
+                  {/if}
                   {/key}
                   {#if node.jail && node.jail.release_height > currentBlockHeight}
                     <span class="leave-emoji" title={`Jailed: ${node.jail.reason}`}>👮</span>
@@ -1229,7 +1237,7 @@
       </div>
       <div class="churn-info">
         <span class="churn-label">Minimum Bond:</span>
-        <span class="churn-value">{formatNumber(minimumBondInRune)} RUNE</span>
+        <span class="churn-value">{Math.floor(minimumBondInRune)} RUNE</span>
       </div>
     </div>
   {/if}
@@ -1334,18 +1342,18 @@
                     <span class="leave-emoji" title="Node is forced to leave">🧳</span>
                   {/if}
                   {#key node}
-                    {#if true}
-                      {@const status = getLeaveStatus(node, nodes)}
-                      {#if status?.type === 'oldest'}
-                        <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
-                      {/if}
-                      {#if status?.type === 'worst'}
-                        <span class="leave-emoji" title="Highest slash points">😾</span>
-                      {/if}
-                      {#if status?.type === 'lowest'}
-                        <span class="leave-emoji" title="Lowest total bond">💸</span>
-                      {/if}
+                  {#if true}
+                    {@const status = getLeaveStatus(node, nodes)}
+                    {#if status?.type === 'oldest'}
+                      <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
                     {/if}
+                    {#if status?.type === 'worst'}
+                      <span class="leave-emoji" title="Highest slash points">😾</span>
+                    {/if}
+                    {#if status?.type === 'lowest'}
+                      <span class="leave-emoji" title="Lowest total bond">💸</span>
+                    {/if}
+                  {/if}
                   {/key}
                   {#if node.jail && node.jail.release_height > currentBlockHeight}
                     <span class="leave-emoji" title={`Jailed: ${node.jail.reason}`}>👮</span>
@@ -2998,15 +3006,6 @@
     }
   }
 
-  .eligible-count {
-    color: #2ecc71;
-    font-size: 0.875rem;
-    font-weight: normal;
-  }
-
-  .churn-value.eligible {
-    color: #2ecc71;
-  }
 
   .row-ineligible {
     background-color: rgba(231, 76, 60, 0.1) !important;
@@ -3032,5 +3031,49 @@
 
   .jail-indicator {
     margin-left: auto;
+  }
+
+  /* Add these styles to the existing style section */
+  .eligible-nodes-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #1a1a1a;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #3a3a3c;
+    color: #4A90E2;
+    font-size: 0.875rem;
+  }
+
+  .eligible-count {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
+  }
+
+  .eligible-label {
+    font-weight: 500;
+  }
+
+  .total-bond-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #1a1a1a;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #3a3a3c;
+    color: #4A90E2;
+    font-size: 0.875rem;
+  }
+
+  .bond-amount {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
+  }
+
+  .total-bond-display .rune-icon {
+    width: 14px;
+    height: 14px;
   }
 </style>
