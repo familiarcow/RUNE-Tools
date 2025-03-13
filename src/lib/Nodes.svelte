@@ -654,6 +654,10 @@
         <img src="assets/chains/THOR.svg" alt="THOR" class="chain-header-icon" />
         <span class="block-number">{formatNumber(currentBlockHeight)}</span>
       </div>
+      <div class="active-nodes-display" title="Number of Active Nodes">
+        <span class="active-count">{filteredActiveNodes.length}</span>
+        <span class="active-label">Active</span>
+      </div>
       <button class="pause-button" on:click={togglePause} title={isPaused ? "Resume Updates" : "Pause Updates"}>
         {#if isPaused}
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -667,7 +671,7 @@
       </button>
     </div>
   </div>
-  <h2>Active Nodes ({filteredActiveNodes.length})</h2>
+    <h2>Active Nodes</h2>
   <div class="table-container">
     <table>
       <thead>
@@ -675,7 +679,7 @@
           <th title="Star node to track it">★</th>
           <th title="Current status of the node">Status</th>
           <th 
-            class="sortable" 
+      class="sortable" 
             title="Internet Service Provider"
             on:click={() => handleSort('isp')}
           >
@@ -2815,5 +2819,26 @@
     font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
     font-size: 0.8125rem;
     transition: all 0.2s ease;
+  }
+
+  .active-nodes-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #1a1a1a;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #3a3a3c;
+    color: #4A90E2;
+    font-size: 0.875rem;
+  }
+
+  .active-count {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
+  }
+
+  .active-label {
+    font-weight: 500;
   }
 </style>
