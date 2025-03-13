@@ -1186,7 +1186,7 @@ const ispToImage = {
 
 <style>
   .nodes-container {
-    padding: 16px 32px;
+    padding: 16px 64px;
     max-width: 100%;
     overflow-x: hidden;
     width: 100%;
@@ -1324,18 +1324,21 @@ const ispToImage = {
     background-color: rgba(74, 144, 226, 0.05) !important;
   }
 
-  /* Adjust specific column widths */
-  td:nth-child(1) { width: auto; min-width: 75px; }  /* Status */
-  td:nth-child(2) { width: auto; min-width: 105px; } /* Address */
-  td:nth-child(3) { width: auto; min-width: 95px; }  /* Operator */
-  td:nth-child(4) { width: auto; min-width: 120px; } /* ISP */
-  td:nth-child(5) { width: auto; min-width: 80px; }  /* Country */
-  td:nth-child(6) { width: auto; min-width: 95px; }  /* Total Bond */
-  td:nth-child(7) { width: auto; min-width: 95px; }  /* Current Award */
-  td:nth-child(8) { width: auto; min-width: 70px; }  /* APY */
-  td:nth-child(9) { width: auto; min-width: 65px; }  /* Version */
-  td:nth-child(10) { width: auto; min-width: 95px; } /* Active Since */
-  td:nth-child(11) { width: auto; min-width: 65px; } /* Slash Points */
+  /* Column width controls */
+  th:nth-child(1), td:nth-child(1) { width: 50px; min-width: 50px; max-width: 50px; }  /* Status */
+  th:nth-child(2), td:nth-child(2) { width: auto; min-width: 105px; }  /* Address */
+  th:nth-child(3), td:nth-child(3) { width: auto; min-width: 95px; }   /* Operator */
+  th:nth-child(4), td:nth-child(4) { width: 50px; min-width: 50px; max-width: 50px; }  /* ISP */
+  th:nth-child(5), td:nth-child(5) { width: 50px; min-width: 50px; max-width: 50px; }  /* Country */
+  th:nth-child(6), td:nth-child(6) { width: auto; min-width: 95px; }   /* Total Bond */
+  th:nth-child(7), td:nth-child(7) { width: auto; min-width: 95px; }   /* Current Award */
+  th:nth-child(8), td:nth-child(8) { width: auto; min-width: 70px; }   /* APY */
+  th:nth-child(9), td:nth-child(9) { width: 60px; min-width: 60px; max-width: 60px; }  /* Version */
+  th:nth-child(10), td:nth-child(10) { width: auto; min-width: 95px; } /* Active Since */
+  th:nth-child(11), td:nth-child(11) { width: auto; min-width: 65px; } /* Slash Points */
+
+  /* Remove any old column width controls if they exist */
+  td { width: auto; }
 
   .expanded-row {
     background-color: #262626 !important;
