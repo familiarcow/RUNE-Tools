@@ -563,11 +563,6 @@
 
   // Determine leave status for a node
   const getLeaveStatus = (node, allNodes) => {
-    // Check for jail status first
-    if (node.jail && node.jail.release_height > currentBlockHeight) {
-      return { type: 'jailed', description: `Jailed: ${node.jail.reason} (Release at block ${formatNumber(node.jail.release_height)})` };
-    }
-
     // Check for requested_to_leave first
     if (node.requested_to_leave) {
       return { type: 'leaving', description: 'Node has requested to leave' };
@@ -877,29 +872,32 @@
             </td>
             <td>
               <div class="status-container">
-                {#if node.requested_to_leave}
-                  <span class="status-circle leaving" title="Node is Leaving"></span>
-                {:else if node.forced_to_leave}
-                  <span class="status-circle forced" title="Node is Forced to Leave"></span>
-                {:else}
-                  <span class="status-circle active" title="Active Node"></span>
-                {/if}
-                {#if getLeaveStatus(node, nodes)}
-                  {@const status = getLeaveStatus(node, nodes)}
-                  <div class="leave-status" title={status.description}>
-                    {#if status.type === 'oldest'}
-                      <span class="leave-emoji">🪦</span>
-                    {:else if status.type === 'lowest'}
-                      <span class="leave-emoji">💸</span>
-                    {:else if status.type === 'worst'}
-                      <span class="leave-emoji">😾</span>
-                    {:else if status.type === 'leaving'}
-                      <span class="leave-emoji">🧳</span>
-                    {:else if status.type === 'jailed'}
-                      <span class="leave-emoji">👮</span>
+                <div class="status-indicators">
+                  <span class="status-circle standby" title="Standby Node"></span>
+                  {#if node.requested_to_leave}
+                    <span class="leave-emoji" title="Node has requested to leave">🧳</span>
+                  {/if}
+                  {#if node.forced_to_leave}
+                    <span class="leave-emoji" title="Node is forced to leave">🧳</span>
+                  {/if}
+                  {#key node}
+                    {#if true}
+                      {@const status = getLeaveStatus(node, nodes)}
+                      {#if status?.type === 'oldest'}
+                        <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
+                      {/if}
+                      {#if status?.type === 'worst'}
+                        <span class="leave-emoji" title="Highest slash points">😾</span>
+                      {/if}
+                      {#if status?.type === 'lowest'}
+                        <span class="leave-emoji" title="Lowest total bond">💸</span>
+                      {/if}
                     {/if}
-                  </div>
-                {/if}
+                  {/key}
+                  {#if node.jail && node.jail.release_height > currentBlockHeight}
+                    <span class="leave-emoji" title={`Jailed: ${node.jail.reason}`}>👮</span>
+                  {/if}
+                </div>
               </div>
             </td>
             {#if node.isp}
@@ -1327,10 +1325,32 @@
             </td>
             <td>
               <div class="status-container">
-                <span class="status-circle standby" title="Standby Node"></span>
-                {#if node.jail && node.jail.release_height > currentBlockHeight}
-                  <span class="leave-emoji" title={`Jailed: ${node.jail.reason}`}>👮</span>
-                {/if}
+                <div class="status-indicators">
+                  <span class="status-circle standby" title="Standby Node"></span>
+                  {#if node.requested_to_leave}
+                    <span class="leave-emoji" title="Node has requested to leave">🧳</span>
+                  {/if}
+                  {#if node.forced_to_leave}
+                    <span class="leave-emoji" title="Node is forced to leave">🧳</span>
+                  {/if}
+                  {#key node}
+                    {#if true}
+                      {@const status = getLeaveStatus(node, nodes)}
+                      {#if status?.type === 'oldest'}
+                        <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
+                      {/if}
+                      {#if status?.type === 'worst'}
+                        <span class="leave-emoji" title="Highest slash points">😾</span>
+                      {/if}
+                      {#if status?.type === 'lowest'}
+                        <span class="leave-emoji" title="Lowest total bond">💸</span>
+                      {/if}
+                    {/if}
+                  {/key}
+                  {#if node.jail && node.jail.release_height > currentBlockHeight}
+                    <span class="leave-emoji" title={`Jailed: ${node.jail.reason}`}>👮</span>
+                  {/if}
+                </div>
               </div>
             </td>
             {#if node.isp}
@@ -2994,5 +3014,23 @@
 
   .row-ineligible:hover {
     background-color: rgba(231, 76, 60, 0.15) !important;
+  }
+
+  .status-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 60px;
+  }
+
+  .status-indicators {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .jail-indicator {
+    margin-left: auto;
   }
 </style>
