@@ -3145,4 +3145,40 @@
     width: 14px;
     height: 14px;
   }
+
+  /* Add mobile styles for controls-right */
+  @media (max-width: 768px) {
+    .header-controls {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+
+    .controls-right {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .block-height-display,
+    .active-nodes-display,
+    .eligible-nodes-display,
+    .total-bond-display {
+      flex: 1 1 calc(50% - 4px);
+      min-width: 140px;
+      font-size: 0.75rem;
+    }
+
+    .pause-button {
+      margin-left: auto;
+    }
+
+    .block-number,
+    .active-count,
+    .eligible-count,
+    .bond-amount {
+      font-size: 0.75rem;
+    }
+  }
 </style>
