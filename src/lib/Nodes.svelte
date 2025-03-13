@@ -565,6 +565,16 @@
 
     return null;
   };
+
+  // Add copyToClipboard function
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // Could add a toast notification here in the future
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
 </script>
 
 <div class="nodes-container">
@@ -916,16 +926,32 @@
                         <tbody>
                           {#each (node.bond_providers?.providers || []) as provider}
                             <tr>
-                              <td class="address">
-                                {provider.bond_address}
+                              <td class="address-cell">
+                                <div class="address-container">
+                                  <div class="address-text-container">
+                                    {provider.bond_address.slice(-4)}
+                                  </div>
+                                  <button 
+                                    class="copy-btn" 
+                                    title="Copy full address"
+                                    on:click={() => copyToClipboard(provider.bond_address)}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                  </button>
+                                </div>
                               </td>
-                              <td>
+                              <td class="bond-amount-cell">
                                 <span class="rune-amount">
                                   {formatRune(provider.bond)}
                                   <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
                                 </span>
                               </td>
-                              <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
+                              <td class="share-cell">
+                                {((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%
+                              </td>
                               <td class="actions-cell">
                                 <div class="action-buttons">
                                   <a href="http://rune.tools/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
@@ -1228,13 +1254,39 @@
                             <th>Provider Address</th>
                             <th>Bond Amount</th>
                             <th>Share</th>
+                            <th>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {#each (node.bond_providers?.providers || []) as provider}
                             <tr>
-                              <td class="address">
-                                {provider.bond_address}
+                              <td class="address-cell">
+                                <div class="address-container">
+                                  <div class="address-text-container">
+                                    {provider.bond_address.slice(-4)}
+                                  </div>
+                                  <button 
+                                    class="copy-btn" 
+                                    title="Copy full address"
+                                    on:click={() => copyToClipboard(provider.bond_address)}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                  </button>
+                                </div>
+                              </td>
+                              <td class="bond-amount-cell">
+                                <span class="rune-amount">
+                                  {formatRune(provider.bond)}
+                                  <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                                </span>
+                              </td>
+                              <td class="share-cell">
+                                {((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%
+                              </td>
+                              <td class="actions-cell">
                                 <div class="action-buttons">
                                   <a href="http://rune.tools/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
                                     target="_blank" 
@@ -1244,7 +1296,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                       <path d="M12 2v20M2 12h20"/>
                                     </svg>
-                                    Track Rewards
+                                    Track
                                   </a>
                                   <a href="https://viewblock.io/thorchain/address/{provider.bond_address}" 
                                     target="_blank" 
@@ -1259,13 +1311,6 @@
                                   </a>
                                 </div>
                               </td>
-                              <td>
-                                <span class="rune-amount">
-                                  {formatRune(provider.bond)}
-                                  <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-                                </span>
-                              </td>
-                              <td>{((Number(provider.bond) / Number(node.total_bond)) * 100).toFixed(2)}%</td>
                             </tr>
                           {/each}
                         </tbody>
@@ -1619,7 +1664,14 @@
     width: 100%;
     margin: 0;
     background-color: transparent;
-    table-layout: auto; /* Change to auto to allow content-based sizing */
+    table-layout: fixed; /* Change to fixed for strict column widths */
+  }
+
+  .bond-table th,
+  .bond-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #2c2c2c;
+    vertical-align: middle;
   }
 
   .bond-table th {
@@ -1629,108 +1681,140 @@
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 12px 16px;
     border-bottom: 1px solid #333;
     text-align: left;
   }
 
-  .bond-table td {
-    padding: 12px 16px;
-    border-bottom: 1px solid #2c2c2c;
-    vertical-align: middle;
+  /* Update bond table column styles */
+  .bond-table .address-cell {
+    width: 45%;
+    min-width: 200px;
+  }
+
+  .bond-table .bond-amount-cell {
+    width: 25%;
+    text-align: left;
     white-space: nowrap;
   }
 
-  /* Add specific column styles */
-  .bond-table td.address {
+  .bond-table .share-cell {
+    width: 15%;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .bond-table .actions-cell {
+    width: 15%;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Mobile adjustments for bond table */
+  @media (max-width: 768px) {
+    .bond-table .address-cell {
+      min-width: 120px;
+    }
+    
+    .bond-table td,
+    .bond-table th {
+      padding: 8px;
+    }
+    
+    .bond-table .actions-cell {
+      width: 20%;
+    }
+  }
+
+  .address-cell {
+    width: 50%;
+  }
+
+  .bond-amount-cell {
+    width: 30%;
+    white-space: nowrap;
+  }
+
+  .share-cell {
+    width: 20%;
+    text-align: center;
+  }
+
+  .actions-cell {
+    width: 25%;
+    white-space: nowrap;
+  }
+
+  .address-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .address-text-container {
     font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
     font-size: 0.8125rem;
-    min-width: 500px; /* Much wider for address */
-  }
-
-  .bond-table td:nth-child(2) { /* Bond Amount */
-    min-width: 150px;
-  }
-
-  .bond-table td:nth-child(3) { /* Share */
-    text-align: right;
-    min-width: 100px;
-  }
-
-  .bond-table td:nth-child(4) { /* Actions */
-    min-width: 150px;
-  }
-
-  /* Add hover effect to show full address */
-  .bond-table td.address:hover {
-    overflow: visible;
-    position: relative;
-    background-color: #262626;
-    z-index: 1;
-  }
-
-  .bond-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .bond-table tr:hover {
-    background-color: rgba(74, 144, 226, 0.05);
-  }
-
-  .signer-pill {
-    background-color: #303030;
-    color: #4A90E2;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-    border: 1px solid rgba(74, 144, 226, 0.2);
-  }
-
-  .block-number {
+    word-break: break-all;
     color: #4A90E2;
   }
 
-  .summary-item .address {
-    color: #4A90E2;
-  }
-
-  .expand-btn {
+  .copy-btn {
     background: none;
     border: none;
     color: #4A90E2;
     cursor: pointer;
-    padding: 0 4px;
-    font-size: 10px;
-    opacity: 0.8;
+    padding: 4px;
+    opacity: 0.7;
     transition: opacity 0.2s;
-  }
-
-  .expand-btn:hover {
-    opacity: 1;
-  }
-
-  .star-btn {
-    background: none;
-    border: none;
-    color: #ffd700;
-    cursor: pointer;
-    padding: 0;
-    margin: 0;
-    font-size: 14px;
-    transition: transform 0.15s;
-    width: 24px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .star-btn:hover {
-    transform: scale(1.15);
+  .copy-btn:hover {
+    opacity: 1;
   }
 
-  tr:has(.star-btn:has(★)) {
-    background-color: rgba(255, 215, 0, 0.03);
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .track-rewards-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid #4A90E2;
+    border-radius: 4px;
+    color: #4A90E2;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    background: rgba(74, 144, 226, 0.1);
+  }
+
+  .track-rewards-btn:hover {
+    background: rgba(74, 144, 226, 0.2);
+    border-color: #5a9ee8;
+  }
+
+  .viewblock-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: #666;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .viewblock-btn:hover {
+    color: #4A90E2;
+    background: rgba(74, 144, 226, 0.1);
   }
 
   .outlink {
@@ -2320,5 +2404,159 @@
   .viewblock-btn:hover {
     color: #4A90E2;
     background: rgba(74, 144, 226, 0.1);
+  }
+
+  /* Restore star button styles */
+  .star-btn {
+    background: none;
+    border: none;
+    color: #ffd700;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    transition: transform 0.15s;
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .star-btn:hover {
+    transform: scale(1.15);
+  }
+
+  tr:has(.star-btn:has(★)) {
+    background-color: rgba(255, 215, 0, 0.03);
+  }
+
+  /* Restore expand button styles */
+  .expand-btn {
+    background: none;
+    border: none;
+    color: #4A90E2;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 10px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+
+  .expand-btn:hover {
+    opacity: 1;
+  }
+
+  /* Bond table styles */
+  .bond-table {
+    width: 100%;
+    margin: 0;
+    background-color: transparent;
+    table-layout: fixed;
+  }
+
+  .bond-table th {
+    background-color: #303030;
+    color: #999;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #333;
+    text-align: left;
+  }
+
+  .bond-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #2c2c2c;
+    vertical-align: middle;
+  }
+
+  .bond-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .bond-table tr:hover {
+    background-color: rgba(74, 144, 226, 0.05);
+  }
+
+  .address-cell {
+    min-width: 120px;
+    max-width: 200px;
+    width: 25%;
+  }
+
+  .bond-amount-cell {
+    width: 30%;
+    white-space: nowrap;
+  }
+
+  .share-cell {
+    width: 20%;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .actions-cell {
+    width: 25%;
+    white-space: nowrap;
+  }
+
+  .address-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .address-text-container {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
+    color: #4A90E2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .copy-btn {
+    background: none;
+    border: none;
+    color: #4A90E2;
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .copy-btn:hover {
+    opacity: 1;
+  }
+
+  /* Mobile styles */
+  @media (max-width: 768px) {
+    .bond-table {
+      font-size: 0.8125rem;
+    }
+
+    .bond-table td,
+    .bond-table th {
+      padding: 8px;
+    }
+
+    .address-text-container {
+      font-size: 0.75rem;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .address-cell {
+      min-width: 100px;
+    }
   }
 </style>
