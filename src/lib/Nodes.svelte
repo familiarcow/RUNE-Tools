@@ -13,6 +13,7 @@
   let lastChurnHeight = 0;
   let currentBlockHeight = 0;
   let isPaused = false;
+  let isLoading = false; // Add loading state
   let refreshInterval;
   let searchQuery = '';
   let ipInfoMap = new Map(); // Store IP info for reuse
@@ -382,7 +383,15 @@ const ispToImage = {
   const fetchNodes = async () => {
     if (isPaused) return;
     
+    // If still loading from previous fetch, pause and log
+    if (isLoading) {
+      console.log('Previous fetch not completed - auto-pausing refresh');
+      isPaused = true;
+      return;
+    }
+    
     try {
+      isLoading = true;
       const [nodesResponse, churnsResponse] = await Promise.all([
         fetch('https://thornode.thorchain.liquify.com/thorchain/nodes'),
         fetch('https://midgard.ninerealms.com/v2/churns')
@@ -465,12 +474,14 @@ const ispToImage = {
 
     } catch (error) {
       console.error('Error fetching nodes:', error);
+    } finally {
+      isLoading = false;
     }
   };
 
   const togglePause = () => {
     isPaused = !isPaused;
-    if (!isPaused) {
+    if (!isPaused && !isLoading) { // Only unpause if not currently loading
       // Immediately fetch when unpausing
       fetchNodes();
       // Reset the interval
