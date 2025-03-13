@@ -13,7 +13,8 @@
   let lastChurnHeight = 0;
   let currentBlockHeight = 0;
   let isPaused = false;
-  let isLoading = false; // Add loading state
+  let isLoading = false;
+  let isLoadingIpInfo = false; // Add separate loading state for IP info
   let refreshInterval;
   let searchQuery = '';
   let ipInfoMap = new Map(); // Store IP info for reuse
@@ -109,6 +110,8 @@
 
   // Fetch IP information for nodes in batches of 100 - only called once
   const fetchIpInfo = async (nodes) => {
+    if (isLoadingIpInfo) return; // Prevent multiple concurrent fetches
+    
     const batchSize = 100;
     const batches = [];
     
@@ -119,16 +122,14 @@
     
     if (newIps.length === 0) return;
     
+    isLoadingIpInfo = true;
+    
     // Split nodes into batches of 100
     for (let i = 0; i < newIps.length; i += batchSize) {
       const batch = newIps.slice(i, i + batchSize)
         .map(ip => ({ query: ip }));
       batches.push(batch);
     }
-
-    // Track unique ISPs and countries
-    const uniqueIsps = new Set();
-    const uniqueCountries = new Set();
 
     // Process each batch
     for (const batch of batches) {
@@ -148,34 +149,51 @@
 
         const data = await response.json();
         
-        // Store results in the map
+        // Store results in the map and update nodes immediately
         data.forEach((result, index) => {
           if (result.status === 'success') {
             const ip = batch[index].query;
-            ipInfoMap.set(ip, {
+            const ipInfo = {
               isp: result.isp,
               countryCode: result.countryCode
+            };
+            ipInfoMap.set(ip, ipInfo);
+            
+            // Update any nodes with this IP immediately
+            nodes = nodes.map(node => {
+              if (node.ip_address === ip) {
+                return { ...node, ...ipInfo };
+              }
+              return node;
             });
-            uniqueIsps.add(result.isp);
-            uniqueCountries.add(result.countryCode);
+            
+            // Update active and standby nodes immediately
+            activeNodes = activeNodes.map(node => {
+              if (node.ip_address === ip) {
+                return { ...node, ...ipInfo };
+              }
+              return node;
+            });
+            
+            standbyNodes = standbyNodes.map(node => {
+              if (node.ip_address === ip) {
+                return { ...node, ...ipInfo };
+              }
+              return node;
+            });
           }
         });
+        
+        // Force UI updates
+        nodes = [...nodes];
+        activeNodes = [...activeNodes];
+        standbyNodes = [...standbyNodes];
       } catch (error) {
         console.error('Error fetching IP info:', error);
       }
     }
 
-    // Log unique ISPs and countries
-    console.log('Unique ISPs:', [...uniqueIsps].sort());
-    console.log('Unique Country Codes:', [...uniqueCountries].sort());
-
-    // Log ISP mapping template
-    console.log(`
-// ISP to image mapping template:
-const ispToImage = {
-  ${[...uniqueIsps].sort().map(isp => `'${isp}': 'assets/isps/${isp.toLowerCase().replace(/[^a-z0-9]/g, '-')}.svg'`).join(',\n  ')}
-};
-    `);
+    isLoadingIpInfo = false;
   };
 
   // Toggle star status for a node
@@ -379,16 +397,9 @@ const ispToImage = {
   $: filteredActiveNodes = filterNodes(activeNodes, searchQuery);
   $: filteredStandbyNodes = filterNodes(standbyNodes, searchQuery);
 
-  // Update fetchNodes to use the stored IP info
+  // Update fetchNodes to handle IP info separately
   const fetchNodes = async () => {
     if (isPaused) return;
-    
-    // If still loading from previous fetch, pause and log
-    if (isLoading) {
-      console.log('Previous fetch not completed - auto-pausing refresh');
-      isPaused = true;
-      return;
-    }
     
     try {
       isLoading = true;
@@ -405,7 +416,7 @@ const ispToImage = {
       nodes = nodesData;
       lastChurnHeight = Number(churnsData[0].date) / 1e9;
 
-      // Apply stored IP info to nodes
+      // Apply any stored IP info immediately
       nodes.forEach(node => {
         const ipInfo = ipInfoMap.get(node.ip_address);
         if (ipInfo) {
@@ -428,53 +439,10 @@ const ispToImage = {
         activeNodes = activeNodesList;
         standbyNodes = standbyNodesList;
       }
-
-      // Update filtered nodes
-      filteredActiveNodes = filterNodes(activeNodes, searchQuery);
-      filteredStandbyNodes = filterNodes(standbyNodes, searchQuery);
-
-      // Mark updated nodes with ALL changed fields
-      filteredActiveNodes.forEach(node => {
-        const oldNode = activeNodes.find(n => n.node_address === node.node_address);
-        if (oldNode) {
-          node.hasUpdates = {};
-          // Track all numeric and status changes
-          if (oldNode.total_bond !== node.total_bond) node.hasUpdates.bond = true;
-          if (oldNode.current_award !== node.current_award) node.hasUpdates.award = true;
-          if (oldNode.slash_points !== node.slash_points) node.hasUpdates.slash = true;
-          if (oldNode.version !== node.version) node.hasUpdates.version = true;
-          if (oldNode.status !== node.status) node.hasUpdates.status = true;
-          if (oldNode.active_block_height !== node.active_block_height) node.hasUpdates.active_since = true;
-          
-          // Track chain height changes
-          node.hasUpdates.chains = {};
-          (node.observe_chains || []).forEach(chain => {
-            const oldChain = (oldNode.observe_chains || []).find(c => c.chain === chain.chain);
-            if (!oldChain || oldChain.height !== chain.height) {
-              node.hasUpdates.chains[chain.chain] = true;
-            }
-          });
-
-          // Track APY changes
-          const oldAPY = calculateAPY(oldNode);
-          const newAPY = calculateAPY(node);
-          if (oldAPY !== newAPY) node.hasUpdates.apy = true;
-        }
-      });
-
-      // Clear updates after a delay
-      const clearUpdates = () => {
-        filteredActiveNodes = filteredActiveNodes.map(node => ({
-          ...node,
-          hasUpdates: undefined
-        }));
-      };
-
-      setTimeout(clearUpdates, 1000);
-
+      
+      isLoading = false;
     } catch (error) {
       console.error('Error fetching nodes:', error);
-    } finally {
       isLoading = false;
     }
   };
@@ -492,8 +460,13 @@ const ispToImage = {
 
   onMount(() => {
     loadStarredNodes();
-    // First fetch nodes and then get IP info
-    fetchNodes().then(() => fetchIpInfo(nodes));
+    // First fetch nodes and then get IP info only once
+    fetchNodes().then(() => {
+      // Only fetch IP info if we haven't already
+      if (ipInfoMap.size === 0) {
+        fetchIpInfo(nodes);
+      }
+    });
     // Refresh data every 6 seconds (without IP info)
     refreshInterval = setInterval(fetchNodes, 6000);
     return () => clearInterval(refreshInterval);
@@ -756,6 +729,7 @@ const ispToImage = {
                       alt={node.isp}
                       class="isp-logo"
                       title={node.isp}
+                      loading="lazy"
                     />
                   {:else}
                     {node.isp}
@@ -764,7 +738,9 @@ const ispToImage = {
               </td>
             {:else}
               <td>
-                <span class="loading">Loading...</span>
+                <span class="loading">
+                  {#if isLoadingIpInfo}Loading...{:else}Unknown{/if}
+                </span>
               </td>
             {/if}
             {#if node.countryCode}
@@ -775,7 +751,9 @@ const ispToImage = {
               </td>
             {:else}
               <td>
-                <span class="loading">Loading...</span>
+                <span class="loading">
+                  {#if isLoadingIpInfo}Loading...{:else}Unknown{/if}
+                </span>
               </td>
             {/if}
             <td class:cell-update={node.hasUpdates?.bond}>
@@ -1045,6 +1023,7 @@ const ispToImage = {
                       alt={node.isp}
                       class="isp-logo"
                       title={node.isp}
+                      loading="lazy"
                     />
                   {:else}
                     {node.isp}
@@ -1053,7 +1032,9 @@ const ispToImage = {
               </td>
             {:else}
               <td>
-                <span class="loading">Loading...</span>
+                <span class="loading">
+                  {#if isLoadingIpInfo}Loading...{:else}Unknown{/if}
+                </span>
               </td>
             {/if}
             {#if node.countryCode}
@@ -1064,7 +1045,9 @@ const ispToImage = {
               </td>
             {:else}
               <td>
-                <span class="loading">Loading...</span>
+                <span class="loading">
+                  {#if isLoadingIpInfo}Loading...{:else}Unknown{/if}
+                </span>
               </td>
             {/if}
             <td>
