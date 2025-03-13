@@ -1108,6 +1108,13 @@
                               <line x1="10" y1="14" x2="21" y2="3"></line>
                             </svg>
                           </a>
+                          <a href="/voting?key={node.node_address}" class="voting-link" title="View Node Voting">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M12 20V10" />
+                              <path d="M18 20V4" />
+                              <path d="M6 20v-4" />
+                            </svg>
+                          </a>
                         </span>
                       </div>
                       <div class="summary-item">
@@ -1515,6 +1522,13 @@
                               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                               <polyline points="15 3 21 3 21 9"></polyline>
                               <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                          </a>
+                          <a href="/voting?key={node.node_address}" class="voting-link" title="View Node Voting">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M12 20V10" />
+                              <path d="M18 20V4" />
+                              <path d="M6 20v-4" />
                             </svg>
                           </a>
                         </span>
@@ -3105,6 +3119,28 @@
   }
 
   .total-bond-display .rune-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Add these styles to the existing style section */
+  .voting-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #4A90E2;
+    padding: 2px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    margin-left: 4px;
+  }
+
+  .voting-link:hover {
+    background-color: rgba(74, 144, 226, 0.1);
+    color: #5a9ee8;
+  }
+
+  .voting-link svg {
     width: 14px;
     height: 14px;
   }
