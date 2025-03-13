@@ -392,7 +392,7 @@
           comparison = a.version.localeCompare(b.version, undefined, { numeric: true });
           break;
         case 'active_since':
-          comparison = Number(b.active_block_height) - Number(a.active_block_height);
+          comparison = Number(a.active_block_height) - Number(b.active_block_height);
           break;
         case 'slash':
           comparison = Number(b.slash_points) - Number(a.slash_points);
@@ -741,10 +741,10 @@
           </th>
           <th 
             class="sortable" 
-            title="Block height when node became active"
+            title="Age of the node in days"
             on:click={() => handleSort('active_since')}
           >
-            Active Since
+            Age
             {#if sortField === 'active_since'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
@@ -911,7 +911,7 @@
               {/if}
             </td>
             <td>{node.version}</td>
-            <td>{formatNumber(node.active_block_height)}</td>
+            <td>{((currentBlockHeight - node.active_block_height) / 14400).toFixed(1)}</td>
             <td class:cell-update={node.hasUpdates?.slash}>
               <span class="value-transition" class:value-update={node.hasUpdates?.slash}>
                 {node.slash_points}
@@ -1679,7 +1679,7 @@
   th:nth-child(8), td:nth-child(8) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }  /* Current Award */
   th:nth-child(9), td:nth-child(9) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* APY */
   th:nth-child(10), td:nth-child(10) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Version */
-  th:nth-child(11), td:nth-child(11) { width: 90px !important; min-width: 90px !important; max-width: 90px !important; }  /* Active Since */
+  th:nth-child(11), td:nth-child(11) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Active Since */
   th:nth-child(12), td:nth-child(12) { width: 70px !important; min-width: 70px !important; max-width: 70px !important; }  /* Slash Points */
   th:nth-child(13), td:nth-child(13) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Vault */
 
