@@ -25,6 +25,12 @@
   let nodesLeavingCount = 0;
   let baseUrl = window.location.origin;
 
+  // Add new state variables for churn countdown
+  let nextChurnTime = 0;
+  let countdown = "";
+  let churnInterval = 0;
+  let recentChurnTimestamp = 0;
+
   // Country code to emoji mapping
   const countryToEmoji = {
     'AT': '🇦🇹',
@@ -511,6 +517,8 @@
 
       nodes = nodesData;
       lastChurnHeight = Number(churnsData[0].date) / 1e9;
+      recentChurnTimestamp = lastChurnHeight;
+      updateNextChurnTime();
 
       // Apply any stored IP info immediately
       nodes.forEach(node => {
@@ -564,18 +572,22 @@
     }
   };
 
-  onMount(() => {
-    loadStarredNodes();
-    // First fetch nodes and then get IP info only once
-    fetchNodes().then(() => {
-      // Only fetch IP info if we haven't already
-      if (ipInfoMap.size === 0) {
-        fetchIpInfo(nodes);
-      }
-    });
-    // Refresh data every 6 seconds (without IP info)
+  onMount(async () => {
+    // Load IP info from JSON file
+    ipInfoMap = new Map(Object.entries(ipInfoData));
+
+    // Start fetching data
+    await fetchNodes();
     refreshInterval = setInterval(fetchNodes, 6000);
-    return () => clearInterval(refreshInterval);
+
+    // Add interval to update countdown every minute
+    const countdownInterval = setInterval(updateCountdown, 60000);
+
+    // Cleanup function
+    return () => {
+      clearInterval(refreshInterval);
+      clearInterval(countdownInterval);
+    };
   });
 
   // Determine leave status for a node
@@ -658,9 +670,10 @@
   // Add function to fetch mimir values
   const fetchMimirValues = async () => {
     try {
-      const [newNodesResponse, minBondResponse] = await Promise.all([
+      const [newNodesResponse, minBondResponse, churnIntervalResponse] = await Promise.all([
         fetch('https://thornode.thorchain.liquify.com/thorchain/mimir/key/NUMBEROFNEWNODESPERCHURN'),
-        fetch('https://thornode.thorchain.liquify.com/thorchain/mimir/key/MinimumBondInRune')
+        fetch('https://thornode.thorchain.liquify.com/thorchain/mimir/key/MinimumBondInRune'),
+        fetch('https://thornode.thorchain.liquify.com/thorchain/mimir/key/CHURNINTERVAL')
       ]);
       
       if (newNodesResponse.ok) {
@@ -672,8 +685,35 @@
         const minBondValue = await minBondResponse.text();
         minimumBondInRune = Number(minBondValue) / 1e8;
       }
+
+      if (churnIntervalResponse.ok) {
+        const churnIntervalValue = await churnIntervalResponse.text();
+        churnInterval = Number(churnIntervalValue);
+        updateNextChurnTime();
+      }
     } catch (error) {
       console.error('Error fetching mimir values:', error);
+    }
+  };
+
+  const updateNextChurnTime = () => {
+    if (churnInterval && recentChurnTimestamp) {
+      const churnIntervalSeconds = churnInterval * 6;
+      nextChurnTime = recentChurnTimestamp + churnIntervalSeconds;
+      updateCountdown();
+    }
+  };
+
+  const updateCountdown = () => {
+    const now = Date.now() / 1000;
+    const secondsLeft = nextChurnTime - now;
+    if (secondsLeft <= 0) {
+      countdown = "Churning...";
+    } else {
+      const days = Math.floor(secondsLeft / (3600 * 24));
+      const hours = Math.floor((secondsLeft % (3600 * 24)) / 3600);
+      const minutes = Math.floor((secondsLeft % 3600) / 60);
+      countdown = `${days > 0 ? days + "d " : ""}${hours}h ${minutes}m`;
     }
   };
 
@@ -725,6 +765,13 @@
       <div class="block-height-display" title="Current THORChain block height">
         <img src="assets/chains/THOR.svg" alt="THOR" class="chain-header-icon" />
         <span class="block-number">{formatNumber(currentBlockHeight)}</span>
+      </div>
+      <div class="churn-countdown-display" title="Time until next churn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span class="countdown">{countdown}</span>
       </div>
       <div class="active-nodes-display" title="Number of Active Nodes">
         <span class="active-count">{filteredActiveNodes.length}</span>
@@ -3162,6 +3209,7 @@
     }
 
     .block-height-display,
+    .churn-countdown-display,
     .active-nodes-display,
     .eligible-nodes-display,
     .total-bond-display {
@@ -3175,10 +3223,31 @@
     }
 
     .block-number,
+    .countdown,
     .active-count,
     .eligible-count,
     .bond-amount {
       font-size: 0.75rem;
     }
+  }
+
+  .churn-countdown-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #1a1a1a;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #3a3a3c;
+    color: #4A90E2;
+    font-size: 0.875rem;
+  }
+
+  .churn-countdown-display svg {
+    color: #4A90E2;
+  }
+
+  .churn-countdown-display .countdown {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   }
 </style>
