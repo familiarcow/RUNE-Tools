@@ -448,7 +448,19 @@
   $: filteredActiveNodes = filterNodes(activeNodes, searchQuery);
   $: filteredStandbyNodes = filterNodes(standbyNodes, searchQuery);
 
-  // Update fetchNodes to handle IP info separately
+  // Add function to fetch latest block height
+  const fetchLatestBlock = async () => {
+    try {
+      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/lastblock');
+      const data = await response.json();
+      const thorchainBlock = data.find(item => item.chain === 'AVAX')?.thorchain || 0;
+      currentBlockHeight = thorchainBlock;
+    } catch (error) {
+      console.error('Error fetching latest block:', error);
+    }
+  };
+
+  // Update fetchNodes to include block height fetch
   const fetchNodes = async () => {
     if (isPaused) return;
     
@@ -456,7 +468,8 @@
       isLoading = true;
       const [nodesResponse, churnsResponse] = await Promise.all([
         fetch('https://thornode.thorchain.liquify.com/thorchain/nodes'),
-        fetch('https://midgard.ninerealms.com/v2/churns')
+        fetch('https://midgard.ninerealms.com/v2/churns'),
+        fetchLatestBlock() // Add block height fetch
       ]);
 
       const [nodesData, churnsData] = await Promise.all([
@@ -596,17 +609,23 @@
         </button>
       {/if}
     </div>
-    <button class="pause-button" on:click={togglePause} title={isPaused ? "Resume Updates" : "Pause Updates"}>
-      {#if isPaused}
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M8 5v14l11-7z"/>
-        </svg>
-      {:else}
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-        </svg>
-      {/if}
-    </button>
+    <div class="controls-right">
+      <div class="block-height-display" title="Current THORChain block height">
+        <img src="assets/chains/THOR.svg" alt="THOR" class="chain-header-icon" />
+        <span class="block-number">{formatNumber(currentBlockHeight)}</span>
+      </div>
+      <button class="pause-button" on:click={togglePause} title={isPaused ? "Resume Updates" : "Pause Updates"}>
+        {#if isPaused}
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        {:else}
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+          </svg>
+        {/if}
+      </button>
+    </div>
   </div>
   <h2>Active Nodes ({filteredActiveNodes.length})</h2>
   <div class="table-container">
@@ -2712,5 +2731,32 @@
 
   .summary-item .inline-value {
     white-space: nowrap;
+  }
+
+  /* Add styles for block height display */
+  .controls-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .block-height-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #1a1a1a;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #3a3a3c;
+    color: #4A90E2;
+    font-size: 0.875rem;
+  }
+
+  .block-height-display svg {
+    color: #4A90E2;
+  }
+
+  .block-height-display .block-number {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   }
 </style>
