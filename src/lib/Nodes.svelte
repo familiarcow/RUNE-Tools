@@ -15,6 +15,7 @@
   let isPaused = false;
   let refreshInterval;
   let searchQuery = '';
+  let ipInfoMap = new Map(); // Store IP info for reuse
 
   // Add sort state
   let sortField = 'total_bond';
@@ -47,6 +48,59 @@
   // Save starred nodes to localStorage
   const saveStarredNodes = () => {
     localStorage.setItem('thorchain-starred-nodes', JSON.stringify([...starredNodes]));
+  };
+
+  // Fetch IP information for nodes in batches of 100 - only called once
+  const fetchIpInfo = async (nodes) => {
+    const batchSize = 100;
+    const batches = [];
+    
+    // Get only IPs we haven't fetched before
+    const newIps = nodes
+      .filter(node => !ipInfoMap.has(node.ip_address))
+      .map(node => node.ip_address);
+    
+    if (newIps.length === 0) return;
+    
+    // Split nodes into batches of 100
+    for (let i = 0; i < newIps.length; i += batchSize) {
+      const batch = newIps.slice(i, i + batchSize)
+        .map(ip => ({ query: ip }));
+      batches.push(batch);
+    }
+
+    // Process each batch
+    for (const batch of batches) {
+      try {
+        const response = await fetch('http://ip-api.com/batch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(batch)
+        });
+
+        if (!response.ok) {
+          console.error('Failed to fetch IP info:', response.statusText);
+          continue;
+        }
+
+        const data = await response.json();
+        
+        // Store results in the map
+        data.forEach((result, index) => {
+          if (result.status === 'success') {
+            const ip = batch[index].query;
+            ipInfoMap.set(ip, {
+              isp: result.isp,
+              countryCode: result.countryCode
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching IP info:', error);
+      }
+    }
   };
 
   // Toggle star status for a node
@@ -177,6 +231,13 @@
         case 'operator':
           comparison = a.node_operator_address.localeCompare(b.node_operator_address);
           break;
+        case 'isp':
+          // First compare by country code, then by ISP
+          comparison = (a.countryCode || '').localeCompare(b.countryCode || '');
+          if (comparison === 0) {
+            comparison = (a.isp || '').localeCompare(b.isp || '');
+          }
+          break;
         case 'apy':
           const aAPY = calculateAPY(a) || 0;
           const bAPY = calculateAPY(b) || 0;
@@ -242,7 +303,7 @@
   $: filteredActiveNodes = filterNodes(activeNodes, searchQuery);
   $: filteredStandbyNodes = filterNodes(standbyNodes, searchQuery);
 
-  // Update fetchNodes to maintain filtered nodes
+  // Update fetchNodes to use the stored IP info
   const fetchNodes = async () => {
     if (isPaused) return;
     
@@ -259,6 +320,15 @@
 
       nodes = nodesData;
       lastChurnHeight = Number(churnsData[0].date) / 1e9;
+
+      // Apply stored IP info to nodes
+      nodes.forEach(node => {
+        const ipInfo = ipInfoMap.get(node.ip_address);
+        if (ipInfo) {
+          node.isp = ipInfo.isp;
+          node.countryCode = ipInfo.countryCode;
+        }
+      });
 
       updateChainInfo(nodes);
       
@@ -336,8 +406,9 @@
 
   onMount(() => {
     loadStarredNodes();
-    fetchNodes();
-    // Refresh data every 6 seconds
+    // First fetch nodes and then get IP info
+    fetchNodes().then(() => fetchIpInfo(nodes));
+    // Refresh data every 6 seconds (without IP info)
     refreshInterval = setInterval(fetchNodes, 6000);
     return () => clearInterval(refreshInterval);
   });
@@ -449,6 +520,16 @@
           >
             Total Bond
             {#if sortField === 'total_bond'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
+            title="Internet Service Provider and Country"
+            on:click={() => handleSort('isp')}
+          >
+            ISP / Country
+            {#if sortField === 'isp'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
@@ -582,6 +663,16 @@
               <span class="rune-amount" class:value-update={node.hasUpdates?.bond}>
                 {formatRune(node.total_bond)}
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+              </span>
+            </td>
+            <td>
+              <span class="isp-info">
+                {#if node.isp && node.countryCode}
+                  <span class="isp">{node.isp}</span>
+                  <span class="country-code">{node.countryCode}</span>
+                {:else}
+                  <span class="loading">Loading...</span>
+                {/if}
               </span>
             </td>
             <td class:cell-update={node.hasUpdates?.award}>
@@ -757,6 +848,16 @@
           </th>
           <th 
             class="sortable" 
+            title="Internet Service Provider and Country"
+            on:click={() => handleSort('isp')}
+          >
+            ISP / Country
+            {#if sortField === 'isp'}
+              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
+          <th 
+            class="sortable" 
             title="THORNode software version"
             on:click={() => handleSort('version')}
           >
@@ -812,6 +913,16 @@
               <span class="rune-amount">
                 {formatRune(node.total_bond)}
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+              </span>
+            </td>
+            <td>
+              <span class="isp-info">
+                {#if node.isp && node.countryCode}
+                  <span class="isp">{node.isp}</span>
+                  <span class="country-code">{node.countryCode}</span>
+                {:else}
+                  <span class="loading">Loading...</span>
+                {/if}
               </span>
             </td>
             <td>{node.version}</td>
@@ -934,6 +1045,32 @@
     max-width: 100%;
     overflow-x: hidden;
     width: 100%;
+  }
+
+  /* Add styles for ISP info */
+  .isp-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.8125rem;
+  }
+
+  .isp {
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+
+  .country-code {
+    color: #4A90E2;
+    font-weight: 500;
+  }
+
+  .loading {
+    color: #666;
+    font-style: italic;
   }
 
   h2 {
