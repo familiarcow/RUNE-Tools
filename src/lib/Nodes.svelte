@@ -871,7 +871,19 @@
                     <div class="bond-summary">
                       <div class="summary-item">
                         <span class="label">IP Address:</span>
-                        <span class="value monospace">{node.ip_address}</span>
+                        <span class="value monospace">
+                          <span class="inline-value">{node.ip_address}</span>
+                          <button 
+                            class="copy-btn" 
+                            title="Copy IP address"
+                            on:click={() => copyToClipboard(node.ip_address)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                          </button>
+                        </span>
                       </div>
                       <div class="summary-item">
                         <span class="label">Total Bond:</span>
@@ -887,13 +899,33 @@
                       <div class="summary-item">
                         <span class="label">Status Since:</span>
                         <span class="value">
-                          <span class="block-number">{formatNumber(node.status_since)}</span>
+                          <span class="inline-value block-number">{formatNumber(node.status_since)}</span>
+                          <button 
+                            class="copy-btn" 
+                            title="Copy status since block height"
+                            on:click={() => copyToClipboard(node.status_since.toString())}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                          </button>
                         </span>
                       </div>
                       <div class="summary-item">
                         <span class="label">Node Operator:</span>
                         <span class="value address">
                           {node.node_operator_address}
+                          <button 
+                            class="copy-btn" 
+                            title="Copy node operator address"
+                            on:click={() => copyToClipboard(node.node_operator_address)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                          </button>
                           <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -1221,13 +1253,33 @@
                       <div class="summary-item">
                         <span class="label">Status Since:</span>
                         <span class="value">
-                          <span class="block-number">{formatNumber(node.status_since)}</span>
+                          <span class="inline-value block-number">{formatNumber(node.status_since)}</span>
+                          <button 
+                            class="copy-btn" 
+                            title="Copy status since block height"
+                            on:click={() => copyToClipboard(node.status_since.toString())}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                          </button>
                         </span>
                       </div>
                       <div class="summary-item">
                         <span class="label">Node Operator:</span>
                         <span class="value address">
                           {node.node_operator_address}
+                          <button 
+                            class="copy-btn" 
+                            title="Copy node operator address"
+                            on:click={() => copyToClipboard(node.node_operator_address)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                          </button>
                           <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -1641,6 +1693,13 @@
   .summary-item .value {
     color: #fff;
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .summary-item .inline-value {
+    white-space: nowrap;
   }
 
   .bond-table-container {
