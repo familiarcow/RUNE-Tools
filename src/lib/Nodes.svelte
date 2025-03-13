@@ -20,6 +20,9 @@
   let searchQuery = '';
   let ipInfoMap = new Map(); // Store IP info for reuse
   let useApiFallback = false; // Flag to control API usage
+  let newNodesPerChurn = 4; // Default value
+  let minimumBondInRune = 3000000; // Default value 300k RUNE
+  let nodesLeavingCount = 0;
 
   // Country code to emoji mapping
   const countryToEmoji = {
@@ -480,7 +483,8 @@
       const [nodesResponse, churnsResponse] = await Promise.all([
         fetch('https://thornode.thorchain.liquify.com/thorchain/nodes'),
         fetch('https://midgard.ninerealms.com/v2/churns'),
-        fetchLatestBlock() // Add block height fetch
+        fetchLatestBlock(),
+        fetchMimirValues()
       ]);
 
       const [nodesData, churnsData] = await Promise.all([
@@ -502,17 +506,27 @@
 
       updateChainInfo(nodes);
       
+      // Calculate nodes that will be churned out
+      const activeNodesList = nodes.filter(node => node.status === 'Active');
+      nodesLeavingCount = calculateNodesLeaving(activeNodesList);
+      
+      // Get standby nodes and mark those likely to join
+      const standbyNodesList = nodes
+        .filter(node => node.status === 'Standby')
+        .sort((a, b) => Number(b.total_bond) - Number(a.total_bond))
+        .map((node, index) => ({
+          ...node,
+          likelyToJoin: isLikelyToJoin(node, index)
+        }));
+
       // First sort by star status and bond
-      const activeNodesList = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Active'));
-      const standbyNodesList = sortNodesByStarAndBond(nodes.filter(node => node.status === 'Standby'));
+      activeNodes = sortNodesByStarAndBond(activeNodesList);
+      standbyNodes = sortNodesByStarAndBond(standbyNodesList);
 
       // Then apply any active sort if not the initial load
       if (sortField !== 'total_bond' || sortDirection !== 'desc') {
-        activeNodes = sortNodes(activeNodesList, sortField, sortDirection);
-        standbyNodes = sortNodes(standbyNodesList, sortField, sortDirection);
-      } else {
-        activeNodes = activeNodesList;
-        standbyNodes = standbyNodesList;
+        activeNodes = sortNodes(activeNodes, sortField, sortDirection);
+        standbyNodes = sortNodes(standbyNodes, sortField, sortDirection);
       }
       
       isLoading = false;
@@ -627,6 +641,50 @@
       nextColorIndex++;
     }
     return vaultColorMap.get(vaultId);
+  };
+
+  // Add function to fetch mimir values
+  const fetchMimirValues = async () => {
+    try {
+      const [newNodesResponse, minBondResponse] = await Promise.all([
+        fetch('https://thornode.thorchain.liquify.com/thorchain/mimir/key/NUMBEROFNEWNODESPERCHURN'),
+        fetch('https://thornode.thorchain.liquify.com/thorchain/mimir/key/MinimumBondInRune')
+      ]);
+      
+      if (newNodesResponse.ok) {
+        const newNodesValue = await newNodesResponse.text();
+        newNodesPerChurn = Number(newNodesValue) || 4;
+      }
+      
+      if (minBondResponse.ok) {
+        const minBondValue = await minBondResponse.text();
+        minimumBondInRune = Number(minBondValue) / 1e8;
+      }
+    } catch (error) {
+      console.error('Error fetching mimir values:', error);
+    }
+  };
+
+  // Function to calculate nodes that will be churned out
+  const calculateNodesLeaving = (nodes) => {
+    return nodes.filter(node => 
+      node.requested_to_leave || 
+      node.forced_to_leave ||
+      getLeaveStatus(node, nodes)?.type === 'oldest' ||
+      getLeaveStatus(node, nodes)?.type === 'worst' ||
+      getLeaveStatus(node, nodes)?.type === 'lowest'
+    ).length;
+  };
+
+  // Function to determine if a standby node is likely to join
+  const isLikelyToJoin = (node, index) => {
+    // Check if bond is above minimum
+    const bondInRune = Number(node.total_bond) / 1e8;
+    if (bondInRune < minimumBondInRune) {
+      return false;
+    }
+    // Check if node is within the available spots
+    return index < (nodesLeavingCount + newNodesPerChurn);
   };
 </script>
 
@@ -1147,6 +1205,26 @@
   </div>
 
   <h2>Standby Nodes ({filteredStandbyNodes.length})</h2>
+  {#if nodesLeavingCount > 0 || newNodesPerChurn > 0}
+    <div class="churn-summary">
+      <div class="churn-info">
+        <span class="churn-label">Nodes Leaving:</span>
+        <span class="churn-value">{nodesLeavingCount}</span>
+      </div>
+      <div class="churn-info">
+        <span class="churn-label">New Nodes Per Churn:</span>
+        <span class="churn-value">{newNodesPerChurn}</span>
+      </div>
+      <div class="churn-info">
+        <span class="churn-label">Total Spots Available:</span>
+        <span class="churn-value">{nodesLeavingCount + newNodesPerChurn}</span>
+      </div>
+      <div class="churn-info">
+        <span class="churn-label">Minimum Bond:</span>
+        <span class="churn-value">{formatNumber(minimumBondInRune)} RUNE</span>
+      </div>
+    </div>
+  {/if}
   <div class="table-container">
     <table>
       <thead>
@@ -1221,6 +1299,7 @@
           <tr class="main-row"
             class:row-starred={starredNodes.has(node.node_address)}
             class:row-jailed={node.jail && node.jail.release_height > currentBlockHeight}
+            class:row-joining={node.likelyToJoin}
           >
             <td>
               <button 
@@ -2840,5 +2919,51 @@
 
   .active-label {
     font-weight: 500;
+  }
+
+  /* Add styles for nodes likely to join */
+  .row-joining {
+    background-color: rgba(46, 204, 113, 0.1) !important;
+  }
+
+  .row-joining:hover {
+    background-color: rgba(46, 204, 113, 0.15) !important;
+  }
+
+  /* Add styles for churn summary */
+  .churn-summary {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    border: 1px solid #3a3a3c;
+  }
+
+  .churn-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .churn-label {
+    color: #888;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .churn-value {
+    color: #4A90E2;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.875rem;
+  }
+
+  /* Mobile adjustments for churn summary */
+  @media (max-width: 768px) {
+    .churn-summary {
+      flex-direction: column;
+      gap: 12px;
+    }
   }
 </style>
