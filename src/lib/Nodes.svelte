@@ -787,7 +787,7 @@
                     {:else if status.type === 'leaving'}
                       <span class="leave-emoji">🧳</span>
                     {:else if status.type === 'jailed'}
-                      <span class="leave-emoji">🔒</span>
+                      <span class="leave-emoji">👮</span>
                     {/if}
                   </div>
                 {/if}
@@ -993,15 +993,16 @@
                           {/each}
                         </span>
                       </div>
-                      {#if node.jail && (node.jail.reason || node.jail.release_height)}
+                      {#if node.jail}
                       <div class="summary-item jail-info">
                         <span class="label">Jail Status:</span>
                         <span class="value">
-                          {#if node.jail.reason}
-                            <span class="jail-reason">{node.jail.reason}</span>
-                          {/if}
-                          {#if node.jail.release_height}
-                            <span class="jail-release">Release at block {formatNumber(node.jail.release_height)}</span>
+                          {#if node.jail.release_height > currentBlockHeight}
+                            <span class="jail-reason">Currently Jailed: {node.jail.reason}</span>
+                            <span class="jail-release">Will be released at block {formatNumber(node.jail.release_height)} ({formatNumber(node.jail.release_height - currentBlockHeight)} blocks remaining)</span>
+                          {:else}
+                            <span class="jail-reason unjailed">Unjailed {formatNumber(currentBlockHeight - node.jail.release_height)} blocks ago</span>
+                            <span class="jail-history">Previous reason: {node.jail.reason}</span>
                           {/if}
                         </span>
                       </div>
@@ -1383,15 +1384,16 @@
                           {/each}
                         </span>
                       </div>
-                      {#if node.jail && (node.jail.reason || node.jail.release_height)}
+                      {#if node.jail}
                       <div class="summary-item jail-info">
                         <span class="label">Jail Status:</span>
                         <span class="value">
-                          {#if node.jail.reason}
-                            <span class="jail-reason">{node.jail.reason}</span>
-                          {/if}
-                          {#if node.jail.release_height}
-                            <span class="jail-release">Release at block {formatNumber(node.jail.release_height)}</span>
+                          {#if node.jail.release_height > currentBlockHeight}
+                            <span class="jail-reason">Currently Jailed: {node.jail.reason}</span>
+                            <span class="jail-release">Will be released at block {formatNumber(node.jail.release_height)} ({formatNumber(node.jail.release_height - currentBlockHeight)} blocks remaining)</span>
+                          {:else}
+                            <span class="jail-reason unjailed">Unjailed {formatNumber(currentBlockHeight - node.jail.release_height)} blocks ago</span>
+                            <span class="jail-history">Previous reason: {node.jail.reason}</span>
                           {/if}
                         </span>
                       </div>
@@ -2774,5 +2776,17 @@
 
   .block-height-display .block-number {
     font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  }
+
+  /* Add these styles to the existing styles section */
+  .jail-history {
+    color: #666;
+    font-size: 0.875rem;
+    margin-left: 12px;
+    font-style: italic;
+  }
+
+  .unjailed {
+    color: #2ecc71;
   }
 </style>
