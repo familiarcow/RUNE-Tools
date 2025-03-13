@@ -538,6 +538,11 @@
 
   // Determine leave status for a node
   const getLeaveStatus = (node, allNodes) => {
+    // Check for jail status first
+    if (node.jail && node.jail.release_height > currentBlockHeight) {
+      return { type: 'jailed', description: `Jailed: ${node.jail.reason} (Release at block ${formatNumber(node.jail.release_height)})` };
+    }
+
     // Check for requested_to_leave first
     if (node.requested_to_leave) {
       return { type: 'leaving', description: 'Node has requested to leave' };
@@ -745,6 +750,7 @@
             class:row-oldest={getLeaveStatus(node, nodes)?.type === 'oldest'}
             class:row-worst={getLeaveStatus(node, nodes)?.type === 'worst'}
             class:row-lowest={getLeaveStatus(node, nodes)?.type === 'lowest'}
+            class:row-jailed={getLeaveStatus(node, nodes)?.type === 'jailed'}
             class:row-starred={starredNodes.has(node.node_address)}
           >
             <td>
@@ -780,6 +786,8 @@
                       <span class="leave-emoji">😾</span>
                     {:else if status.type === 'leaving'}
                       <span class="leave-emoji">🧳</span>
+                    {:else if status.type === 'jailed'}
+                      <span class="leave-emoji">🔒</span>
                     {/if}
                   </div>
                 {/if}
@@ -2482,6 +2490,14 @@
 
   .row-lowest:hover {
     background-color: rgba(241, 196, 15, 0.15) !important;
+  }
+
+  .row-jailed {
+    background-color: rgba(142, 68, 173, 0.1) !important;
+  }
+
+  .row-jailed:hover {
+    background-color: rgba(142, 68, 173, 0.15) !important;
   }
 
   .monospace {
