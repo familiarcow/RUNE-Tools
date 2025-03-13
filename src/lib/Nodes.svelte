@@ -1138,41 +1138,11 @@
           </th>
           <th 
             class="sortable" 
-            title="Current block reward for this node"
-            on:click={() => handleSort('current_award')}
-          >
-            Current Award
-            {#if sortField === 'current_award'}
-              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-            {/if}
-          </th>
-          <th 
-            class="sortable" 
-            title="Estimated Annual Percentage Yield based on current rewards"
-            on:click={() => handleSort('apy')}
-          >
-            APY
-            {#if sortField === 'apy'}
-              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-            {/if}
-          </th>
-          <th 
-            class="sortable" 
             title="THORNode software version"
             on:click={() => handleSort('version')}
           >
             Version
             {#if sortField === 'version'}
-              <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-            {/if}
-          </th>
-          <th 
-            class="sortable" 
-            title="Block height when node became active"
-            on:click={() => handleSort('active_since')}
-          >
-            Active Since
-            {#if sortField === 'active_since'}
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
@@ -1192,6 +1162,7 @@
         {#each filteredStandbyNodes as node}
           <tr class="main-row"
             class:row-starred={starredNodes.has(node.node_address)}
+            class:row-jailed={node.jail && node.jail.release_height > currentBlockHeight}
           >
             <td>
               <button 
@@ -1209,6 +1180,9 @@
             <td>
               <div class="status-container">
                 <span class="status-circle standby" title="Standby Node"></span>
+                {#if node.jail && node.jail.release_height > currentBlockHeight}
+                  <span class="leave-emoji" title={`Jailed: ${node.jail.reason}`}>👮</span>
+                {/if}
               </div>
             </td>
             {#if node.isp}
@@ -1274,23 +1248,7 @@
                 <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
               </span>
             </td>
-            <td>
-              <span class="rune-amount">
-                {formatRune(node.current_award || 0)}
-                <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-              </span>
-            </td>
-            <td>
-              {#if calculateAPY(node) !== null}
-                <span class="apy-value">
-                  {(calculateAPY(node) * 100).toFixed(2)}%
-                </span>
-              {:else}
-                <span class="apy-value">-</span>
-              {/if}
-            </td>
             <td>{node.version}</td>
-            <td>{formatNumber(node.active_block_height)}</td>
             <td>{node.slash_points}</td>
           </tr>
           {#if expandedRows.has(node.node_address)}
@@ -1534,8 +1492,13 @@
 
   h2 {
     color: #4A90E2;
-    margin: 16px 0 12px;
+    margin: 32px 0 12px;
     font-size: 1.25rem;
+  }
+
+  /* First h2 should have less top margin */
+  h2:first-of-type {
+    margin-top: 16px;
   }
 
   .table-container {
