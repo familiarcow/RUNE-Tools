@@ -398,8 +398,14 @@
           comparison = Number(b.slash_points) - Number(a.slash_points);
           break;
         case 'vault':
+          // Get last vault membership or empty string for sorting
           const aVault = a.signer_membership?.length > 0 ? a.signer_membership[a.signer_membership.length - 1] : '';
           const bVault = b.signer_membership?.length > 0 ? b.signer_membership[b.signer_membership.length - 1] : '';
+          // Sort empty values to the end
+          if (!aVault && bVault) return 1;
+          if (aVault && !bVault) return -1;
+          if (!aVault && !bVault) return 0;
+          // Compare vault IDs
           comparison = aVault.localeCompare(bVault);
           break;
         default:
