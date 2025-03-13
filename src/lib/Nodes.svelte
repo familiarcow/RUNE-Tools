@@ -1354,6 +1354,49 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Webkit (Chrome, Safari, Edge) scrollbar styles */
+  .table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .table-container::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
+  }
+
+  .table-container::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+    border-radius: 4px;
+    border: 2px solid #1a1a1a;
+  }
+
+  .table-container::-webkit-scrollbar-thumb:hover {
+    background: #666;
+  }
+
+  .table-container::-webkit-scrollbar-corner {
+    background: #1a1a1a;
+  }
+
+  /* Firefox scrollbar styles */
+  .table-container {
+    scrollbar-width: thin;
+    scrollbar-color: #4a4a4a #1a1a1a;
+  }
+
+  /* Mobile-specific scrollbar adjustments */
+  @media (max-width: 768px) {
+    .table-container::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    
+    .table-container::-webkit-scrollbar-thumb {
+      border-width: 1px;
+    }
+  }
+
   table {
     width: max-content; /* Change from fixed percentage to max-content */
     min-width: 100%;    /* Ensure table is at least as wide as container */
@@ -1411,7 +1454,13 @@
   }
 
   /* Column width controls - make them more strict */
-  th:nth-child(1), td:nth-child(1) { width: 30px !important; min-width: 30px !important; max-width: 30px !important; }  /* Star */
+  th:nth-child(1), td:nth-child(1) { 
+    width: 24px !important; 
+    min-width: 24px !important; 
+    max-width: 24px !important;
+    padding: 6px 0 !important;
+    text-align: center !important;
+  }  /* Star */
   th:nth-child(2), td:nth-child(2) { width: 50px !important; min-width: 50px !important; max-width: 50px !important; }  /* Status */
   th:nth-child(3), td:nth-child(3) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* ISP */
   th:nth-child(4), td:nth-child(4) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* Country */
@@ -1666,9 +1715,14 @@
     border: none;
     color: #ffd700;
     cursor: pointer;
-    padding: 0 2px;
+    padding: 0;
+    margin: 0;
     font-size: 14px;
     transition: transform 0.15s;
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .star-btn:hover {
