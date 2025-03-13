@@ -371,6 +371,22 @@
       let comparison = 0;
       
       switch (field) {
+        case 'status':
+          // Count extra status indicators for each node
+          const getStatusCount = (node) => {
+            let count = 0;
+            if (node.requested_to_leave || node.forced_to_leave) count++;
+            const status = getLeaveStatus(node, nodes);
+            if (status?.type === 'oldest') count++;
+            if (status?.type === 'worst') count++;
+            if (status?.type === 'lowest') count++;
+            if (node.jail && node.jail.release_height > currentBlockHeight) count++;
+            return count;
+          };
+          const aCount = getStatusCount(a);
+          const bCount = getStatusCount(b);
+          comparison = bCount - aCount;
+          break;
         case 'total_bond':
           comparison = Number(b[field]) - Number(a[field]);
           break;
@@ -740,7 +756,15 @@
       <thead>
         <tr>
           <th title="Star node to track it">★</th>
-          <th title="Current status of the node">Status</th>
+          <th title="Current status of the node" 
+            class="sortable"
+            on:click={() => handleSort('status')}
+          >
+            Status
+            {#if sortField === 'status'}
+                <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
           <th 
       class="sortable" 
             title="Internet Service Provider"
@@ -1246,7 +1270,15 @@
       <thead>
         <tr>
           <th title="Star node to track it">★</th>
-          <th title="Current status of the node">Status</th>
+          <th title="Current status of the node" 
+            class="sortable"
+            on:click={() => handleSort('status')}
+          >
+            Status
+            {#if sortField === 'status'}
+                <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+            {/if}
+          </th>
           <th 
             class="sortable" 
             title="Internet Service Provider"
