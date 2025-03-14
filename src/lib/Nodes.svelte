@@ -966,7 +966,20 @@
             <td>
               <div class="status-container">
                 <div class="status-indicators">
-                  <span class="status-circle active" title="Active Node"></span>
+                  <span 
+                    class:status-circle-ready={node.preflight_status?.code === 0}
+                    class:status-circle-version={node.preflight_status?.reason?.startsWith('node account does not meet min version requirement')}
+                    class:status-circle-bond={node.preflight_status?.reason?.startsWith('node account does not have minimum bond requirement')}
+                    class:status-circle-other={node.preflight_status?.code !== 0 && 
+                      !node.preflight_status?.reason?.startsWith('node account does not meet min version requirement') &&
+                      !node.preflight_status?.reason?.startsWith('node account does not have minimum bond requirement')}
+                    class="status-circle"
+                    title={node.preflight_status ? 
+                      `Status: ${node.preflight_status.status}
+Code: ${node.preflight_status.code}${node.preflight_status.reason ? `
+Reason: ${node.preflight_status.reason}` : ''}` : 
+                      "No preflight status available"}
+                  ></span>
                   {#if node.requested_to_leave}
                     <span class="leave-emoji" title="Node has requested to leave">🧳</span>
                   {/if}
@@ -1437,7 +1450,20 @@
             <td>
               <div class="status-container">
                 <div class="status-indicators">
-                  <span class="status-circle standby" title="Standby Node"></span>
+                  <span 
+                    class:status-circle-ready={node.preflight_status?.code === 0}
+                    class:status-circle-version={node.preflight_status?.reason?.startsWith('node account does not meet min version requirement')}
+                    class:status-circle-bond={node.preflight_status?.reason?.startsWith('node account does not have minimum bond requirement')}
+                    class:status-circle-other={node.preflight_status?.code !== 0 && 
+                      !node.preflight_status?.reason?.startsWith('node account does not meet min version requirement') &&
+                      !node.preflight_status?.reason?.startsWith('node account does not have minimum bond requirement')}
+                    class="status-circle"
+                    title={node.preflight_status ? 
+                      `Status: ${node.preflight_status.status}
+Code: ${node.preflight_status.code}${node.preflight_status.reason ? `
+Reason: ${node.preflight_status.reason}` : ''}` : 
+                      "No preflight status available"}
+                  ></span>
                   {#if node.requested_to_leave}
                     <span class="leave-emoji" title="Node has requested to leave">🧳</span>
                   {/if}
@@ -2684,30 +2710,24 @@
     transition: all 0.2s ease;
   }
 
-  .status-circle.active {
+  .status-circle-ready {
     background-color: #2ecc71;
     box-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
   }
 
-  .status-circle.standby {
-    background-color: #ffd700;
-    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+  .status-circle-version {
+    background-color: #9b59b6;
+    box-shadow: 0 0 8px rgba(155, 89, 182, 0.4);
   }
 
-  .status-circle.leaving {
-    background-color: #ff6b6b;
-    box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
-  }
-
-  .status-circle.forced {
+  .status-circle-bond {
     background-color: #e74c3c;
     box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
   }
 
-  .status-container {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  .status-circle-other {
+    background-color: #f1c40f;
+    box-shadow: 0 0 8px rgba(241, 196, 15, 0.4);
   }
 
   /* Status-based row highlighting */
