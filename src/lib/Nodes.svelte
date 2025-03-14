@@ -803,6 +803,7 @@
     <table>
       <thead>
         <tr>
+          <th title="Node number">#</th>
           <th title="Star node to track it">★</th>
           <th title="Current status of the node" 
             class="sortable"
@@ -928,7 +929,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each filteredActiveNodes as node}
+        {#each filteredActiveNodes as node, i}
           <tr class="main-row" 
             class:row-leaving={node.requested_to_leave || node.forced_to_leave}
             class:row-oldest={getLeaveStatus(node, nodes)?.type === 'oldest'}
@@ -937,6 +938,7 @@
             class:row-jailed={getLeaveStatus(node, nodes)?.type === 'jailed'}
             class:row-starred={starredNodes.has(node.node_address)}
           >
+            <td class="number-cell">{i + 1}</td>
             <td>
               <button 
                 class="star-btn" 
@@ -1324,6 +1326,7 @@
     <table>
       <thead>
         <tr>
+          <th title="Node number">#</th>
           <th title="Star node to track it">★</th>
           <th title="Current status of the node" 
             class="sortable"
@@ -1398,13 +1401,14 @@
         </tr>
       </thead>
       <tbody>
-        {#each filteredStandbyNodes as node}
+        {#each filteredStandbyNodes as node, i}
           <tr class="main-row"
             class:row-starred={starredNodes.has(node.node_address)}
             class:row-jailed={node.jail && node.jail.release_height > currentBlockHeight}
             class:row-joining={node.likelyToJoin}
             class:row-ineligible={Number(node.total_bond) / 1e8 < minimumBondInRune}
           >
+            <td class="number-cell">{i + 1}</td>
             <td>
               <button 
                 class="star-btn" 
@@ -1886,24 +1890,31 @@
 
   /* Column width controls - make them more strict */
   th:nth-child(1), td:nth-child(1) { 
+    width: 30px !important; 
+    min-width: 30px !important; 
+    max-width: 30px !important;
+    padding: 6px 0 !important;
+    text-align: center !important;
+  }  /* Number */
+  th:nth-child(2), td:nth-child(2) { 
     width: 24px !important; 
     min-width: 24px !important; 
     max-width: 24px !important;
     padding: 6px 0 !important;
     text-align: center !important;
   }  /* Star */
-  th:nth-child(2), td:nth-child(2) { width: 50px !important; min-width: 50px !important; max-width: 50px !important; }  /* Status */
-  th:nth-child(3), td:nth-child(3) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* ISP */
-  th:nth-child(4), td:nth-child(4) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* Country */
-  th:nth-child(5), td:nth-child(5) { width: 100px !important; min-width: 100px !important; max-width: 100px !important; }  /* Address */
-  th:nth-child(6), td:nth-child(6) { width: 100px !important; min-width: 100px !important; max-width: 100px !important; }  /* Operator */
-  th:nth-child(7), td:nth-child(7) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }  /* Total Bond */
-  th:nth-child(8), td:nth-child(8) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }  /* Current Award */
-  th:nth-child(9), td:nth-child(9) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* APY */
-  th:nth-child(10), td:nth-child(10) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Version */
-  th:nth-child(11), td:nth-child(11) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Active Since */
-  th:nth-child(12), td:nth-child(12) { width: 70px !important; min-width: 70px !important; max-width: 70px !important; }  /* Slash Points */
-  th:nth-child(13), td:nth-child(13) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Vault */
+  th:nth-child(3), td:nth-child(3) { width: 50px !important; min-width: 50px !important; max-width: 50px !important; }  /* Status */
+  th:nth-child(4), td:nth-child(4) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* ISP */
+  th:nth-child(5), td:nth-child(5) { width: 40px !important; min-width: 40px !important; max-width: 40px !important; }  /* Country */
+  th:nth-child(6), td:nth-child(6) { width: 100px !important; min-width: 100px !important; max-width: 100px !important; }  /* Address */
+  th:nth-child(7), td:nth-child(7) { width: 100px !important; min-width: 100px !important; max-width: 100px !important; }  /* Operator */
+  th:nth-child(8), td:nth-child(8) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }  /* Total Bond */
+  th:nth-child(9), td:nth-child(9) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }  /* Current Award */
+  th:nth-child(10), td:nth-child(10) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }  /* APY */
+  th:nth-child(11), td:nth-child(11) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Version */
+  th:nth-child(12), td:nth-child(12) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Active Since */
+  th:nth-child(13), td:nth-child(13) { width: 70px !important; min-width: 70px !important; max-width: 70px !important; }  /* Slash Points */
+  th:nth-child(14), td:nth-child(14) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; }  /* Vault */
 
   /* Force all cells to maintain their layout */
   th, td {
