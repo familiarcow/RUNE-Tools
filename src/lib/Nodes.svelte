@@ -1416,8 +1416,9 @@
           <tr class="main-row"
             class:row-starred={starredNodes.has(node.node_address)}
             class:row-jailed={node.jail && node.jail.release_height > currentBlockHeight}
-            class:row-joining={node.likelyToJoin}
-            class:row-ineligible={Number(node.total_bond) / 1e8 < minimumBondInRune}
+            class:row-joining={node.preflight_status?.code === 0 && isLikelyToJoin(node)}
+            class:row-eligible={node.preflight_status?.code === 0 && !isLikelyToJoin(node)}
+            class:row-ineligible={!node.preflight_status || node.preflight_status.code !== 0}
           >
             <td class="number-cell">{i + 1}</td>
             <td>
@@ -3085,6 +3086,24 @@
     background-color: rgba(46, 204, 113, 0.15) !important;
   }
 
+  /* Add styles for eligible but not joining nodes */
+  .row-eligible {
+    background-color: rgba(128, 128, 128, 0.1) !important;
+  }
+
+  .row-eligible:hover {
+    background-color: rgba(128, 128, 128, 0.15) !important;
+  }
+
+  /* Update ineligible node styling */
+  .row-ineligible {
+    background-color: rgba(231, 76, 60, 0.1) !important;
+  }
+
+  .row-ineligible:hover {
+    background-color: rgba(231, 76, 60, 0.15) !important;
+  }
+
   /* Add styles for churn summary */
   .churn-summary {
     display: flex;
@@ -3120,33 +3139,6 @@
       flex-direction: column;
       gap: 12px;
     }
-  }
-
-
-  .row-ineligible {
-    background-color: rgba(231, 76, 60, 0.1) !important;
-  }
-
-  .row-ineligible:hover {
-    background-color: rgba(231, 76, 60, 0.15) !important;
-  }
-
-  .status-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    min-width: 60px;
-  }
-
-  .status-indicators {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .jail-indicator {
-    margin-left: auto;
   }
 
   /* Add these styles to the existing style section */
