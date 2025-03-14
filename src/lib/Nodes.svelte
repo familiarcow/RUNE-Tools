@@ -729,17 +729,28 @@
   };
 
   // Function to determine if a standby node is likely to join
-  const isLikelyToJoin = (node, index) => {
-    // Check if bond is above minimum
-    const bondInRune = Number(node.total_bond) / 1e8;
-    if (bondInRune < minimumBondInRune) {
+  const isLikelyToJoin = (node) => {
+    // First check if node has valid preflight status
+    if (!node.preflight_status || node.preflight_status.code !== 0) {
       return false;
     }
+
+    // Get all eligible nodes sorted by bond
+    const eligibleNodes = standbyNodes
+      .filter(n => n.preflight_status && n.preflight_status.code === 0)
+      .sort((a, b) => Number(b.total_bond) - Number(a.total_bond));
+    
+    // Find index of current node in eligible nodes
+    const nodeIndex = eligibleNodes.findIndex(n => n.node_address === node.node_address);
+    
     // Check if node is within the available spots
-    return index < (nodesLeavingCount + newNodesPerChurn);
+    return nodeIndex < (nodesLeavingCount + newNodesPerChurn);
   };
 
-  $: eligibleStandbyNodes = standbyNodes.filter(node => Number(node.total_bond) / 1e8 >= minimumBondInRune).length;
+  $: eligibleStandbyNodes = standbyNodes.filter(node => 
+    node.preflight_status && 
+    node.preflight_status.code === 0
+  ).length;
 </script>
 
 <div class="nodes-container">
