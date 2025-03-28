@@ -54,12 +54,26 @@
   function filterConstants(constants, mimir, searchTerm) {
     const lowercaseSearch = searchTerm.toLowerCase();
     const filteredEntries = [];
+    const processedKeys = new Set();
 
-    for (const category in constants) {
-      for (const [key, value] of Object.entries(constants[category])) {
-        const { value: displayValue, isOverridden } = renderValue(key, value);
-        if (key.toLowerCase().includes(lowercaseSearch) || String(displayValue).toLowerCase().includes(lowercaseSearch)) {
-          filteredEntries.push([key, value, isOverridden]);
+    // First add all Mimir values
+    if (mimir) {
+      for (const [key, value] of Object.entries(mimir)) {
+        if (key.toLowerCase().includes(lowercaseSearch) || String(value).toLowerCase().includes(lowercaseSearch)) {
+          filteredEntries.push([key, value, true]);
+          processedKeys.add(key);
+        }
+      }
+    }
+
+    // Then add constants that don't have Mimir overrides
+    if (constants) {
+      for (const category in constants) {
+        for (const [key, value] of Object.entries(constants[category])) {
+          if (!processedKeys.has(key.toUpperCase()) && 
+              (key.toLowerCase().includes(lowercaseSearch) || String(value).toLowerCase().includes(lowercaseSearch))) {
+            filteredEntries.push([key, value, false]);
+          }
         }
       }
     }
