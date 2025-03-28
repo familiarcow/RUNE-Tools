@@ -218,13 +218,13 @@
               <div class="sub-label">Requires 66% Quorum</div>
               <div class="card-header">
                 <div class="percentage">
-                  {(Number(upgradeProposalDetails.approved_percent) * 100).toFixed(1)}%
+                  {(Number(upgradeProposalDetails.approved_percent)).toFixed(1)}%
                 </div>
               </div>
               <div class="progress-bar">
                 <div 
                   class="progress approval-progress" 
-                  style="width: {Number(upgradeProposalDetails.approved_percent) * 100}%"
+                  style="width: {Number(upgradeProposalDetails.approved_percent)}%"
                 ></div>
                 <div class="threshold-marker"></div>
               </div>
@@ -469,7 +469,7 @@
   }
 
   .date-value {
-    color: #31FD9D;
+    color: white;
     font-size: 0.85rem;
     font-weight: 500;
     font-family: 'JetBrains Mono', monospace;
@@ -556,8 +556,8 @@
     right: 34%;
     width: 2px;
     height: calc(100% + 8px);
-    background-color: #31FD9D;
-    opacity: 0.8;
+    background-color: white;
+    opacity: 1;
   }
 
   .threshold-marker::after {
@@ -565,9 +565,9 @@
     position: absolute;
     top: 50%;
     right: -2px;
-    width: 6px;
-    height: 6px;
-    background-color: #31FD9D;
+    width: 8px;
+    height: 16px;
+    background-color: white;
     border-radius: 50%;
     transform: translateY(-50%);
   }
