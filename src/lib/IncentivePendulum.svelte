@@ -94,12 +94,12 @@
         // Sort nodes by bond amount in descending order
         activeNodes.sort((a, b) => Number(b.total_bond) - Number(a.total_bond));
         
-        // Calculate the index to split at (2/3 of the array)
-        const splitIndex = Math.floor(activeNodes.length * (2/3));
+        // Calculate cutoff index for bottom 2/3 of nodes (cutting off top 1/3)
+        const cutoffIndex = Math.floor(activeNodes.length / 3);
         
         // Sum the bonds of the bottom 2/3 of nodes
         totalActiveBond = activeNodes
-          .slice(splitIndex)
+          .slice(cutoffIndex)
           .reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
       } else {
         usingAllNodesBond = true;
@@ -193,6 +193,10 @@
 
     // Calculate shares using the correct formula: poolShare = (b - p) / b
     poolShare = (effectiveBond - totalAdjustedSecuredValue) / effectiveBond;
+    
+    // Clamp poolShare between 0 and 1
+    poolShare = Math.min(Math.max(poolShare, 0), 1);
+    
     nodeShare = 1 - poolShare;
 
     // Convert to percentages for display
@@ -265,7 +269,7 @@
           <div class="scale-pan left">
             <div class="pan-label-box">Security</div>
             <div class="pan-content">
-              <span>{simplifyNumber(totalActiveBond)}</span>
+              <span>{simplifyNumber(usingAllNodesBond ? totalActiveBond : adjustedBond)}</span>
               <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="scale-icon" />
             </div>
           </div>
