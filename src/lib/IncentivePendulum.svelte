@@ -98,26 +98,21 @@
         const cutoffIndex = Math.floor(activeNodes.length / 3);
         
         // Sum the bonds of the bottom 2/3 of nodes
-        totalActiveBond = activeNodes
+        totalActiveBond = activeNodes.reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0); // Total bond for display
+        adjustedBond = activeNodes  // Bottom 2/3 bond for calculations
           .slice(cutoffIndex)
           .reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
       } else {
         usingAllNodesBond = true;
         totalActiveBond = activeNodes.reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
+        adjustedBond = totalActiveBond; // When not using effective security, adjusted = total
       }
 
       // Set PendulumAssetBasisPoints
       pendulumAssetBasisPoints = Number(mimirData) > 0 ? Number(mimirData) : 10000;
 
-      // Calculate Adjusted Secured Assetsz
+      // Calculate Adjusted Secured Assets
       totalAdjustedSecuredValue = totalSecuredValue * (pendulumAssetBasisPoints / 10000);
-
-      // Calculate adjusted bond
-      activeNodes.sort((a, b) => Number(b.total_bond) - Number(a.total_bond));
-      const splitIndex = Math.floor(activeNodes.length * (2/3));
-      adjustedBond = activeNodes
-        .slice(splitIndex)
-        .reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
 
       // Calculate all dependent values at the end
       calculateDependentValues();
@@ -374,21 +369,9 @@
             {/if}
           </div>
         </div>
-        <div class="card pendulum-use-effective-security">
-          <h3>Using All Nodes Bond?</h3>
-          <div class="main-value">
-            {#if isEditing}
-              <select bind:value={editedUsingAllNodesBond}>
-                <option value={true}>Yes</option>
-                <option value={false}>No</option>
-              </select>
-            {:else}
-              {usingAllNodesBond ? 'Yes' : 'No'}
-            {/if}
-          </div>
-        </div>
+
         <div class="card adjusted-bond">
-          <h3>Bottom 2/3 Nodes Bond</h3>
+          <h3>Effective Security (Bottom 2/3)</h3>
           <div class="main-value">
             {#if isEditing}
               <input type="number" bind:value={editedAdjustedBond} step="1000" min="0" />
@@ -396,6 +379,28 @@
               {formattedAdjustedBond}
             {/if}
             <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Add new Mimir values section -->
+      <div class="mimir-section">
+        <h3>Mimir Configuration</h3>
+        <div class="mimir-grid">
+          <div class="mimir-card">
+            <div class="mimir-label">PendulumAssetBasisPoints</div>
+            <div class="mimir-value">{pendulumAssetBasisPoints}</div>
+            <div class="mimir-description">Adjusts the secured value considered in pendulum calculations</div>
+          </div>
+          <div class="mimir-card">
+            <div class="mimir-label">PendulumUseVaultAssets</div>
+            <div class="mimir-value">{pendulumUseVaultAssets}</div>
+            <div class="mimir-description">{pendulumUseVaultAssets === 1 ? 'Using all vault assets' : 'Using pool assets only'}</div>
+          </div>
+          <div class="mimir-card">
+            <div class="mimir-label">PendulumUseEffectiveSecurity</div>
+            <div class="mimir-value">{pendulumUseEffectiveSecurity}</div>
+            <div class="mimir-description">{pendulumUseEffectiveSecurity === 1 ? 'Using bottom 2/3 nodes bond' : 'Using all nodes bond'}</div>
           </div>
         </div>
       </div>
@@ -549,173 +554,268 @@
   }
 
   .network-state {
-    padding: 30px;
-    background-color: #2c2c2c;
+    padding: 40px 20px;
+    background: linear-gradient(180deg, rgba(74, 144, 226, 0.1) 0%, rgba(26, 26, 26, 0.8) 100%);
     border-bottom: 1px solid #3a3a3a;
     display: flex;
     flex-direction: column;
     align-items: center;
-    border: 2px solid #4A90E2;
-    border-radius: 10px;
-    margin: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(74, 144, 226, 0.3);
+    border-radius: 16px;
+    margin: 20px 10px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    position: relative;
   }
 
   .balance-scale {
     width: 100%;
-    max-width: 300px;
-    height: 200px;
+    max-width: 400px;
+    height: 250px;
     position: relative;
-    margin-bottom: 20px;
+    margin: 0 auto 30px;
+    padding: 0 60px;
   }
 
   .scale-beam {
-    width: calc(100% - 20px);
-    max-width: 280px;
-    height: 8px;
-    background-color: #4A90E2;
+    width: calc(100% - 120px);
+    height: 10px;
+    background: linear-gradient(90deg, #4A90E2 0%, #6AA8E8 50%, #4A90E2 100%);
     position: absolute;
-    top: 50px;
+    top: 60px;
     left: 50%;
     transform-origin: center;
-    transition: transform 0.3s ease;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
   }
 
   .scale-pan {
-    width: 100px;
-    height: 40px;
-    background-color: #4a4a4a;
-    border-radius: 0 0 40px 40px;
+    width: 120px;
+    height: 50px;
+    background: linear-gradient(180deg, #2c2c2c 0%, #1a1a1a 100%);
+    border-radius: 0 0 50px 50px;
     position: absolute;
-    top: 58px;
+    top: 70px;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    border: 1px solid #5a5a5a;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .scale-pan.left {
+    left: -60px;
+    transform-origin: top center;
+  }
+
+  .scale-pan.right {
+    right: -60px;
+    transform-origin: top center;
+  }
+
+  .scale-stand {
+    width: 12px;
+    height: 180px;
+    background: linear-gradient(90deg, #4A90E2 0%, #6AA8E8 50%, #4A90E2 100%);
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+  }
+
+  .scale-stand::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 8px;
+    background: linear-gradient(90deg, #4A90E2 0%, #6AA8E8 50%, #4A90E2 100%);
+    border-radius: 4px;
   }
 
   .pan-label-box {
     position: absolute;
-    top: -25px;
+    top: -30px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #1a1a1a;
-    padding: 2px 12px;
+    background: rgba(26, 26, 26, 0.9);
+    padding: 4px 16px;
     border-radius: 12px;
-    font-size: 12px;
-    color: #a9a9a9;
+    font-size: 14px;
+    color: #4A90E2;
     white-space: nowrap;
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-weight: 500;
+    letter-spacing: 0.5px;
   }
 
   .pan-content {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    color: white;
+    gap: 6px;
+    font-size: 16px;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
-  .scale-pan .scale-icon {
-    width: 14px;
-    height: 14px;
-  }
-
-  .scale-pan.left {
-    left: -50px;
-  }
-
-  .scale-pan.right {
-    right: -50px;
-  }
-
-  .scale-stand {
-    width: 8px;
-    height: 140px;
-    background-color: #4A90E2;
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  .scale-icon {
+    width: 18px;
+    height: 18px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
   }
 
   .state-label {
-    margin-top: 20px;
+    margin-top: 25px;
     font-size: 18px;
     font-weight: 600;
     color: #a9a9a9;
     text-align: center;
-    background-color: #1a1a1a;
-    padding: 10px 20px;
-    border-radius: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    background: rgba(26, 26, 26, 0.9);
+    padding: 12px 24px;
+    border-radius: 24px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(74, 144, 226, 0.3);
   }
 
   .state-value {
     color: #4A90E2;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
-  .scale-pan.left::after,
-  .scale-pan.right::after {
-    display: none;
-  }
-
-  .toggle-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .pendulum-use-vault-assets {
-    position: relative;
-  }
-
-  .pendulum-use-vault-assets .toggle-button {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 12px;
-    padding: 5px 10px;
-  }
-
-  .pendulum-use-vault-assets-details {
-    background-color: #2c2c2c;
-    border-radius: 8px;
-    padding: 15px;
+  .reward-indicator {
     margin-top: 20px;
-    font-size: 14px;
+    font-size: 16px;
     color: #a9a9a9;
+    text-align: center;
+    background: rgba(26, 26, 26, 0.9);
+    padding: 10px 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    font-weight: 500;
   }
 
-  .pendulum-use-vault-assets-details ul {
-    margin-top: 10px;
-    padding-left: 20px;
+  /* Add smooth animations for the scale pans */
+  .scale-beam[style*="rotate"] .scale-pan.left {
+    transform: rotate(calc(var(--rotation) * -1));
   }
 
-  .pendulum-use-vault-assets-details li {
-    margin-bottom: 5px;
+  .scale-beam[style*="rotate"] .scale-pan.right {
+    transform: rotate(calc(var(--rotation) * -1));
   }
 
-  .pendulum-use-effective-security {
-    position: relative;
+  @media (max-width: 600px) {
+    .network-state {
+      padding: 20px 10px;
+      margin: 10px 5px;
+    }
+
+    .balance-scale {
+      max-width: 280px;
+      height: 180px;
+      padding: 0 40px;
+      margin-bottom: 20px;
+    }
+
+    .scale-beam {
+      width: calc(100% - 80px);
+      height: 8px;
+      top: 40px;
+    }
+
+    .scale-pan {
+      width: 80px;
+      height: 35px;
+      top: 48px;
+    }
+
+    .scale-pan.left {
+      left: -40px;
+    }
+
+    .scale-pan.right {
+      right: -40px;
+    }
+
+    .scale-stand {
+      height: 140px;
+      width: 10px;
+    }
+
+    .scale-stand::after {
+      width: 30px;
+      height: 6px;
+    }
+
+    .pan-label-box {
+      font-size: 12px;
+      padding: 3px 10px;
+      top: -22px;
+    }
+
+    .pan-content {
+      font-size: 13px;
+      gap: 4px;
+    }
+
+    .scale-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    .state-label {
+      font-size: 14px;
+      padding: 8px 16px;
+      margin-top: 15px;
+    }
+
+    .state-value {
+      font-size: 16px;
+    }
+
+    .reward-indicator {
+      font-size: 12px;
+      padding: 6px 12px;
+      margin-top: 12px;
+    }
   }
 
-  .pendulum-use-effective-security .main-value {
-    font-size: 20px;
-  }
+  /* Add small phone breakpoint */
+  @media (max-width: 360px) {
+    .balance-scale {
+      max-width: 240px;
+      padding: 0 30px;
+    }
 
-  .adjusted-bond {
-    position: relative;
-  }
+    .scale-beam {
+      width: calc(100% - 60px);
+    }
 
-  .adjusted-bond .main-value {
-    font-size: 20px;
+    .scale-pan {
+      width: 70px;
+      height: 30px;
+    }
+
+    .scale-pan.left {
+      left: -35px;
+    }
+
+    .scale-pan.right {
+      right: -35px;
+    }
+
+    .pan-content {
+      font-size: 12px;
+    }
   }
 
   .button-container {
@@ -765,57 +865,78 @@
     border-color: #4A90E2;
   }
 
-  .reward-indicator {
-    margin-top: 15px;
-    font-size: 16px;
-    color: #a9a9a9;
+  /* Add these new styles */
+  .mimir-section {
+    padding: 20px;
+    margin: 20px 10px;
+    background: rgba(26, 26, 26, 0.9);
+    border-radius: 12px;
+    border: 1px solid rgba(74, 144, 226, 0.3);
+  }
+
+  .mimir-section h3 {
+    color: #4A90E2;
+    font-size: 18px;
+    margin-bottom: 15px;
     text-align: center;
-    background-color: #1a1a1a;
-    padding: 8px 16px;
-    border-radius: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .mimir-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+  }
+
+  .mimir-card {
+    background: #2c2c2c;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .mimir-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .mimir-label {
+    color: #4A90E2;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-family: monospace;
+  }
+
+  .mimir-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 8px;
+  }
+
+  .mimir-description {
+    color: #a9a9a9;
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   @media (max-width: 600px) {
-    .network-state {
+    .mimir-section {
       padding: 15px;
-      margin: 10px;
+      margin: 10px 5px;
     }
 
-    .balance-scale {
-      height: 160px;
-      margin-bottom: 15px;
+    .mimir-grid {
+      grid-template-columns: 1fr;
     }
 
-    .scale-beam {
-      width: calc(100% - 100px);
-      top: 40px;
+    .mimir-card {
+      padding: 12px;
     }
 
-    .scale-pan {
-      width: 80px;
-      height: 40px;
-    }
-
-    .pan-label-box {
-      font-size: 10px;
-      padding: 2px 8px;
-      top: -20px;
-    }
-
-    .state-label {
-      font-size: 16px;
-      padding: 8px 16px;
-    }
-
-    .state-value {
-      font-size: 18px;
-    }
-
-    .reward-indicator {
-      font-size: 14px;
-      padding: 6px 12px;
-      margin-top: 10px;
+    .mimir-value {
+      font-size: 20px;
     }
   }
 </style>
