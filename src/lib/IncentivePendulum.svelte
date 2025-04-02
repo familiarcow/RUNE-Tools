@@ -98,20 +98,20 @@
         const cutoffIndex = Math.floor(activeNodes.length / 3);
         
         // Sum the bonds of the bottom 2/3 of nodes
-        totalActiveBond = activeNodes.reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0); // Total bond for display
-        adjustedBond = activeNodes  // Bottom 2/3 bond for calculations
+        totalActiveBond = activeNodes.reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
+        adjustedBond = activeNodes
           .slice(cutoffIndex)
           .reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
       } else {
         usingAllNodesBond = true;
         totalActiveBond = activeNodes.reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
-        adjustedBond = totalActiveBond; // When not using effective security, adjusted = total
+        adjustedBond = totalActiveBond;
       }
 
       // Set PendulumAssetBasisPoints
       pendulumAssetBasisPoints = Number(mimirData) > 0 ? Number(mimirData) : 10000;
 
-      // Calculate Adjusted Secured Assets
+      // Calculate Adjusted Secured Assetsz
       totalAdjustedSecuredValue = totalSecuredValue * (pendulumAssetBasisPoints / 10000);
 
       // Calculate all dependent values at the end
