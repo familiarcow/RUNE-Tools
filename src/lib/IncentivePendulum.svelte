@@ -198,7 +198,7 @@
     poolShare = poolShare * 100;
     nodeShare = nodeShare * 100;
 
-    // Determine network state
+    // Determine network state based on the difference from equilibrium
     if (Math.abs(nodeShare - 50) < 10) {
       networkState = "Normal";
     } else if (nodeShare < 50) {
@@ -213,13 +213,13 @@
 
   const calculateScalePosition = () => {
     const maxTilt = 30; // Maximum tilt angle in degrees
-    const midpoint = 50; // The balanced point where nodeShare equals poolShare
 
-    // Calculate the tilt based on the difference from the midpoint
-    const tiltPercentage = (nodeShare - midpoint) / midpoint;
+    // Calculate relative difference between node and pool share
+    // This gives us a value between -1 and 1 representing how far from equilibrium we are
+    const tiltPercentage = (nodeShare - poolShare) / 100;
     
     // Apply the tilt, capped at maxTilt
-    scalePosition = Math.max(Math.min(tiltPercentage * maxTilt, maxTilt), -maxTilt);
+    scalePosition = -Math.max(Math.min(tiltPercentage * maxTilt, maxTilt), -maxTilt);
   };
 
   // Replace the existing reactive statement for scalePosition with a writable variable
@@ -322,6 +322,34 @@
       </div>
     </div>
 
+    <div class="grid">
+      <div class="card pendulum-use-vault-assets">
+        <h3>Assets Considered in Pendulum</h3>
+        <div class="main-value">
+          {#if isEditing}
+            <select bind:value={editedPendulumUseVaultAssets}>
+              <option value={1}>All Vault Assets</option>
+              <option value={0}>Pool Only</option>
+            </select>
+          {:else}
+            {pendulumUseVaultAssets === 1 ? 'All Vault Assets' : 'Pool Only'}
+          {/if}
+        </div>
+      </div>
+
+      <div class="card adjusted-bond">
+        <h3>Effective Security</h3>
+        <div class="main-value">
+          {#if isEditing}
+            <input type="number" bind:value={editedAdjustedBond} step="1000" min="0" />
+          {:else}
+            {formattedAdjustedBond}
+          {/if}
+          <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+        </div>
+      </div>
+    </div>
+
     <div class="button-container">
       <button on:click={toggleShowMore} class="toggle-button" disabled={isLoading}>
         {showMore ? 'Hide' : 'Show'} More
@@ -352,31 +380,6 @@
               <input type="number" bind:value={editedTotalAdjustedSecuredValue} step="1000" min="0" />
             {:else}
               {formattedTotalAdjustedSecuredValue}
-            {/if}
-            <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-          </div>
-        </div>
-        <div class="card pendulum-use-vault-assets">
-          <h3>Assets Considered in Pendulum</h3>
-          <div class="main-value">
-            {#if isEditing}
-              <select bind:value={editedPendulumUseVaultAssets}>
-                <option value={1}>All Vault Assets</option>
-                <option value={0}>Pool Only</option>
-              </select>
-            {:else}
-              {pendulumUseVaultAssets === 1 ? 'All Vault Assets' : 'Pool Only'}
-            {/if}
-          </div>
-        </div>
-
-        <div class="card adjusted-bond">
-          <h3>Effective Security (Bottom 2/3)</h3>
-          <div class="main-value">
-            {#if isEditing}
-              <input type="number" bind:value={editedAdjustedBond} step="1000" min="0" />
-            {:else}
-              {formattedAdjustedBond}
             {/if}
             <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
           </div>
