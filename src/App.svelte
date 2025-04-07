@@ -416,6 +416,11 @@
             page_path: window.location.pathname,
             page_location: window.location.href
           });
+          // Track open_app event
+          gtag('event', 'open_app', {
+            app_name: app.name,
+            app_path: app.path
+          });
         }
       } catch (error) {
         console.error('Error loading component:', error);
