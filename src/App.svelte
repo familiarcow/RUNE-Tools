@@ -621,6 +621,13 @@
 
   $: if (selectedApp) {
     document.title = `${selectedApp.name} - RUNE Tools`;
+    // Track page view when app changes
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'page_view', {
+        page_title: selectedApp.name,
+        page_path: `/${selectedApp.path}`
+      });
+    }
   } else {
     document.title = "RUNE Tools";
   }
@@ -628,6 +635,15 @@
 
 <svelte:head>
   <link href="https://fonts.googleapis.com/css2?family=Exo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6B09F19XM2"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-6B09F19XM2');
+  </script>
   <style>
     body {
       background-color: #1e1e1e;
