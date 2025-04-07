@@ -334,6 +334,16 @@
             page_path: newUrl,
             page_location: window.location.href
           });
+          // Track app usage
+          gtag('event', 'app_usage', {
+            app_name: app.name,
+            app_path: app.path
+          });
+          // Increment open_app event with app details
+          gtag('event', 'open_app', {
+            app_name: app.name,
+            app_path: app.path
+          });
         }
       } catch (error) {
         console.error('Error loading component:', error);
