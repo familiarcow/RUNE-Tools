@@ -324,12 +324,19 @@
       menuOpen = false;
 
       try {
-        // Dynamically load the component
         const module = await app.component();
         loadedComponent = module.default;
+
+        // Track page view when app changes
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'page_view', {
+            page_title: app.name,
+            page_path: newUrl,
+            page_location: window.location.href
+          });
+        }
       } catch (error) {
         console.error('Error loading component:', error);
-        // Handle error loading component
       }
 
       // Update addressParam if it's the SwapperClout component
@@ -391,9 +398,17 @@
       try {
         const module = await app.component();
         loadedComponent = module.default;
+
+        // Track page view on browser navigation
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'page_view', {
+            page_title: app ? app.name : 'Home',
+            page_path: window.location.pathname,
+            page_location: window.location.href
+          });
+        }
       } catch (error) {
         console.error('Error loading component:', error);
-        // Handle error loading component
       }
 
       const urlParams = new URLSearchParams(window.location.search);
@@ -468,6 +483,15 @@
     selectedApp = null;
     history.pushState(null, '', '/');
     menuOpen = false;
+
+    // Track home page view
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'page_view', {
+        page_title: 'Home',
+        page_path: '/',
+        page_location: window.location.href
+      });
+    }
   }
 
   function handleDescriptionChange() {
@@ -621,13 +645,6 @@
 
   $: if (selectedApp) {
     document.title = `${selectedApp.name} - RUNE Tools`;
-    // Track page view when app changes
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'page_view', {
-        page_title: selectedApp.name,
-        page_path: `/${selectedApp.path}`
-      });
-    }
   } else {
     document.title = "RUNE Tools";
   }
@@ -635,15 +652,6 @@
 
 <svelte:head>
   <link href="https://fonts.googleapis.com/css2?family=Exo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6B09F19XM2"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-6B09F19XM2');
-  </script>
   <style>
     body {
       background-color: #1e1e1e;
