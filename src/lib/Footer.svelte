@@ -214,6 +214,14 @@
     });
   }
 
+  function trackFooterClick(elementName) {
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'footer_click', {
+        element_name: elementName
+      });
+    }
+  }
+
   onMount(() => {
     randomEmoji = getRandomEmoji();
     startAutoScroll();
@@ -259,7 +267,7 @@
               {#if element.type === 'sound'}
                 <button
                   class="sound-button"
-                  on:click|stopPropagation={toggleSound}
+                  on:click|stopPropagation={() => { toggleSound(); trackFooterClick('sound_button'); }}
                   aria-label={$audioPlaying ? 'Stop music' : 'Play music'}
                   title={currentTrackTitle}
                 >
@@ -274,7 +282,7 @@
                   href={element.href} 
                   target="_blank" 
                   class="source-link"
-                  on:click|stopPropagation
+                  on:click|stopPropagation={() => trackFooterClick(element.text)}
                 >
                   {element.text}
                 </a>
@@ -300,7 +308,7 @@
               href={pages[currentPage].content.href}
               target="_blank" 
               class="source-link"
-              on:click|stopPropagation
+              on:click|stopPropagation={() => trackFooterClick(pages[currentPage].content.text)}
             >
               {pages[currentPage].content.text}
             </a>
@@ -311,7 +319,7 @@
               href={pages[currentPage].content.href}
               target="_blank" 
               class="source-link"
-              on:click|stopPropagation
+              on:click|stopPropagation={() => trackFooterClick(pages[currentPage].content.text)}
             >
               {pages[currentPage].content.text}
             </a>
