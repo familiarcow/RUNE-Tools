@@ -1,63 +1,143 @@
 <script>
+  import { onMount, onDestroy } from 'svelte';
   export let text = '';
-  export let typingSpeed = 15; // milliseconds per character
+  export let typingSpeed = 35; // Controls overall animation speed
+  export let charSetName = 'tech'; // Default character set
   
-  let displayedText = '';
-  let cursorVisible = true;
-  let containerDiv;
-  let blinkCount = 0;
-  let blinkInterval;
+  let displayElement;
+  let active = false;
+  let frameRequest;
+  let frame = 0;
+  let queue = [];
+  let resolve;
   
-  $: {
-    displayedText = '';
-    typeText();
+  // Multiple character sets for variety
+  const charSets = {
+    tech: '!<>-_\\/[]{}—=+*^?#$%&()~01︎10︎101︎01︎',
+    math: '01︎10︎101︎01︎+=-×÷∑∆√∞≈≠≤≥',
+    matrix: 'ラドクリフマラソンわたしワタシんょンョたばこタバコとうきょうトウキョウ日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ',
+    crypto: '∞⬨⟡⟢⟣⟤⟥⟦⟧⟨⟩⟪⟫⦵'
+  };
+  
+  // Default values from the example code
+  const changeFrequency = 0.28; // Change frequency (28/100)
+  const glowIntensity = 1; // Default glow intensity 
+  const activeGlowIntensity = 12; // Slightly higher for active characters
+  const highlightColor = '#ffffff'; // Default green color
+
+  onMount(() => {
+    startScramble();
+  });
+
+  $: if (text && active) {
+    startNewText(text);
   }
-  
-  async function typeText() {
-    displayedText = '';
-    // Clear any existing interval
-    if (blinkInterval) {
-      clearInterval(blinkInterval);
+
+  function randomChar() {
+    const currentCharSet = charSets[charSetName] || charSets.tech;
+    return currentCharSet[Math.floor(Math.random() * currentCharSet.length)];
+  }
+
+  function startNewText(newText) {
+    const oldText = displayElement ? displayElement.innerText : '';
+    const length = Math.max(oldText.length, newText.length);
+    
+    // Create new promise to track completion
+    const promise = new Promise(res => resolve = res);
+    queue = [];
+
+    for (let i = 0; i < length; i++) {
+      const from = oldText[i] || '';
+      const to = newText[i] || '';
+      // Stagger the start times for a more natural flow
+      const start = Math.floor(Math.random() * 20) + (i * 1.5); 
+      const end = start + Math.floor(Math.random() * 20) + 10;
+      queue.push({ from, to, start, end });
     }
-    
-    // Reset cursor state
-    cursorVisible = true;
-    blinkCount = 0;
-    
-    // Type out the text
-    for (let i = 0; i < text.length; i++) {
-      displayedText += text[i];
-      await new Promise(resolve => setTimeout(resolve, typingSpeed));
-    }
-    
-    // Start blinking after typing is complete
-    blinkInterval = setInterval(() => {
-      if (blinkCount >= 6) { // 6 state changes = 3 full blinks
-        clearInterval(blinkInterval);
-        cursorVisible = false;
-        return;
+
+    cancelAnimationFrame(frameRequest);
+    frame = 0;
+    updateFrame();
+    return promise;
+  }
+
+  function updateFrame() {
+    let output = '';
+    let complete = 0;
+
+    for (let i = 0; i < queue.length; i++) {
+      let { from, to, start, end, char } = queue[i];
+
+      if (frame >= end) {
+        complete++;
+        output += to;
+      } else if (frame >= start) {
+        if (!char || Math.random() < changeFrequency) {
+          char = randomChar();
+          queue[i].char = char;
+        }
+        // Use a slightly different color for each character
+        const hue = (i * 2) % 40;
+        const currentHighlight = adjustColor(highlightColor, hue);
+        output += `<span class="scrambling" style="color: ${currentHighlight};">${char}</span>`;
+      } else {
+        output += from;
       }
-      cursorVisible = !cursorVisible;
-      blinkCount++;
-    }, 530);
+    }
+
+    if (displayElement) {
+      displayElement.innerHTML = output;
+    }
+
+    if (complete === queue.length) {
+      if (resolve) resolve();
+    } else {
+      frameRequest = requestAnimationFrame(updateFrame);
+      frame++;
+    }
   }
-  
-  // Clean up interval on component destruction
-  import { onDestroy } from 'svelte';
+
+  // Function to slightly adjust colors for variety
+  function adjustColor(color, shift) {
+    if (color.startsWith('#')) {
+      // Simple hue shift for hex colors
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      
+      // Very slight adjustment to avoid drastic changes
+      const rNew = Math.min(255, Math.max(0, r + (shift - 20)));
+      const gNew = Math.min(255, Math.max(0, g + shift));
+      const bNew = Math.min(255, Math.max(0, b));
+      
+      return `#${rNew.toString(16).padStart(2, '0')}${gNew.toString(16).padStart(2, '0')}${bNew.toString(16).padStart(2, '0')}`;
+    }
+    return color;
+  }
+
+  function startScramble() {
+    active = true;
+    startNewText(text);
+  }
+
+  // Cycle through charsets for variety when text changes
+  let charSetIdx = 0;
+  $: {
+    const charSetKeys = Object.keys(charSets);
+    charSetName = charSetKeys[charSetIdx % charSetKeys.length];
+    charSetIdx++;
+  }
+
   onDestroy(() => {
-    if (blinkInterval) {
-      clearInterval(blinkInterval);
+    active = false;
+    if (frameRequest) {
+      cancelAnimationFrame(frameRequest);
     }
   });
 </script>
 
-<div class="terminal-container" bind:this={containerDiv}>
-  <div class="terminal">
-    <span class="text">{displayedText}</span>
-    {#if cursorVisible}
-      <span class="cursor">█</span>
-    {/if}
-  </div>
+<div class="terminal-container">
+  <div class="terminal" bind:this={displayElement}></div>
 </div>
 
 <style>
@@ -76,15 +156,12 @@
     position: relative;
     display: inline-block;
     text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
   }
   
-  .text {
-    display: inline-block;
-    white-space: nowrap;
-  }
-  
-  .cursor {
-    position: absolute;
-    display: inline-block;
+  :global(.scrambling) {
+    font-weight: bold;
+    transition: color 0.2s ease;
   }
 </style> 

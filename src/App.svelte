@@ -936,6 +936,7 @@
     background-color: transparent;
     border-radius: 8px;
     font-size: 1.5rem;
+    position: relative;
   }
 
   .description-container :global(p) {
@@ -943,6 +944,17 @@
     text-align: center;
     font-size: 1.5rem;
     line-height: 1.3;
+  }
+  
+  .description-container :global(.terminal) {
+    font-family: 'Exo', 'Courier New', monospace;
+    font-size: 1.7rem;
+    color: var(--text-color);
+  }
+  
+  .description-container :global(.scrambling) {
+    color: #00ff88;
+    font-weight: bold;
   }
 
   .app-grid-container {
