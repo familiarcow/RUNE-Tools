@@ -654,15 +654,17 @@
         position: relative;
         max-width: 500px;
         margin: 0 auto;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
     }
 
     .settings-icon {
-        position: absolute;
-        top: -40px;
-        right: 0;
         cursor: pointer;
         font-size: 24px;
         line-height: 1;
+        padding: 10px;
+        margin-top: 20px;
     }
 
     .affiliate-settings {
@@ -696,7 +698,7 @@
       border: 1px solid #444;
       border-radius: 8px;
       padding: 20px;
-      z-index: 10;
+      z-index: 1001;
       width: 300px;
       color: #ffffff;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
