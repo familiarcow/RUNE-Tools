@@ -191,7 +191,7 @@
             </div>
           </div>
           <div class="status-text" class:negative={securityDelta < 0}>
-            {securityDelta < 0 ? 'Network Underbonded' : 'Network Well Bonded'}
+            {securityDelta < 0 ? 'Over Security Budget 🚨' : 'Under security budget ✅'}
           </div>
         </div>
       </div>
