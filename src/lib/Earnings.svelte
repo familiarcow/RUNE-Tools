@@ -853,6 +853,73 @@
       });
     }
   }
+
+  // Helper function to convert data to CSV
+  function downloadCSV(data, filename) {
+    const csvContent = "data:text/csv;charset=utf-8," + data;
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Convert earnings data to CSV
+  function getEarningsCSV() {
+    if (!earningsData) return;
+    
+    const headers = ["Date", "Bonding Earnings", "Liquidity Earnings"];
+    const rows = earningsData.map(interval => {
+      const date = new Date(interval.startTime * 1000).toLocaleDateString();
+      const bondingValue = showUSD ? 
+        ((Number(interval.bondingEarnings) / 1e8) * Number(interval.runePriceUSD)).toFixed(2) :
+        (Number(interval.bondingEarnings) / 1e8).toFixed(8);
+      const liquidityValue = showUSD ? 
+        ((Number(interval.liquidityEarnings) / 1e8) * Number(interval.runePriceUSD)).toFixed(2) :
+        (Number(interval.liquidityEarnings) / 1e8).toFixed(8);
+      return [date, bondingValue, liquidityValue].join(",");
+    });
+    
+    return [headers.join(","), ...rows].join("\n");
+  }
+
+  // Convert fees data to CSV
+  function getFeesCSV() {
+    if (!earningsData) return;
+    
+    const headers = ["Date", "Block Rewards", "Liquidity Fees"];
+    const rows = earningsData.map(interval => {
+      const date = new Date(interval.startTime * 1000).toLocaleDateString();
+      const blockRewards = showUSD ? 
+        ((Number(interval.blockRewards) / 1e8) * Number(interval.runePriceUSD)).toFixed(2) :
+        (Number(interval.blockRewards) / 1e8).toFixed(8);
+      const liquidityFees = showUSD ? 
+        ((Number(interval.liquidityFees) / 1e8) * Number(interval.runePriceUSD)).toFixed(2) :
+        (Number(interval.liquidityFees) / 1e8).toFixed(8);
+      return [date, blockRewards, liquidityFees].join(",");
+    });
+    
+    return [headers.join(","), ...rows].join("\n");
+  }
+
+  // Convert pool data to CSV
+  function getPoolCSV(poolName) {
+    if (!earningsData) return;
+    
+    const headers = ["Date", "Earnings"];
+    const poolData = getPoolData(poolName);
+    const rows = poolData.map(d => {
+      const runeAmount = Number(d.earnings) / 1e8;
+      const value = showUSD ? 
+        (runeAmount * Number(d.runePrice)).toFixed(2) :
+        runeAmount.toFixed(8);
+      return [d.date, value].join(",");
+    });
+    
+    return [headers.join(","), ...rows].join("\n");
+  }
 </script>
 
 <div class="earnings-container">
@@ -977,18 +1044,27 @@
   <div class="chart-section">
     <div class="section-header">
       <h2>Bond & Liquidity Earnings (Last {days} Days)</h2>
-      <label class="toggle">
-        <input 
-          type="checkbox" 
-          bind:checked={showEarningsProportions}
+      <div class="chart-controls">
+        <button 
+          class="download-button" 
+          on:click={() => downloadCSV(getEarningsCSV(), `thorchain_earnings_${days}days.csv`)}
+          title="Download CSV"
         >
-        <span class="slider">
-          <span class="knob">
-            <img src="/assets/coins/RUNE-ICON.svg" alt="Amount" class="knob-icon rune" />
-            <span class="knob-icon dollar">%</span>
+          <img src="/assets/icons/download.svg" alt="Download CSV" />
+        </button>
+        <label class="toggle">
+          <input 
+            type="checkbox" 
+            bind:checked={showEarningsProportions}
+          >
+          <span class="slider">
+            <span class="knob">
+              <img src="/assets/coins/RUNE-ICON.svg" alt="Amount" class="knob-icon rune" />
+              <span class="knob-icon dollar">%</span>
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      </div>
     </div>
     <div class="chart-container">
       <canvas bind:this={chartCanvas}></canvas>
@@ -998,18 +1074,27 @@
   <div class="chart-section">
     <div class="section-header">
       <h2>Earnings Source (Last {days} Days)</h2>
-      <label class="toggle">
-        <input 
-          type="checkbox" 
-          bind:checked={showProportions}
+      <div class="chart-controls">
+        <button 
+          class="download-button" 
+          on:click={() => downloadCSV(getFeesCSV(), `thorchain_fees_${days}days.csv`)}
+          title="Download CSV"
         >
-        <span class="slider">
-          <span class="knob">
-            <img src="/assets/coins/RUNE-ICON.svg" alt="Amount" class="knob-icon rune" />
-            <span class="knob-icon dollar">%</span>
+          <img src="/assets/icons/download.svg" alt="Download CSV" />
+        </button>
+        <label class="toggle">
+          <input 
+            type="checkbox" 
+            bind:checked={showProportions}
+          >
+          <span class="slider">
+            <span class="knob">
+              <img src="/assets/coins/RUNE-ICON.svg" alt="Amount" class="knob-icon rune" />
+              <span class="knob-icon dollar">%</span>
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      </div>
     </div>
     <div class="chart-container">
       <canvas bind:this={feesChartCanvas}></canvas>
@@ -1050,19 +1135,28 @@
       {#each getUniquePools(earningsData) as poolName (poolName)}
         <div class="pool-chart-container">
           <div class="pool-header">
-            <h3>{formatPoolName(poolName)}</h3>
-            {#if poolsData && poolsData[poolName]}
-              <div class="pool-depth-info">
-                <span class="depth-label">Pool Depth:</span>
-                <span class="depth-value">
-                  {#if showUSD}
-                    ${Math.round(poolsData[poolName].usdDepth).toLocaleString()}
-                  {:else}
-                    {formatNumber(poolsData[poolName].runeDepth * 1e8)} ᚱ
-                  {/if}
-                </span>
-              </div>
-            {/if}
+            <div class="pool-header-content">
+              <h3>{formatPoolName(poolName)}</h3>
+              {#if poolsData && poolsData[poolName]}
+                <div class="pool-depth-info">
+                  <span class="depth-label">Pool Depth:</span>
+                  <span class="depth-value">
+                    {#if showUSD}
+                      ${Math.round(poolsData[poolName].usdDepth).toLocaleString()}
+                    {:else}
+                      {formatNumber(poolsData[poolName].runeDepth * 1e8)} ᚱ
+                    {/if}
+                  </span>
+                </div>
+              {/if}
+            </div>
+            <button 
+              class="download-button" 
+              on:click={() => downloadCSV(getPoolCSV(poolName), `thorchain_pool_${poolName}_${days}days.csv`)}
+              title="Download CSV"
+            >
+              <img src="/assets/icons/download.svg" alt="Download CSV" />
+            </button>
           </div>
           <div class="pool-chart">
             <canvas data-pool={poolName} use:initPoolChart={poolName}></canvas>
@@ -1545,9 +1639,15 @@
 
   .pool-header {
     display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+  }
+
+  .pool-header-content {
+    display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 15px;
   }
 
   .pool-header h3 {
@@ -1576,5 +1676,37 @@
   .depth-value {
     color: #4A90E2;
     font-weight: 600;
+  }
+
+  .chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .download-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    border-radius: 4px;
+  }
+
+  .download-button:hover {
+    opacity: 1;
+    background: rgba(74, 144, 226, 0.1);
+  }
+
+  .download-button img {
+    width: 16px;
+    height: 16px;
+    filter: invert(60%) sepia(12%) saturate(1352%) hue-rotate(177deg) brightness(91%) contrast(87%);
   }
 </style>
