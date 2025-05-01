@@ -956,6 +956,83 @@
     return days === 99999 ? 'All Time' : `Last ${days} Days`;
   }
 
+  function downloadCSV(data, filename) {
+    const csvContent = "data:text/csv;charset=utf-8," + data;
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Convert swappers data to CSV
+  function getSwappersCSV() {
+    if (!swappersData) return;
+    
+    const headers = ["Date", "Daily Unique Swappers", "30-Day Average"];
+    const rows = getFilteredSwappersData().map(d => {
+      const date = new Date(d.DAY).toLocaleDateString();
+      return [date, d.DAILY_UNIQUE_SWAPPER_COUNT, d.UNIQUE_SWAPPER_COUNT_30D_MA].join(",");
+    });
+    
+    return [headers.join(","), ...rows].join("\n");
+  }
+
+  // Convert volume data to CSV
+  function getVolumeCSV() {
+    if (!volumeData) return;
+    
+    const headers = ["Date", "Chain", "Volume (USD)"];
+    const rows = getFilteredVolumeData().map(d => {
+      const date = new Date(d.DAY).toLocaleDateString();
+      return [date, d.BLOCKCHAIN, d.VOLUME_USD].join(",");
+    });
+    
+    return [headers.join(","), ...rows].join("\n");
+  }
+
+  // Convert DEX volume data to CSV
+  function getDexVolumeCSV() {
+    if (!dexVolumeData) return;
+    
+    const headers = ["Date", "Protocol", "Volume (USD)"];
+    const rows = getFilteredDexVolumeData().map(d => {
+      const date = new Date(d.DAY).toLocaleDateString();
+      return [date, d.PROTOCOL_NAME, d.VOLUME_USD].join(",");
+    });
+    
+    return [headers.join(","), ...rows].join("\n");
+  }
+
+  // Convert module balances data to CSV
+  function getModuleBalancesCSV() {
+    if (!moduleBalancesData) return;
+    
+    const headers = ["Date", "Reserve Module", "Bond Module", "Pool Module", "Total"];
+    const rows = getFilteredModuleBalancesData().map(d => {
+      const date = new Date(d.DAY).toLocaleDateString();
+      const total = d.RESERVE_MODULE_BALANCE + d.BOND_MODULE_BALANCE + d.POOL_MODULE_BALANCE;
+      return [date, d.RESERVE_MODULE_BALANCE, d.BOND_MODULE_BALANCE, d.POOL_MODULE_BALANCE, total].join(",");
+    });
+    
+    return [headers.join(","), ...rows].join("\n");
+  }
+
+  // Convert addresses data to CSV
+  function getAddressesCSV() {
+    if (!addressesData) return;
+    
+    const headers = ["Date", "New Addresses", "Total Addresses"];
+    const rows = getFilteredAddressesData().map(d => {
+      const date = new Date(d.DAY).toLocaleDateString();
+      return [date, d.NEW_ADDRESSES, d.NEW_ADDRESSES_CUMULATIVE].join(",");
+    });
+    
+    return [headers.join(","), ...rows].join("\n");
+  }
+
   onMount(async () => {
     isLoading = true;
     try {
@@ -986,6 +1063,13 @@
   <div class="chart-section">
     <div class="section-header">
       <h2>Daily Unique Swappers ({getTimeframeDisplay(days)})</h2>
+      <button 
+        class="download-button" 
+        on:click={() => downloadCSV(getSwappersCSV(), `thorchain_swappers_${days}days.csv`)}
+        title="Download CSV"
+      >
+        <img src="/assets/icons/download.svg" alt="Download CSV" />
+      </button>
     </div>
     <div class="chart-container">
       <canvas bind:this={swappersChartCanvas}></canvas>
@@ -995,6 +1079,13 @@
   <div class="chart-section">
     <div class="section-header">
       <h2>Daily Volume by Chain ({getTimeframeDisplay(days)})</h2>
+      <button 
+        class="download-button" 
+        on:click={() => downloadCSV(getVolumeCSV(), `thorchain_volume_${days}days.csv`)}
+        title="Download CSV"
+      >
+        <img src="/assets/icons/download.svg" alt="Download CSV" />
+      </button>
     </div>
     <div class="chart-container">
       <canvas bind:this={volumeChartCanvas}></canvas>
@@ -1004,19 +1095,28 @@
   <div class="chart-section">
     <div class="section-header">
       <h2>Daily DEX Volume Comparison ({getTimeframeDisplay(days)})</h2>
-      <label class="toggle">
-        <input 
-          type="checkbox" 
-          bind:checked={showDexPercentages}
-          on:change={updateDexVolumeChart}
+      <div class="chart-controls">
+        <button 
+          class="download-button" 
+          on:click={() => downloadCSV(getDexVolumeCSV(), `thorchain_dex_volume_${days}days.csv`)}
+          title="Download CSV"
         >
-        <span class="slider">
-          <span class="knob">
-            <img src="/assets/coins/RUNE-ICON.svg" alt="Amount" class="knob-icon rune" />
-            <span class="knob-icon dollar">%</span>
+          <img src="/assets/icons/download.svg" alt="Download CSV" />
+        </button>
+        <label class="toggle">
+          <input 
+            type="checkbox" 
+            bind:checked={showDexPercentages}
+            on:change={updateDexVolumeChart}
+          >
+          <span class="slider">
+            <span class="knob">
+              <img src="/assets/coins/RUNE-ICON.svg" alt="Amount" class="knob-icon rune" />
+              <span class="knob-icon dollar">%</span>
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      </div>
     </div>
     <div class="chart-container">
       <canvas bind:this={dexVolumeChartCanvas}></canvas>
@@ -1026,6 +1126,13 @@
   <div class="chart-section">
     <div class="section-header">
       <h2>THORChain DEX Dominance ({getTimeframeDisplay(days)})</h2>
+      <button 
+        class="download-button" 
+        on:click={() => downloadCSV(getDexVolumeCSV(), `thorchain_dex_dominance_${days}days.csv`)}
+        title="Download CSV"
+      >
+        <img src="/assets/icons/download.svg" alt="Download CSV" />
+      </button>
     </div>
     <div class="chart-container">
       <canvas bind:this={dominanceChartCanvas}></canvas>
@@ -1035,6 +1142,13 @@
   <div class="chart-section">
     <div class="section-header">
       <h2>Module Balances ({getTimeframeDisplay(days)})</h2>
+      <button 
+        class="download-button" 
+        on:click={() => downloadCSV(getModuleBalancesCSV(), `thorchain_module_balances_${days}days.csv`)}
+        title="Download CSV"
+      >
+        <img src="/assets/icons/download.svg" alt="Download CSV" />
+      </button>
     </div>
     <div class="chart-container">
       <canvas bind:this={moduleBalancesChartCanvas}></canvas>
@@ -1044,19 +1158,28 @@
   <div class="chart-section">
     <div class="section-header">
       <h2>THORChain Addresses ({getTimeframeDisplay(days)})</h2>
-      <label class="toggle">
-        <input 
-          type="checkbox" 
-          bind:checked={showDailyAddresses}
-          on:change={updateAddressesChart}
+      <div class="chart-controls">
+        <button 
+          class="download-button" 
+          on:click={() => downloadCSV(getAddressesCSV(), `thorchain_addresses_${days}days.csv`)}
+          title="Download CSV"
         >
-        <span class="slider">
-          <span class="knob">
-            <span class="knob-icon rune">Σ</span>
-            <span class="knob-icon dollar">Δ</span>
+          <img src="/assets/icons/download.svg" alt="Download CSV" />
+        </button>
+        <label class="toggle">
+          <input 
+            type="checkbox" 
+            bind:checked={showDailyAddresses}
+            on:change={updateAddressesChart}
+          >
+          <span class="slider">
+            <span class="knob">
+              <span class="knob-icon rune">Σ</span>
+              <span class="knob-icon dollar">Δ</span>
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      </div>
     </div>
     <div class="chart-container">
       <canvas bind:this={addressesChartCanvas}></canvas>
@@ -1254,5 +1377,35 @@
       font-size: 18px;
       padding: 10px;
     }
+  }
+
+  .chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .download-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    border-radius: 4px;
+  }
+
+  .download-button:hover {
+    opacity: 1;
+    background: rgba(74, 144, 226, 0.1);
+  }
+
+  .download-button img {
+    width: 16px;
+    height: 16px;
+    filter: invert(60%) sepia(12%) saturate(1352%) hue-rotate(177deg) brightness(91%) contrast(87%);
   }
 </style>
