@@ -4,24 +4,45 @@
   import { cubicOut } from 'svelte/easing';
 
   const claims = writable([]);
+  const remainingClaims = writable(new Set());
   const showMethodology = writable(false);
   const searchQuery = writable('');
 
   // Create a derived store for filtered claims
   const filteredClaims = derived(
-    [claims, searchQuery],
-    ([$claims, $searchQuery]) => {
-      if (!$searchQuery) return $claims;
+    [claims, searchQuery, remainingClaims],
+    ([$claims, $searchQuery, $remainingClaims]) => {
+      if (!$searchQuery) return $claims.map(claim => ({
+        ...claim,
+        hasClaimed: !$remainingClaims.has(claim.address)
+      }));
       const query = $searchQuery.toLowerCase();
-      return $claims.filter(claim => 
-        claim.address.toLowerCase().includes(query)
-      );
+      return $claims
+        .filter(claim => claim.address.toLowerCase().includes(query))
+        .map(claim => ({
+          ...claim,
+          hasClaimed: !$remainingClaims.has(claim.address)
+        }));
     }
   );
 
   // Add a derived store for the total amount
   const totalAmount = derived(claims, $claims => 
     $claims.reduce((sum, claim) => sum + claim.amount, 0)
+  );
+
+  // Add a derived store for claimed amount
+  const claimedAmount = derived([claims, remainingClaims], ([$claims, $remainingClaims]) => 
+    $claims
+      .filter(claim => !$remainingClaims.has(claim.address))
+      .reduce((sum, claim) => sum + claim.amount, 0)
+  );
+
+  // Add a derived store for remaining amount
+  const remainingAmount = derived([claims, remainingClaims], ([$claims, $remainingClaims]) => 
+    $claims
+      .filter(claim => $remainingClaims.has(claim.address))
+      .reduce((sum, claim) => sum + claim.amount, 0)
   );
 
   const methodologyText = {
@@ -61,6 +82,7 @@
 
   onMount(async () => {
     try {
+      // Fetch initial claims data
       const response = await fetch('/tcy_claims.json');
       const data = await response.json();
       
@@ -71,6 +93,14 @@
       })).sort((a, b) => b.amount - a.amount); // Sort by amount descending
       
       claims.set(processedClaims);
+
+      // Fetch remaining claims data
+      const claimersResponse = await fetch('https://thornode.ninerealms.com/thorchain/tcy_claimers');
+      const claimersData = await claimersResponse.json();
+      
+      // Create a set of addresses that still have claims remaining
+      const remainingSet = new Set(claimersData.tcy_claimers.map(claimer => claimer.l1_address));
+      remainingClaims.set(remainingSet);
     } catch (error) {
       console.error('Failed to fetch TCY claims:', error);
     }
@@ -149,8 +179,16 @@
       </div>
     {/if}
 
-    <div class="total-amount">
-      Total TCY: {formatNumber($totalAmount)}
+    <div class="amounts-container">
+      <div class="total-amount">
+        Total TCY: {formatNumber($totalAmount)}
+      </div>
+      <div class="claimed-amount">
+        Claimed TCY: {formatNumber($claimedAmount)}
+      </div>
+      <div class="remaining-amount">
+        Unclaimed TCY: {formatNumber($remainingAmount)}
+      </div>
     </div>
 
     <div class="search-container">
@@ -169,6 +207,7 @@
             <tr>
               <th>Address</th>
               <th>TCY Claim Amount</th>
+              <th>Claimed</th>
             </tr>
           </thead>
           <tbody>
@@ -176,6 +215,7 @@
               <tr>
                 <td class="address-cell">{claim.address}</td>
                 <td class="amount-cell">{formatNumber(claim.amount)}</td>
+                <td class="status-cell">{claim.hasClaimed ? '✅' : '⏳'}</td>
               </tr>
             {/each}
           </tbody>
@@ -357,15 +397,37 @@
     font-size: 14px;
   }
 
-  .total-amount {
+  .amounts-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .total-amount, .claimed-amount, .remaining-amount {
+    flex: 1;
     background: #2c2c2c;
     padding: 16px;
     border-radius: 8px;
-    margin-bottom: 20px;
     text-align: center;
     font-family: monospace;
     font-size: 18px;
+  }
+
+  .total-amount {
     color: #4A90E2;
+  }
+
+  .claimed-amount {
+    color: #4CAF50;
+  }
+
+  .remaining-amount {
+    color: #FFA726;
+  }
+
+  .status-cell {
+    text-align: center;
+    font-size: 18px;
   }
 
   .methodology-section {
@@ -456,9 +518,9 @@
       padding: 10px;
     }
 
-    .total-amount {
-      font-size: 16px;
-      padding: 12px;
+    .amounts-container {
+      flex-direction: column;
+      gap: 10px;
     }
   }
 </style>
