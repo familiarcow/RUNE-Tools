@@ -248,6 +248,13 @@
       path: "tcy-claims", 
       description: "Check TCY claims" 
     },
+    {
+      name: "TCY",
+      component: () => import("./lib/TCY.svelte"),
+      icon: "/assets/coins/TCY.svg",
+      path: "tcy",
+      description: "Track your staked TCY and yield"
+    },
     { 
       name: "Trade Assets", 
       component: () => import("./lib/TradeAssets.svelte"), 
