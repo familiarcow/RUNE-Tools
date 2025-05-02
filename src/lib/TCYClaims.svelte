@@ -7,22 +7,49 @@
   const remainingClaims = writable(new Set());
   const showMethodology = writable(false);
   const searchQuery = writable('');
+  const sortBy = writable({ column: 'claimed', direction: 'desc' });
 
   // Create a derived store for filtered claims
   const filteredClaims = derived(
-    [claims, searchQuery, remainingClaims],
-    ([$claims, $searchQuery, $remainingClaims]) => {
-      if (!$searchQuery) return $claims.map(claim => ({
+    [claims, searchQuery, remainingClaims, sortBy],
+    ([$claims, $searchQuery, $remainingClaims, $sortBy]) => {
+      let filtered = $claims;
+      
+      // Apply search filter if query exists
+      if ($searchQuery) {
+        const query = $searchQuery.toLowerCase();
+        filtered = filtered.filter(claim => claim.address.toLowerCase().includes(query));
+      }
+
+      // Add claimed status
+      filtered = filtered.map(claim => ({
         ...claim,
         hasClaimed: !$remainingClaims.has(claim.address)
       }));
-      const query = $searchQuery.toLowerCase();
-      return $claims
-        .filter(claim => claim.address.toLowerCase().includes(query))
-        .map(claim => ({
-          ...claim,
-          hasClaimed: !$remainingClaims.has(claim.address)
-        }));
+
+      // Apply sorting
+      filtered.sort((a, b) => {
+        if ($sortBy.column === 'claimed') {
+          // Sort by claimed status first
+          if (a.hasClaimed !== b.hasClaimed) {
+            return $sortBy.direction === 'desc' 
+              ? (a.hasClaimed ? -1 : 1)
+              : (a.hasClaimed ? 1 : -1);
+          }
+          // Then by amount
+          return $sortBy.direction === 'desc' 
+            ? b.amount - a.amount
+            : a.amount - b.amount;
+        } else if ($sortBy.column === 'amount') {
+          // Sort by amount
+          return $sortBy.direction === 'desc' 
+            ? b.amount - a.amount
+            : a.amount - b.amount;
+        }
+        return 0;
+      });
+
+      return filtered;
     }
   );
 
@@ -129,6 +156,29 @@
       }
     };
   }
+
+  function handleSort(column) {
+    sortBy.update(current => {
+      if (current.column === column) {
+        // Toggle direction if clicking same column
+        return {
+          column,
+          direction: current.direction === 'desc' ? 'asc' : 'desc'
+        };
+      }
+      // Set new column with default direction
+      return {
+        column,
+        direction: 'desc'
+      };
+    });
+  }
+
+  function getSortIcon(column) {
+    const $sortBy = sortBy;
+    if ($sortBy.column !== column) return '↕️';
+    return $sortBy.direction === 'desc' ? '↓' : '↑';
+  }
 </script>
 
 <main>
@@ -187,7 +237,7 @@
         Claimed TCY: {formatNumber($claimedAmount)}
       </div>
       <div class="remaining-amount">
-        Unclaimed TCY: {formatNumber($remainingAmount)}
+        Unclaimed: {formatNumber($remainingAmount)}
       </div>
     </div>
 
@@ -206,8 +256,12 @@
           <thead>
             <tr>
               <th>Address</th>
-              <th>TCY Claim Amount</th>
-              <th>Claimed</th>
+              <th on:click={() => handleSort('amount')} class="sortable">
+                TCY Claim Amount {getSortIcon('amount')}
+              </th>
+              <th on:click={() => handleSort('claimed')} class="sortable">
+                Claimed {getSortIcon('claimed')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -522,5 +576,14 @@
       flex-direction: column;
       gap: 10px;
     }
+  }
+
+  .sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .sortable:hover {
+    background-color: rgba(74, 144, 226, 0.1);
   }
 </style>
