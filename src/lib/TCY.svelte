@@ -61,20 +61,35 @@
       await fetchTCYPrice();
 
       // Fetch distribution history
-      const distributionData = await fetchJSON(`https://midgard.ninerealms.com/v2/tcy/distribution/${address}`);
-      distributions = distributionData.distributions;
-      totalDistributed = Number(distributionData.total) / 1e8;
+      try {
+        const distributionData = await fetchJSON(`https://midgard.ninerealms.com/v2/tcy/distribution/${address}`);
+        distributions = distributionData.distributions;
+        totalDistributed = Number(distributionData.total) / 1e8;
+      } catch (error) {
+        distributions = [];
+        totalDistributed = 0;
+      }
 
       // Fetch staked balance
-      const stakedData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/tcy_staker/${address}`);
-      stakedBalance = Number(stakedData.amount) / 1e8;
+      try {
+        const stakedData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/tcy_staker/${address}`);
+        stakedBalance = Number(stakedData.amount) / 1e8;
+      } catch (error) {
+        stakedBalance = 0;
+      }
 
-      // Fetch unstaked balances
-      const unstakedData = await fetchJSON(`https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances/${address}`);
-      const tcyBalance = unstakedData.balances.find(b => b.denom === "tcy");
-      const runeBalance = unstakedData.balances.find(b => b.denom === "rune");
-      unstakedBalance = tcyBalance ? Number(tcyBalance.amount) / 1e8 : 0;
-      unstakedRuneBalance = runeBalance ? Number(runeBalance.amount) / 1e8 : 0;
+      // Fetch unstaked balances (always attempt this, even if staked fetch fails)
+      try {
+        const unstakedData = await fetchJSON(`https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances/${address}`);
+        const tcyBalance = unstakedData.balances.find(b => b.denom === "tcy");
+        const runeBalance = unstakedData.balances.find(b => b.denom === "rune");
+        unstakedBalance = tcyBalance ? Number(tcyBalance.amount) / 1e8 : 0;
+        unstakedRuneBalance = runeBalance ? Number(runeBalance.amount) / 1e8 : 0;
+      } catch (error) {
+        unstakedBalance = 'ERROR';
+        unstakedRuneBalance = 'ERROR';
+        console.log('ERROR');
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -112,7 +127,7 @@
 
   const getRecentDistributions = () => {
     const sevenDaysAgo = Date.now() / 1000 - (7 * 24 * 60 * 60);
-    return distributions.filter(d => Number(d.date) >= sevenDaysAgo);
+    return (distributions || []).filter(d => Number(d.date) >= sevenDaysAgo);
   };
 
   const downloadCSV = () => {
@@ -184,7 +199,7 @@
     };
   };
 
-  $: apyStats = distributions.length > 0 ? calculateAPY(distributions) : null;
+  $: apyStats = (distributions && distributions.length > 0) ? calculateAPY(distributions) : null;
 
   onMount(() => {
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -195,14 +210,16 @@
 <div class="tcy-tracker-wrapper">
   <div class="tcy-tracker">
     {#if !showData}
-      <form on:submit={handleSubmit}>
-        <h2>TCY Yield Tracker</h2>
-        <label>
-          Address:
-          <input type="text" bind:value={address} required />
-        </label>
-        <button type="submit">Track TCY</button>
-      </form>
+      <div class="address-form-outer">
+        <form class="address-form-card" on:submit={handleSubmit}>
+          <h2 class="address-form-title">TCY Yield Tracker</h2>
+          <div class="address-form-group">
+            <label for="address-input" class="address-form-label">Address</label>
+            <input id="address-input" class="address-form-input" type="text" bind:value={address} required placeholder="Enter your address..." />
+          </div>
+          <button class="address-form-btn" type="submit">Track TCY</button>
+        </form>
+      </div>
     {:else}
       <div class="container">
         <h2>TCY Yield Tracker - {address.slice(-4)}</h2>
@@ -276,8 +293,12 @@
                   <span>TCY</span>
                 </div>
                 <div class="balance-info">
-                  <span class="amount">{numFormat(unstakedBalance.toFixed(1))}</span>
-                  <span class="usd-value">{formatCurrency(unstakedBalance * tcyPriceUSD)}</span>
+                  <span class="amount">
+                    {unstakedBalance === 'ERROR' ? 'ERROR' : numFormat(unstakedBalance.toFixed(1))}
+                  </span>
+                  <span class="usd-value">
+                    {unstakedBalance === 'ERROR' ? 'ERROR' : formatCurrency(unstakedBalance * tcyPriceUSD)}
+                  </span>
                 </div>
               </div>
               <div class="balance-row">
@@ -286,8 +307,12 @@
                   <span>RUNE</span>
                 </div>
                 <div class="balance-info">
-                  <span class="amount">{formatRuneAmount(unstakedRuneBalance * 1e8)}</span>
-                  <span class="usd-value">{formatCurrency(unstakedRuneBalance * runePriceUSD)}</span>
+                  <span class="amount">
+                    {unstakedRuneBalance === 'ERROR' ? 'ERROR' : formatRuneAmount(unstakedRuneBalance * 1e8)}
+                  </span>
+                  <span class="usd-value">
+                    {unstakedRuneBalance === 'ERROR' ? 'ERROR' : formatCurrency(unstakedRuneBalance * runePriceUSD)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -295,7 +320,7 @@
 
           <div class="distribution-history">
             <div class="history-header">
-              <h3>Distribution History ({distributions.length} events)</h3>
+              <h3>Distribution History ({distributions && distributions.length ? distributions.length : 0} events)</h3>
               <div class="history-controls">
                 <button class="icon-button" on:click={() => showAllDistributions = !showAllDistributions} title={showAllDistributions ? 'Show Last 7 Days' : 'Show All History'}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrows-expand" viewBox="0 0 16 16">
@@ -776,5 +801,91 @@
   .icon-link svg {
     width: 16px;
     height: 16px;
+  }
+
+  .address-form-outer {
+    min-height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 60vh;
+  }
+
+  .address-form-card {
+    background: #232323;
+    border-radius: 16px;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.18), 0 1.5px 6px rgba(40,244,175,0.04);
+    padding: 2.5rem 2rem 2rem 2rem;
+    max-width: 400px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    border: 1.5px solid #282828;
+  }
+
+  .address-form-title {
+    color: #28f4af;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.01em;
+    text-align: center;
+  }
+
+  .address-form-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .address-form-label {
+    color: #b0b0b0;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.01em;
+  }
+
+  .address-form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1.5px solid #333;
+    background: #181818;
+    color: #fff;
+    font-size: 1.1rem;
+    font-family: inherit;
+    transition: border 0.2s, box-shadow 0.2s;
+    outline: none;
+    box-shadow: 0 1px 2px rgba(40,244,175,0.03);
+  }
+  .address-form-input:focus {
+    border-color: #28f4af;
+    box-shadow: 0 0 0 2px rgba(40,244,175,0.12);
+  }
+
+  .address-form-btn {
+    margin-top: 0.5rem;
+    width: 100%;
+    padding: 0.85rem 0;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(90deg, #28f4af 0%, #1eebeb 100%);
+    color: #181818;
+    font-size: 1.15rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    box-shadow: 0 2px 8px rgba(40,244,175,0.08);
+    letter-spacing: 0.01em;
+  }
+  .address-form-btn:hover, .address-form-btn:focus {
+    background: linear-gradient(90deg, #1eebeb 0%, #28f4af 100%);
+    color: #101010;
+    box-shadow: 0 4px 16px rgba(40,244,175,0.13);
   }
 </style>
