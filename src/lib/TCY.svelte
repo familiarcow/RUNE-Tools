@@ -291,6 +291,7 @@
                 <div class="asset-info">
                   <img src="/assets/coins/TCY.svg" alt="TCY" class="tcy-icon" />
                   <span>TCY</span>
+                  <span class="asset-price">{tcyPriceUSD ? formatCurrency(tcyPriceUSD) : ''}</span>
                 </div>
                 <div class="balance-info">
                   <span class="amount">
@@ -305,6 +306,7 @@
                 <div class="asset-info">
                   <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
                   <span>RUNE</span>
+                  <span class="asset-price">{runePriceUSD ? formatCurrency(runePriceUSD) : ''}</span>
                 </div>
                 <div class="balance-info">
                   <span class="amount">
@@ -887,5 +889,13 @@
     background: linear-gradient(90deg, #1eebeb 0%, #28f4af 100%);
     color: #101010;
     box-shadow: 0 4px 16px rgba(40,244,175,0.13);
+  }
+
+  .asset-price {
+    color: #a9a9a9;
+    font-size: 0.95em;
+    margin-left: 6px;
+    font-weight: 400;
+    letter-spacing: 0.01em;
   }
 </style>
