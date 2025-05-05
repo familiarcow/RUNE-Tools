@@ -41,7 +41,7 @@
 
   const fetchTCYPrice = async () => {
     try {
-      const poolsData = await fetchJSON("https://stagenet-thornode.ninerealms.com/thorchain/pools");
+      const poolsData = await fetchJSON("https://thornode.ninerealms.com/thorchain/pools");
       const tcyPool = poolsData.find(pool => pool.asset === "THOR.TCY");
       if (tcyPool) {
         tcyPriceUSD = Number(tcyPool.asset_tor_price) / 1e8;
@@ -55,22 +55,22 @@
   const fetchData = async () => {
     try {
       // Fetch RUNE and TCY prices first
-      const networkData = await fetchJSON("https://stagenet-thornode.ninerealms.com/thorchain/network");
+      const networkData = await fetchJSON("https://thornode.ninerealms.com/thorchain/network");
       runePriceInTor = Number(networkData.rune_price_in_tor);
       runePriceUSD = runePriceInTor / 1e8;
       await fetchTCYPrice();
 
       // Fetch distribution history
-      const distributionData = await fetchJSON(`https://stagenet-midgard.ninerealms.com/v2/tcy/distribution/${address}`);
+      const distributionData = await fetchJSON(`https://midgard.ninerealms.com/v2/tcy/distribution/${address}`);
       distributions = distributionData.distributions;
       totalDistributed = Number(distributionData.total) / 1e8;
 
       // Fetch staked balance
-      const stakedData = await fetchJSON(`https://stagenet-thornode.ninerealms.com/thorchain/tcy_staker/${address}`);
+      const stakedData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/tcy_staker/${address}`);
       stakedBalance = Number(stakedData.amount) / 1e8;
 
       // Fetch unstaked balances
-      const unstakedData = await fetchJSON(`https://stagenet-thornode.ninerealms.com/cosmos/bank/v1beta1/balances/${address}`);
+      const unstakedData = await fetchJSON(`https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances/${address}`);
       const tcyBalance = unstakedData.balances.find(b => b.denom === "tcy");
       const runeBalance = unstakedData.balances.find(b => b.denom === "rune");
       unstakedBalance = tcyBalance ? Number(tcyBalance.amount) / 1e8 : 0;
