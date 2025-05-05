@@ -182,7 +182,7 @@
           </div>
         </div>
         <div class="metric main">
-          <h2>Security Budget (Bottom 2/3)</h2>
+          <h2>Security Budget</h2>
           <div class="value">
             {formatNumber(totalSecurityBudget)}
             <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
