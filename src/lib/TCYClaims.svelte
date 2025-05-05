@@ -8,6 +8,19 @@
   const showMethodology = writable(false);
   const searchQuery = writable('');
   const sortBy = writable({ column: 'claimed', direction: 'desc' });
+  let tcyPriceUSD = 0;
+
+  const fetchTCYPrice = async () => {
+    try {
+      const poolsData = await fetch("https://thornode.ninerealms.com/thorchain/pools").then(res => res.json());
+      const tcyPool = poolsData.find(pool => pool.asset === "THOR.TCY");
+      if (tcyPool) {
+        tcyPriceUSD = Number(tcyPool.asset_tor_price) / 1e8;
+      }
+    } catch (error) {
+      console.error("Error fetching TCY price:", error);
+    }
+  };
 
   // Create a derived store for filtered claims
   const filteredClaims = derived(
@@ -109,6 +122,9 @@
 
   onMount(async () => {
     try {
+      // Fetch TCY price
+      await fetchTCYPrice();
+
       // Fetch initial claims data
       const response = await fetch('/tcy_claims.json');
       const data = await response.json();
@@ -185,7 +201,13 @@
   <div class="container">
     <div class="app-header">
       <h2>TCY Claims</h2>
-      <div class="info-icon" on:click={() => showMethodology.update(v => !v)}>ⓘ</div>
+      <div class="header-right">
+        <div class="tcy-price">
+          <img src="/assets/coins/TCY.svg" alt="TCY" class="tcy-icon" />
+          {tcyPriceUSD ? `$${tcyPriceUSD.toFixed(2)}` : '...'}
+        </div>
+        <div class="info-icon" on:click={() => showMethodology.update(v => !v)}>ⓘ</div>
+      </div>
     </div>
 
     {#if $showMethodology}
@@ -319,9 +341,29 @@
     color: #f8f8f8;
   }
 
-  .info-icon {
+  .header-right {
     position: absolute;
     right: 0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .tcy-price {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #a9a9a9;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .tcy-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .info-icon {
     background: none;
     border: none;
     color: #4A90E2;
