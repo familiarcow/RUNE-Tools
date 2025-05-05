@@ -10,6 +10,8 @@
   let totalNodeBond = 0;
   let totalPooledRune = 0;
   let securityDelta = 0;
+  let tvlCapBasisPoints = -1;
+  let effectiveSecurityBudget = 0;
 
   // Asset logos configuration
   const assetLogos = {
@@ -78,6 +80,10 @@
       const poolsResponse = await fetch('https://thornode.ninerealms.com/thorchain/pools');
       const pools = await poolsResponse.json();
 
+      // Fetch TVLCAPBASISPOINTS
+      const tvlCapResponse = await fetch('https://thornode.ninerealms.com/thorchain/mimir/key/TVLCAPBASISPOINTS');
+      tvlCapBasisPoints = await tvlCapResponse.json();
+
       // Create a map of asset prices in RUNE
       const assetPrices = {};
       pools.forEach(pool => {
@@ -132,8 +138,15 @@
       const cutoffIndex = Math.floor(activeNodes.length / 3);
       const bottomTwoThirdsNodes = activeNodes.slice(cutoffIndex);
 
-      // Calculate security budget from bottom 2/3 of nodes
-      totalSecurityBudget = bottomTwoThirdsNodes.reduce((sum, node) => sum + Number(node.total_bond), 0) / 1e8;
+      // Calculate effective security budget from bottom 2/3 of nodes (legacy method)
+      effectiveSecurityBudget = bottomTwoThirdsNodes.reduce((sum, node) => sum + Number(node.total_bond), 0) / 1e8;
+
+      // Calculate new security budget based on TVLCAPBASISPOINTS
+      if (tvlCapBasisPoints === -1) {
+        totalSecurityBudget = effectiveSecurityBudget;
+      } else {
+        totalSecurityBudget = (tvlCapBasisPoints / 10000) * totalNodeBond;
+      }
 
       // Calculate the delta between security budget and vault value
       securityDelta = totalSecurityBudget - totalVaultValueInRune;
@@ -200,6 +213,8 @@
         <span>Total Node Bond: {formatNumber(totalNodeBond)} <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" /></span>
         <span class="separator">|</span>
         <span>Total Pooled RUNE: {formatNumber(totalPooledRune)} <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" /></span>
+        <span class="separator">|</span>
+        <span>TVLCAP: {tvlCapBasisPoints === -1 ? 'Legacy' : (tvlCapBasisPoints / 10000).toFixed(2) + 'x'}</span>
       </div>
 
       <div class="assets-table" transition:fade>
