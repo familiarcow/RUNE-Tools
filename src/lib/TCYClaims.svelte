@@ -9,6 +9,20 @@
   const searchQuery = writable('');
   const sortBy = writable({ column: 'claimed', direction: 'desc' });
   let tcyPriceUSD = 0;
+  let runePriceUSD = 0;
+  let stakedTCY = writable(0);
+  let tcyLiquidity = writable(0);
+  let tcyMarketCap = writable(0);
+  let runeMarketCap = writable(0);
+
+  // Create a derived store for the market cap percentage
+  const tcyMarketCapPercentage = derived(
+    [tcyMarketCap, runeMarketCap],
+    ([$tcyMarketCap, $runeMarketCap]) => {
+      if ($runeMarketCap === 0) return 0;
+      return ($tcyMarketCap / $runeMarketCap) * 100;
+    }
+  );
 
   const fetchTCYPrice = async () => {
     try {
@@ -16,9 +30,63 @@
       const tcyPool = poolsData.find(pool => pool.asset === "THOR.TCY");
       if (tcyPool) {
         tcyPriceUSD = Number(tcyPool.asset_tor_price) / 1e8;
+        
+        // Calculate RUNE price using TCY pool data
+        const balanceRune = Number(tcyPool.balance_rune) / 1e8;
+        const balanceAsset = Number(tcyPool.balance_asset) / 1e8;
+        runePriceUSD = (balanceAsset * tcyPriceUSD) / balanceRune;
       }
     } catch (error) {
       console.error("Error fetching TCY price:", error);
+    }
+  };
+
+  const fetchStakedTCY = async () => {
+    try {
+      const response = await fetch("https://thornode.ninerealms.com/thorchain/tcy_stakers");
+      const data = await response.json();
+      const totalStaked = data.tcy_stakers.reduce((sum, staker) => sum + Number(staker.amount), 0) / 1e8;
+      stakedTCY.set(totalStaked);
+    } catch (error) {
+      console.error("Error fetching staked TCY:", error);
+    }
+  };
+
+  const fetchTCYLiquidity = async () => {
+    try {
+      const poolsData = await fetch("https://thornode.ninerealms.com/thorchain/pools").then(res => res.json());
+      const tcyPool = poolsData.find(pool => pool.asset === "THOR.TCY");
+      if (tcyPool) {
+        const balanceAsset = Number(tcyPool.balance_asset) / 1e8;
+        const assetPrice = Number(tcyPool.asset_tor_price) / 1e8;
+        const liquidity = balanceAsset * assetPrice * 2; // Multiply by 2 for total pool depth
+        tcyLiquidity.set(liquidity);
+      }
+    } catch (error) {
+      console.error("Error fetching TCY liquidity:", error);
+    }
+  };
+
+  const fetchTCYMarketCap = async () => {
+    try {
+      const response = await fetch("https://api.ninerealms.com/thorchain/supply/cmc?asset=tcy&type=total");
+      const totalSupply = await response.json();
+      const marketCap = totalSupply * tcyPriceUSD;
+      tcyMarketCap.set(marketCap);
+    } catch (error) {
+      console.error("Error fetching TCY market cap:", error);
+    }
+  };
+
+  const fetchRuneMarketCap = async () => {
+    try {
+      const response = await fetch("https://thornode.ninerealms.com/cosmos/bank/v1beta1/supply/by_denom?denom=rune");
+      const data = await response.json();
+      const totalSupplyInRune = Number(data.amount.amount) / 1e8;
+      const marketCap = totalSupplyInRune * runePriceUSD;
+      runeMarketCap.set(marketCap);
+    } catch (error) {
+      console.error("Error fetching RUNE market cap:", error);
     }
   };
 
@@ -122,8 +190,16 @@
 
   onMount(async () => {
     try {
-      // Fetch TCY price
+      // Fetch TCY price and calculate RUNE price
       await fetchTCYPrice();
+
+      // Fetch all metrics
+      await Promise.all([
+        fetchStakedTCY(),
+        fetchTCYLiquidity(),
+        fetchTCYMarketCap(),
+        fetchRuneMarketCap()
+      ]);
 
       // Fetch initial claims data
       const response = await fetch('/tcy_claims.json');
@@ -207,6 +283,42 @@
           {tcyPriceUSD ? `$${tcyPriceUSD.toFixed(2)}` : '...'}
         </div>
         <div class="info-icon" on:click={() => showMethodology.update(v => !v)}>ⓘ</div>
+      </div>
+    </div>
+
+    <div class="metrics-container">
+      <div class="metric-card">
+        <h3>
+          <img src="/assets/coins/TCY.svg" alt="TCY" class="metric-icon" />
+          Staked TCY
+        </h3>
+        <div class="metric-value">
+          {formatNumber($stakedTCY)} TCY
+        </div>
+        <div class="metric-usd">
+          ${formatNumber($stakedTCY * tcyPriceUSD)}
+        </div>
+      </div>
+      <div class="metric-card">
+        <h3>TCY Liquidity</h3>
+        <div class="metric-value">
+          ${formatNumber($tcyLiquidity)}
+        </div>
+      </div>
+      <div class="metric-card">
+        <h3>TCY Market Cap</h3>
+        <div class="metric-value">
+          ${formatNumber($tcyMarketCap)}
+        </div>
+      </div>
+      <div class="metric-card">
+        <h3>vs RUNE Market Cap</h3>
+        <div class="metric-value">
+          {$tcyMarketCapPercentage.toFixed(2)}%
+        </div>
+        <div class="metric-usd">
+          ${formatNumber($runeMarketCap)}
+        </div>
       </div>
     </div>
 
@@ -618,6 +730,23 @@
       flex-direction: column;
       gap: 10px;
     }
+
+    .metrics-container {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .metric-card {
+      font-size: 16px;
+    }
+
+    .metric-card h3 {
+      font-size: 14px;
+    }
+
+    .metric-usd {
+      font-size: 12px;
+    }
   }
 
   .sortable {
@@ -627,5 +756,45 @@
 
   .sortable:hover {
     background-color: rgba(74, 144, 226, 0.1);
+  }
+
+  .metrics-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .metric-card {
+    flex: 1;
+    background: #2c2c2c;
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+    font-family: monospace;
+    font-size: 18px;
+  }
+
+  .metric-card h3 {
+    color: #4A90E2;
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .metric-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .metric-value {
+    margin-bottom: 10px;
+  }
+
+  .metric-usd {
+    color: #888;
+    font-size: 14px;
   }
 </style>
