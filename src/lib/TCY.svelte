@@ -255,15 +255,20 @@
               </div>
             </div>
 
-            {#if apyStats}
-              <div class="card apy">
-                <h3>APY</h3>
+            <div class="card apy">
+              <h3>APY</h3>
+              {#if apyStats}
                 <div class="main-value">{apyStats.apy.toFixed(2)}%</div>
                 <div class="sub-values">
                   <span class="usd-value">{formatCurrency(apyStats.annualUSD)}/yr</span>
                 </div>
-              </div>
-            {/if}
+              {:else}
+                <div class="main-value">N/A</div>
+                <div class="sub-values">
+                  <span class="usd-value">No distributions yet</span>
+                </div>
+              {/if}
+            </div>
           </div>
 
           {#if apyStats}
