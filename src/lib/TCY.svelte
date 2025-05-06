@@ -215,7 +215,7 @@
           <h2 class="address-form-title">TCY Yield Tracker</h2>
           <div class="address-form-group">
             <label for="address-input" class="address-form-label">Address</label>
-            <input id="address-input" class="address-form-input" type="text" bind:value={address} required placeholder="Enter your address..." />
+            <input id="address-input" class="address-form-input" type="text" bind:value={address} required placeholder="Enter your THORChain address" />
           </div>
           <button class="address-form-btn" type="submit">Track TCY</button>
         </form>
