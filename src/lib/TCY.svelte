@@ -45,7 +45,10 @@
       const tcyPool = poolsData.find(pool => pool.asset === "THOR.TCY");
       if (tcyPool) {
         tcyPriceUSD = Number(tcyPool.asset_tor_price) / 1e8;
-        console.log(`TCY Price USD: ${tcyPriceUSD}`)
+        console.log('TCY Price Debug:', {
+          rawPrice: tcyPool.asset_tor_price,
+          convertedPrice: tcyPriceUSD
+        });
       }
     } catch (error) {
       console.error("Error fetching TCY price:", error);
@@ -58,6 +61,10 @@
       const networkData = await fetchJSON("https://thornode.ninerealms.com/thorchain/network");
       runePriceInTor = Number(networkData.rune_price_in_tor);
       runePriceUSD = runePriceInTor / 1e8;
+      console.log('RUNE Price Debug:', {
+        rawPrice: networkData.rune_price_in_tor,
+        convertedPrice: runePriceUSD
+      });
       await fetchTCYPrice();
 
       // Fetch distribution history
@@ -73,8 +80,11 @@
       // Fetch staked balance
       try {
         const stakedData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/tcy_staker/${address}`);
+        console.log('Staked Balance API Response:', stakedData);
         stakedBalance = Number(stakedData.amount) / 1e8;
+        console.log('Processed Staked Balance:', stakedBalance);
       } catch (error) {
+        console.error('Error fetching staked balance:', error);
         stakedBalance = 0;
       }
 
@@ -90,6 +100,9 @@
         unstakedRuneBalance = 'ERROR';
         console.log('ERROR');
       }
+
+      // Force a reactive update of apyStats after all data is loaded
+      apyStats = calculateAPY(distributions);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -195,7 +208,23 @@
     // Annualize
     const annualRune = avgDailyRune * 365;
     const annualUSD = annualRune * runePriceUSD;
+    
+    // Calculate staked value in USD using the staked balance and TCY price
     const stakedValueUSD = stakedBalance * tcyPriceUSD;
+
+    console.log('Debug APY Calculation:', {
+      totalRune,
+      days,
+      avgDailyRune,
+      annualRune,
+      runePriceUSD,
+      annualUSD,
+      stakedBalance,
+      tcyPriceUSD,
+      stakedValueUSD
+    });
+
+    // Calculate APY using the staked value in USD
     const apy = stakedValueUSD > 0 ? (annualUSD / stakedValueUSD) * 100 : 0;
 
     return {
@@ -260,7 +289,11 @@
               {#if apyStats}
                 <div class="main-value">{apyStats.apy.toFixed(2)}%</div>
                 <div class="sub-values">
-                  <span class="usd-value">{formatCurrency(apyStats.annualUSD)}/yr</span>
+                  <span class="usd-value">
+                    {formatRuneAmount(apyStats.annualRune * 1e8)}
+                    <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon small" />
+                    /yr
+                  </span>
                 </div>
               {:else}
                 <div class="main-value">N/A</div>
@@ -976,5 +1009,11 @@
     font-weight: 700;
     margin: 0;
     letter-spacing: 0.01em;
+  }
+
+  .rune-icon.small {
+    width: 14px;
+    height: 14px;
+    margin-left: 3px;
   }
 </style>
