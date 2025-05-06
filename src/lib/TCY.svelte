@@ -104,6 +104,15 @@
     }
   };
 
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      address = text;
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+    }
+  };
+
   const updateURL = () => {
     const url = new URL(window.location);
     url.searchParams.set("address", address);
@@ -214,10 +223,18 @@
         <form class="address-form-card" on:submit={handleSubmit}>
           <h2 class="address-form-title">TCY Yield Tracker</h2>
           <div class="address-form-group">
-            <label for="address-input" class="address-form-label">Address</label>
-            <input id="address-input" class="address-form-input" type="text" bind:value={address} required placeholder="Enter your THORChain address" />
+            <label for="address-input" class="address-form-label">THORChain Address</label>
+            <div class="input-with-paste">
+              <input id="address-input" class="address-form-input" type="text" bind:value={address} required placeholder="eg thor1...wxyz" />
+              <button type="button" class="paste-button" on:click={handlePaste} title="Paste from clipboard">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                </svg>
+              </button>
+            </div>
           </div>
-          <button class="address-form-btn" type="submit">Track TCY</button>
+          <button class="address-form-btn" type="submit">Track TCY Staking</button>
         </form>
       </div>
     {:else}
@@ -865,6 +882,39 @@
     outline: none;
     box-shadow: 0 1px 2px rgba(40,244,175,0.03);
   }
+
+  .input-with-paste {
+    position: relative;
+    width: 100%;
+  }
+
+  .paste-button {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #a9a9a9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .paste-button:hover {
+    color: #28f4af;
+    background: rgba(40, 244, 175, 0.1);
+  }
+
+  .paste-button svg {
+    width: 16px;
+    height: 16px;
+  }
+
   .address-form-input:focus {
     border-color: #28f4af;
     box-shadow: 0 0 0 2px rgba(40,244,175,0.12);
