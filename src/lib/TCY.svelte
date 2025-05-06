@@ -239,7 +239,9 @@
       </div>
     {:else}
       <div class="container">
-        <h2>TCY Yield Tracker - {address.slice(-4)}</h2>
+        <div class="tracker-title-box">
+          <h2>TCY Yield Tracker - {address.slice(-4)}</h2>
+        </div>
         <div class="vertical-grid">
           <div class="top-row">
             <div class="card staked">
@@ -852,6 +854,10 @@
     margin-bottom: 0.5rem;
     letter-spacing: 0.01em;
     text-align: center;
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    background: rgba(40, 244, 175, 0.05);
+    border: 1px solid rgba(40, 244, 175, 0.1);
   }
 
   .address-form-group {
@@ -946,6 +952,24 @@
     font-size: 0.95em;
     margin-left: 6px;
     font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+
+  .tracker-title-box {
+    background: #232323;
+    border-radius: 16px;
+    padding: 24px 0;
+    margin-bottom: 24px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    border: 1.5px solid #282828;
+  }
+
+  .tracker-title-box h2 {
+    color: #28f4af;
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
     letter-spacing: 0.01em;
   }
 </style>
