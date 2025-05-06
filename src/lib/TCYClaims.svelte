@@ -7,7 +7,7 @@
   const remainingClaims = writable(new Set());
   const showMethodology = writable(false);
   const searchQuery = writable('');
-  const sortBy = writable({ column: 'amount', direction: 'desc' });
+  const sortBy = writable({ column: 'claimed', direction: 'desc' });
   let tcyPriceUSD = 0;
   let runePriceUSD = 0;
   let stakedTCY = writable(0);
@@ -69,7 +69,7 @@
 
   const fetchTCYMarketCap = async () => {
     try {
-      const response = await fetch("https://api.ninerealms.com/thorchain/cmc?asset=tcy&type=total");
+      const response = await fetch("https://api.ninerealms.com/thorchain/supply/cmc?asset=tcy&type=total");
       const totalSupply = await response.json();
       const marketCap = totalSupply * tcyPriceUSD;
       tcyMarketCap.set(marketCap);
@@ -111,14 +111,14 @@
       // Apply sorting
       filtered.sort((a, b) => {
         if ($sortBy.column === 'claimed') {
-          // Only sort by claimed status if that column was clicked
+          // Only sort by claimed status if that column is selected
           if (a.hasClaimed !== b.hasClaimed) {
             return $sortBy.direction === 'desc' 
               ? (a.hasClaimed ? -1 : 1)
               : (a.hasClaimed ? 1 : -1);
           }
         }
-        // Always sort by amount as the primary or secondary sort
+        // Always sort by amount
         return $sortBy.direction === 'desc' 
           ? b.amount - a.amount
           : a.amount - b.amount;
@@ -359,7 +359,7 @@
 
     <div class="amounts-container">
       <div class="total-amount">
-        Total: {formatNumber($totalAmount)}
+        Claimable: {formatNumber($totalAmount)}
       </div>
       <div class="claimed-amount">
         Claimed: {formatNumber($claimedAmount)}
