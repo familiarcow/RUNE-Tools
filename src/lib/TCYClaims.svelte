@@ -256,7 +256,7 @@
         Total TCY: {formatNumber($totalAmount)}
       </div>
       <div class="claimed-amount">
-        Claimed TCY: {formatNumber($claimedAmount)}
+        Claimed: {formatNumber($claimedAmount)}
       </div>
       <div class="remaining-amount">
         Unclaimed: {formatNumber($remainingAmount)}
