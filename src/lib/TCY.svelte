@@ -24,6 +24,8 @@
     { value: '365d', label: '1 Year' },
     { value: 'all', label: 'All Time' }
   ];
+  let nextDistributionBlock = null;
+  let blocksRemaining = null;
 
   const fetchJSON = async (url) => {
     const response = await fetch(url);
@@ -267,7 +269,9 @@
       
       // Calculate next distribution block
       const nextBlock = 14400 * Math.ceil(currentBlock / 14400);
-      const blocksRemaining = nextBlock - currentBlock;
+      nextDistributionBlock = nextBlock;
+      const blocksRem = nextBlock - currentBlock;
+      blocksRemaining = blocksRem;
       console.log('Next block:', nextBlock, 'Blocks remaining:', blocksRemaining);
       
       // Calculate time remaining (assuming 6 seconds per block)
@@ -312,6 +316,8 @@
       console.error("Error calculating next distribution:", error);
       nextDistributionTime = "Error";
       nextDistributionAmount = null;
+      nextDistributionBlock = null;
+      blocksRemaining = null;
     }
   };
 
@@ -402,7 +408,15 @@
                 {/if}
               </div>
               <div class="sub-values">
-                <span class="usd-value">Every 14400 blocks</span>
+                <span class="usd-value">
+                  {#if nextDistributionBlock && blocksRemaining !== null}
+                    <a href={`https://runescan.io/block/${nextDistributionBlock}`} target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none;">
+                      {blocksRemaining} blocks remaining
+                    </a>
+                  {:else}
+                    Calculating...
+                  {/if}
+                </span>
               </div>
             </div>
 
