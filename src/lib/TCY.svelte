@@ -117,6 +117,22 @@
     }
   };
 
+  const handleRandom = async () => {
+    try {
+      const response = await fetch("https://thornode.ninerealms.com/thorchain/tcy_stakers");
+      const data = await response.json();
+      if (data.tcy_stakers && data.tcy_stakers.length > 0) {
+        const randomIndex = Math.floor(Math.random() * data.tcy_stakers.length);
+        address = data.tcy_stakers[randomIndex].address;
+        showData = true;
+        updateURL();
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Error fetching random staker:", error);
+    }
+  };
+
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -252,7 +268,16 @@
         <form class="address-form-card" on:submit={handleSubmit}>
           <h2 class="address-form-title">TCY Yield Tracker</h2>
           <div class="address-form-group">
-            <label for="address-input" class="address-form-label">THORChain Address</label>
+            <div class="label-with-random">
+              <label for="address-input" class="address-form-label">THORChain Address</label>
+              <button type="button" class="random-btn" on:click={handleRandom} title="Random Staker">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <path d="M3.3 7l8.7 5 8.7-5"></path>
+                  <path d="M12 22V12"></path>
+                </svg>
+              </button>
+            </div>
             <div class="input-with-paste">
               <input id="address-input" class="address-form-input" type="text" bind:value={address} required placeholder="eg thor1...wxyz" />
               <button type="button" class="paste-button" on:click={handlePaste} title="Paste from clipboard">
@@ -905,12 +930,22 @@
     gap: 0.5rem;
   }
 
+  .label-with-random {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.2rem;
+    position: relative;
+  }
+
   .address-form-label {
     color: #b0b0b0;
     font-size: 1.1rem;
     font-weight: 500;
     margin-bottom: 0.2rem;
     letter-spacing: 0.01em;
+    text-align: center;
+    width: 100%;
   }
 
   .address-form-input {
@@ -964,6 +999,12 @@
     box-shadow: 0 0 0 2px rgba(40,244,175,0.12);
   }
 
+  .button-group {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+  }
+
   .address-form-btn {
     margin-top: 0.5rem;
     width: 100%;
@@ -979,10 +1020,36 @@
     box-shadow: 0 2px 8px rgba(40,244,175,0.08);
     letter-spacing: 0.01em;
   }
-  .address-form-btn:hover, .address-form-btn:focus {
+
+  .address-form-btn:hover {
     background: linear-gradient(90deg, #1eebeb 0%, #28f4af 100%);
     color: #101010;
     box-shadow: 0 4px 16px rgba(40,244,175,0.13);
+  }
+
+  .random-btn {
+    position: absolute;
+    right: 0;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #a9a9a9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .random-btn:hover {
+    color: #28f4af;
+    background: rgba(40,244,175,0.1);
+  }
+
+  .random-btn svg {
+    width: 20px;
+    height: 20px;
   }
 
   .asset-price {
