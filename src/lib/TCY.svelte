@@ -70,7 +70,7 @@
       // Fetch distribution history
       try {
         const distributionData = await fetchJSON(`https://midgard.ninerealms.com/v2/tcy/distribution/${address}`);
-        distributions = distributionData.distributions;
+        distributions = distributionData.distributions.sort((a, b) => Number(b.date) - Number(a.date));
         totalDistributed = Number(distributionData.total) / 1e8;
       } catch (error) {
         distributions = [];
