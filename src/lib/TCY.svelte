@@ -13,6 +13,8 @@
   let runePriceUSD = 0;
   let runePriceInTor = 0;
   let tcyPriceUSD = 0;
+  let nextDistributionTime = null;
+  let nextDistributionAmount = null;
   let selectedPeriod = '7d';
   let periodOptions = [
     { value: '7d', label: '7 Days' },
@@ -83,6 +85,9 @@
         console.log('Staked Balance API Response:', stakedData);
         stakedBalance = Number(stakedData.amount) / 1e8;
         console.log('Processed Staked Balance:', stakedBalance);
+        
+        // Calculate next distribution after we have the staked balance
+        await calculateNextDistribution();
       } catch (error) {
         console.error('Error fetching staked balance:', error);
         stakedBalance = 0;
@@ -253,6 +258,63 @@
     };
   };
 
+  const calculateNextDistribution = async () => {
+    try {
+      // Get current block height
+      const statusResponse = await fetchJSON("https://rpc-v2.ninerealms.com/status");
+      const currentBlock = Number(statusResponse.result.sync_info.latest_block_height);
+      console.log('Current block:', currentBlock);
+      
+      // Calculate next distribution block
+      const nextBlock = 14400 * Math.ceil(currentBlock / 14400);
+      const blocksRemaining = nextBlock - currentBlock;
+      console.log('Next block:', nextBlock, 'Blocks remaining:', blocksRemaining);
+      
+      // Calculate time remaining (assuming 6 seconds per block)
+      const secondsRemaining = blocksRemaining * 6;
+      const hours = Math.floor(secondsRemaining / 3600);
+      const minutes = Math.floor((secondsRemaining % 3600) / 60);
+      
+      nextDistributionTime = `${hours}h ${minutes}m`;
+      console.log('Time remaining:', nextDistributionTime);
+
+      // Get current accrued RUNE amount
+      const moduleBalance = await fetchJSON("https://thornode.ninerealms.com/thorchain/balance/module/tcy_stake");
+      console.log('Module balance response:', moduleBalance);
+      
+      const currentAccruedRune = Number(moduleBalance.coins.find(c => c.denom === "rune")?.amount || 0) / 1e8;
+      console.log('Current accrued RUNE:', currentAccruedRune);
+
+      // Calculate blocks since last distribution
+      const lastDistributionBlock = 14400 * Math.floor(currentBlock / 14400);
+      const blocksSinceLastDistribution = currentBlock - lastDistributionBlock;
+      console.log('Last distribution block:', lastDistributionBlock, 'Blocks since last:', blocksSinceLastDistribution);
+
+      // Calculate RUNE per block rate
+      const runePerBlock = currentAccruedRune / blocksSinceLastDistribution;
+      console.log('RUNE per block:', runePerBlock);
+
+      // Calculate total estimated distribution amount
+      const totalEstimatedDistribution = currentAccruedRune + (runePerBlock * blocksRemaining);
+      console.log('Total estimated distribution:', totalEstimatedDistribution);
+
+      // Calculate user's share based on their TCY stake
+      const totalTCYSupply = 21000000; // 21 million TCY
+      console.log('User staked balance:', stakedBalance);
+      const userShare = stakedBalance / totalTCYSupply;
+      console.log('User share:', userShare);
+
+      // Calculate user's estimated distribution amount
+      nextDistributionAmount = totalEstimatedDistribution * userShare;
+      console.log('Final estimated amount:', nextDistributionAmount);
+
+    } catch (error) {
+      console.error("Error calculating next distribution:", error);
+      nextDistributionTime = "Error";
+      nextDistributionAmount = null;
+    }
+  };
+
   $: apyStats = (distributions && distributions.length > 0) ? calculateAPY(distributions) : null;
 
   onMount(() => {
@@ -326,6 +388,41 @@
                   <span class="usd-value">No distributions yet</span>
                 </div>
               {/if}
+            </div>
+          </div>
+
+          <div class="distribution-row">
+            <div class="card next-distribution">
+              <h3>Next Distribution</h3>
+              <div class="main-value">
+                {#if nextDistributionTime}
+                  {nextDistributionTime}
+                {:else}
+                  Calculating...
+                {/if}
+              </div>
+              <div class="sub-values">
+                <span class="usd-value">Every 14400 blocks</span>
+              </div>
+            </div>
+
+            <div class="card estimated-reward">
+              <h3>Estimated Reward</h3>
+              <div class="main-value">
+                {#if nextDistributionAmount}
+                  {formatRuneAmount(nextDistributionAmount * 1e8)}
+                  <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
+                {:else}
+                  Calculating...
+                {/if}
+              </div>
+              <div class="sub-values">
+                {#if nextDistributionAmount}
+                  <span class="usd-value">{formatCurrency(nextDistributionAmount * runePriceUSD)}</span>
+                {:else}
+                  <span class="usd-value">No estimate available</span>
+                {/if}
+              </div>
             </div>
           </div>
 
@@ -420,23 +517,20 @@
                 </button>
               </div>
             </div>
-            <div class="distribution-table">
-              <div class="distribution-header">
-                <div class="dist-cell date">Date</div>
-                <div class="dist-cell amount text-center">Amount</div>
-                <div class="dist-cell usd text-right">USD Value</div>
+            <div class="distribution-history-table">
+              <div class="dht-header">
+                <div class="dht-cell dht-date">Date</div>
+                <div class="dht-cell dht-amount">Amount</div>
+                <div class="dht-cell dht-usd">USD Value</div>
               </div>
-              <div class="distribution-body">
+              <div class="dht-body">
                 {#each (showAllDistributions ? distributions : getRecentDistributions()) as distribution}
-                  <div class="distribution-row">
-                    <div class="dist-cell date">{formatDate(Number(distribution.date))}</div>
-                    <div class="dist-cell amount text-center">
-                      <span class="amount-with-icon">
-                        {formatRuneAmount(distribution.amount)}
-                        <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-                      </span>
+                  <div class="dht-row">
+                    <div class="dht-cell dht-date">{formatDate(Number(distribution.date))}</div>
+                    <div class="dht-cell dht-amount">
+                      <span class="amount-with-icon">{formatRuneAmount(distribution.amount)}<img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" /></span>
                     </div>
-                    <div class="dist-cell usd text-right">{formatCurrency((Number(distribution.amount) / 1e8) * runePriceUSD)}</div>
+                    <div class="dht-cell dht-usd">{formatCurrency((Number(distribution.amount) / 1e8) * runePriceUSD)}</div>
                   </div>
                 {/each}
               </div>
@@ -491,6 +585,12 @@
   }
 
   .top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .distribution-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
@@ -729,55 +829,116 @@
     box-sizing: border-box;
   }
 
-  .distribution-table {
-    background-color: #1a1a1a;
+  .distribution-history-table {
+    background: #1a1a1a;
     border-radius: 8px;
     overflow: hidden;
-    margin-top: 15px;
+    margin-top: 10px;
+    font-size: 15px;
   }
 
-  .distribution-header {
-    display: flex;
-    padding: 8px 15px;
-    background-color: #2c2c2c;
+  .dht-header, .dht-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    align-items: center;
+    min-height: 38px;
+    height: 38px;
+    white-space: nowrap;
+  }
+
+  .dht-header {
+    background: #232323;
+    color: #a9a9a9;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     border-bottom: 1px solid #333;
+    padding: 0 18px;
   }
 
-  .distribution-body {
+  .dht-row {
+    border-bottom: 1px solid #232323;
+    padding: 0 18px;
+    background: none;
+    transition: background 0.15s;
+  }
+
+  .dht-row:last-child {
+    border-bottom: none;
+  }
+
+  .dht-row:hover {
+    background: #232323;
+  }
+
+  .dht-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 0.5em;
+    font-size: 15px;
+    color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    height: 38px;
+  }
+
+  .dht-date {
+    justify-content: flex-start;
+    color: #a9a9a9;
+    font-size: 15px;
+  }
+
+  .dht-amount {
+    justify-content: center;
+    font-weight: 500;
+  }
+
+  .dht-usd {
+    justify-content: flex-end;
+    color: #a9a9a9;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .amount-with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .dht-body {
     max-height: 300px;
     overflow-y: auto;
   }
 
-  .distribution-row {
-    display: flex;
-    padding: 6px 15px;
-    align-items: center;
-    border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+  .dht-body::-webkit-scrollbar {
+    width: 6px;
   }
 
-  .distribution-row:last-child {
-    border-bottom: none;
+  .dht-body::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
   }
 
-  .dist-cell {
-    flex: 1;
-    font-size: 14px;
-    color: #e0e0e0;
-    padding: 0 5px;
+  .dht-body::-webkit-scrollbar-track {
+    background: #1a1a1a;
   }
 
-  .dist-cell.date {
-    flex: 1;
-    color: #a9a9a9;
-  }
-
-  .dist-cell.amount {
-    flex: 1;
-  }
-
-  .dist-cell.usd {
-    flex: 1;
-    color: #a9a9a9;
+  @media (max-width: 600px) {
+    .distribution-history-table {
+      font-size: 13px;
+    }
+    .dht-header, .dht-row {
+      grid-template-columns: 1fr 1fr 1fr;
+      min-height: 32px;
+      height: 32px;
+      padding: 0 8px;
+    }
+    .dht-cell {
+      font-size: 13px;
+      padding: 0 0.2em;
+    }
   }
 
   .text-center {
@@ -788,63 +949,63 @@
     text-align: right;
   }
 
-  .amount-with-icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
+  .next-distribution, .estimated-reward, .staked, .apy {
+    background: linear-gradient(145deg, #1a1a1a, #232323);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    height: 120px;
+    position: relative;
+    border: 1px solid rgba(40, 244, 175, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 
-  .distribution-body .rune-icon {
-    width: 14px;
-    height: 14px;
-    margin-top: -2px;
+  .next-distribution:hover, .estimated-reward:hover, .staked:hover, .apy:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(40, 244, 175, 0.1);
+    border-color: rgba(40, 244, 175, 0.2);
   }
 
-  .distribution-header .dist-cell {
-    color: #a9a9a9;
-    font-size: 12px;
-    text-transform: uppercase;
+  .next-distribution h3, .estimated-reward h3, .staked h3, .apy h3 {
+    color: #28f4af;
+    font-size: 14px;
+    margin: 0;
+    font-weight: 600;
     letter-spacing: 0.5px;
   }
 
-  .distribution-body::-webkit-scrollbar {
-    width: 6px;
+  .next-distribution .main-value, .estimated-reward .main-value, .staked .main-value, .apy .main-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    right: 20px;
+    transform: translateY(-50%);
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
   }
 
-  .distribution-body::-webkit-scrollbar-track {
-    background: #1a1a1a;
+  .next-distribution .sub-values, .estimated-reward .sub-values, .staked .sub-values, .apy .sub-values {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    text-align: center;
+    color: #a9a9a9;
+    font-size: 12px;
   }
 
-  .distribution-body::-webkit-scrollbar-thumb {
-    background: #333;
-    border-radius: 3px;
-  }
-
-  .distribution-body::-webkit-scrollbar-thumb:hover {
-    background: #444;
-  }
-
-  @media (max-width: 600px) {
-    .top-row {
-      grid-template-columns: 1fr;
-    }
-
-    .card {
-      height: auto;
-      min-height: 100px;
-    }
-
-    .main-value {
-      position: static;
-      transform: none;
-      margin: 10px 0;
-    }
-
-    .sub-values {
-      position: static;
-      margin-top: 5px;
-    }
+  .vertical-grid .distribution-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
   }
 
   @media (min-width: 768px) {
@@ -1082,5 +1243,58 @@
     width: 14px;
     height: 14px;
     margin-left: 3px;
+  }
+
+  .next-distribution, .estimated-reward, .staked, .apy {
+    background: linear-gradient(145deg, #1a1a1a, #232323);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    height: 120px;
+    position: relative;
+    border: 1px solid rgba(40, 244, 175, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .next-distribution:hover, .estimated-reward:hover, .staked:hover, .apy:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(40, 244, 175, 0.1);
+    border-color: rgba(40, 244, 175, 0.2);
+  }
+
+  .next-distribution h3, .estimated-reward h3, .staked h3, .apy h3 {
+    color: #28f4af;
+    font-size: 14px;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .next-distribution .main-value, .estimated-reward .main-value, .staked .main-value, .apy .main-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    right: 20px;
+    transform: translateY(-50%);
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .next-distribution .sub-values, .estimated-reward .sub-values, .staked .sub-values, .apy .sub-values {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    text-align: center;
+    color: #a9a9a9;
+    font-size: 12px;
   }
 </style>
