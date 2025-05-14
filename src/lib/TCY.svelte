@@ -303,7 +303,7 @@
       console.log('Total estimated distribution:', totalEstimatedDistribution);
 
       // Calculate user's share based on their TCY stake
-      const totalTCYSupply = 21000000; // 21 million TCY
+      const totalTCYSupply = 210000000; // 210 million TCY
       console.log('User staked balance:', stakedBalance);
       const userShare = stakedBalance / totalTCYSupply;
       console.log('User share:', userShare);
