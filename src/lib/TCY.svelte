@@ -556,7 +556,7 @@
 
           {#if apyStats}
             <div class="card yield-details">
-              <h3>{apyStats.days} days staked</h3>
+              <h3>{apyStats.days} reward distributions</h3>
               <div class="yield-stats">
                 <div class="stat-row">
                   <span class="stat-label">Total RUNE Earned</span>
