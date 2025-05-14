@@ -38,7 +38,8 @@
   };
   let tcyConstants = {
     MinRuneForTCYStakeDistribution: null,
-    MinTCYForTCYStakeDistribution: null
+    MinTCYForTCYStakeDistribution: null,
+    TCYStakeSystemIncomeBps: null
   };
 
   const fetchJSON = async (url) => {
@@ -95,7 +96,8 @@
       const constantsData = await fetchJSON("https://thornode.ninerealms.com/thorchain/constants");
       tcyConstants = {
         MinRuneForTCYStakeDistribution: Number(constantsData.int_64_values.MinRuneForTCYStakeDistribution) / 1e8,
-        MinTCYForTCYStakeDistribution: Number(constantsData.int_64_values.MinTCYForTCYStakeDistribution) / 1e8
+        MinTCYForTCYStakeDistribution: Number(constantsData.int_64_values.MinTCYForTCYStakeDistribution) / 1e8,
+        TCYStakeSystemIncomeBps: Number(constantsData.int_64_values.TCYStakeSystemIncomeBps)
       };
       console.log('TCY Constants:', tcyConstants);
     } catch (error) {
@@ -414,7 +416,7 @@
     {:else}
       <div class="container">
         <div class="tracker-title-box">
-          <h2>TCY Yield Tracker - {address.slice(-4)}</h2>
+          <h2>TCY Staking - {address.slice(-4)}</h2>
         </div>
 
         {#if tcyMimir.TCYCLAIMINGHALT === 1 || tcyMimir.TCYCLAIMINGSWAPHALT === 1 || 
