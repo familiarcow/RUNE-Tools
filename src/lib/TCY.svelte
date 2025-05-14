@@ -1236,21 +1236,23 @@
   }
 
   .tracker-title-box {
-    background: #232323;
-    border-radius: 16px;
-    padding: 24px 0;
+    background: linear-gradient(120deg, rgba(40,244,175,0.07) 0%, rgba(35,35,35,0.95) 100%);
+    border-radius: 18px;
     margin-bottom: 24px;
     text-align: center;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    border: 1.5px solid #282828;
+    box-shadow: 0 4px 24px rgba(40,244,175,0.07), 0 1.5px 6px rgba(40,244,175,0.04);
+    border: 1.5px solid rgba(40,244,175,0.13);
+    transition: box-shadow 0.2s, border 0.2s;
   }
 
   .tracker-title-box h2 {
     color: #28f4af;
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 2.1rem;
+    font-weight: 800;
     margin: 0;
     letter-spacing: 0.01em;
+    background: none;
+    text-shadow: 0 2px 12px rgba(40,244,175,0.08);
   }
 
   .rune-icon.small {
@@ -1310,5 +1312,15 @@
     text-align: center;
     color: #a9a9a9;
     font-size: 12px;
+  }
+
+  @media (max-width: 600px) {
+    .tracker-title-box {
+      padding: 18px 0 14px 0;
+      border-radius: 14px;
+    }
+    .tracker-title-box h2 {
+      font-size: 1.3rem;
+    }
   }
 </style>
