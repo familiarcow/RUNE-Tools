@@ -410,6 +410,74 @@
         <div class="tracker-title-box">
           <h2>TCY Yield Tracker - {address.slice(-4)}</h2>
         </div>
+
+        {#if tcyMimir.TCYCLAIMINGHALT === 1 || tcyMimir.TCYCLAIMINGSWAPHALT === 1 || 
+           tcyMimir.TCYSTAKEDISTRIBUTIONHALT === 1 || tcyMimir.TCYSTAKINGHALT === 1 || 
+           tcyMimir.TCYUNSTAKINGHALT === 1 || tcyMimir.HALTTCYTRADING === 1}
+          <div class="alerts-section">
+            {#if tcyMimir.TCYCLAIMINGHALT === 1}
+              <div class="alert-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>TCY Claiming is temporarily paused!</span>
+              </div>
+            {/if}
+            {#if tcyMimir.TCYCLAIMINGSWAPHALT === 1}
+              <div class="alert-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>TCY Claiming & Swaps are temporarily paused!</span>
+              </div>
+            {/if}
+            {#if tcyMimir.TCYSTAKEDISTRIBUTIONHALT === 1}
+              <div class="alert-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>TCY payout distributions are temporarily paused!</span>
+              </div>
+            {/if}
+            {#if tcyMimir.TCYSTAKINGHALT === 1}
+              <div class="alert-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>TCY Staking is temporarily paused!</span>
+              </div>
+            {/if}
+            {#if tcyMimir.TCYUNSTAKINGHALT === 1}
+              <div class="alert-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>TCY Unstaking is temporarily paused!</span>
+              </div>
+            {/if}
+            {#if tcyMimir.HALTTCYTRADING === 1}
+              <div class="alert-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>TCY Trading is temporarily paused!</span>
+              </div>
+            {/if}
+          </div>
+        {/if}
+
         <div class="vertical-grid">
           <div class="top-row">
             <div class="card staked">
@@ -1368,5 +1436,31 @@
     .tracker-title-box h2 {
       font-size: 1.3rem;
     }
+  }
+
+  .alerts-section {
+    background-color: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.2);
+    border-radius: 12px;
+    padding: 12px;
+    margin: 0 20px 20px 20px;
+  }
+
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffc107;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .alert-item:not(:last-child) {
+    margin-bottom: 8px;
+  }
+
+  .warning-icon {
+    flex-shrink: 0;
+    color: #ffc107;
   }
 </style>
