@@ -597,7 +597,6 @@
               <div class="balance-row">
                 <div class="asset-info">
                   <img src="/assets/coins/TCY.svg" alt="TCY" class="tcy-icon" />
-                  <span>TCY</span>
                   <span class="asset-price">{tcyPriceUSD ? formatCurrency(tcyPriceUSD) : ''}</span>
                 </div>
                 <div class="balance-info">
@@ -612,7 +611,6 @@
               <div class="balance-row">
                 <div class="asset-info">
                   <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
-                  <span>RUNE</span>
                   <span class="asset-price">{runePriceUSD ? formatCurrency(runePriceUSD) : ''}</span>
                 </div>
                 <div class="balance-info">
