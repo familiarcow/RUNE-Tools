@@ -344,9 +344,15 @@
       const runePerBlock = currentAccruedRune / blocksSinceLastDistribution;
       console.log('RUNE per block:', runePerBlock);
 
-      // Calculate total estimated distribution amount
-      const totalEstimatedDistribution = currentAccruedRune + (runePerBlock * blocksRemaining);
-      console.log('Total estimated distribution:', totalEstimatedDistribution);
+      // Calculate total estimated RUNE by next distribution
+      const totalEstimatedRune = currentAccruedRune + (runePerBlock * blocksRemaining);
+      console.log('Total estimated RUNE:', totalEstimatedRune);
+
+      // Calculate actual distribution amount based on MinRuneForTCYStakeDistribution
+      const minRuneForDistribution = tcyConstants.MinRuneForTCYStakeDistribution;
+      const distributionMultiplier = Math.floor(totalEstimatedRune / minRuneForDistribution);
+      const actualDistributionAmount = distributionMultiplier * minRuneForDistribution;
+      console.log('Actual distribution amount:', actualDistributionAmount);
 
       // Calculate user's share based on their TCY stake
       const totalTCYSupply = 210000000; // 210 million TCY
@@ -355,7 +361,7 @@
       console.log('User share:', userShare);
 
       // Calculate user's estimated distribution amount
-      nextDistributionAmount = totalEstimatedDistribution * userShare;
+      nextDistributionAmount = actualDistributionAmount * userShare;
       console.log('Final estimated amount:', nextDistributionAmount);
 
     } catch (error) {
