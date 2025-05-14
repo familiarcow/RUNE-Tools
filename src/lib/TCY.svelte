@@ -1080,11 +1080,11 @@
   .next-distribution, .estimated-reward, .staked, .apy {
     background: linear-gradient(145deg, #1a1a1a, #232323);
     border-radius: 16px;
-    padding: 20px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
-    height: 120px;
+    min-height: 110px;
     position: relative;
     border: 1px solid rgba(40, 244, 175, 0.1);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -1099,7 +1099,7 @@
   .next-distribution h3, .estimated-reward h3, .staked h3, .apy h3 {
     color: #28f4af;
     font-size: 14px;
-    margin: 0;
+    margin: 0 0 8px 0;
     font-weight: 600;
     letter-spacing: 0.5px;
   }
@@ -1108,26 +1108,41 @@
     font-size: 28px;
     font-weight: 700;
     color: white;
-    position: absolute;
-    top: 50%;
-    left: 20px;
-    right: 20px;
-    transform: translateY(-50%);
     text-align: center;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
+    margin: 4px 0;
+    flex: 1;
   }
 
   .next-distribution .sub-values, .estimated-reward .sub-values, .staked .sub-values, .apy .sub-values {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
     text-align: center;
     color: #a9a9a9;
     font-size: 12px;
+    margin-top: auto;
+  }
+
+  @media (max-width: 600px) {
+    .next-distribution, .estimated-reward, .staked, .apy {
+      min-height: 100px;
+      padding: 10px;
+    }
+
+    .next-distribution h3, .estimated-reward h3, .staked h3, .apy h3 {
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .next-distribution .main-value, .estimated-reward .main-value, .staked .main-value, .apy .main-value {
+      font-size: 22px;
+      margin: 2px 0;
+    }
+
+    .next-distribution .sub-values, .estimated-reward .sub-values, .staked .sub-values, .apy .sub-values {
+      font-size: 11px;
+    }
   }
 
   .vertical-grid .distribution-row {
@@ -1373,69 +1388,6 @@
     width: 14px;
     height: 14px;
     margin-left: 3px;
-  }
-
-  .next-distribution, .estimated-reward, .staked, .apy {
-    background: linear-gradient(145deg, #1a1a1a, #232323);
-    border-radius: 16px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.3s ease;
-    height: 120px;
-    position: relative;
-    border: 1px solid rgba(40, 244, 175, 0.1);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .next-distribution:hover, .estimated-reward:hover, .staked:hover, .apy:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(40, 244, 175, 0.1);
-    border-color: rgba(40, 244, 175, 0.2);
-  }
-
-  .next-distribution h3, .estimated-reward h3, .staked h3, .apy h3 {
-    color: #28f4af;
-    font-size: 14px;
-    margin: 0;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-
-  .next-distribution .main-value, .estimated-reward .main-value, .staked .main-value, .apy .main-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: white;
-    position: absolute;
-    top: 50%;
-    left: 20px;
-    right: 20px;
-    transform: translateY(-50%);
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .next-distribution .sub-values, .estimated-reward .sub-values, .staked .sub-values, .apy .sub-values {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
-    text-align: center;
-    color: #a9a9a9;
-    font-size: 12px;
-  }
-
-  @media (max-width: 600px) {
-    .tracker-title-box {
-      padding: 18px 0 14px 0;
-      border-radius: 14px;
-    }
-    .tracker-title-box h2 {
-      font-size: 1.3rem;
-    }
   }
 
   .alerts-section {
