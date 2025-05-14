@@ -27,6 +27,20 @@
   let nextDistributionBlock = null;
   let blocksRemaining = null;
 
+  // New state variables for TCY mimir and constants
+  let tcyMimir = {
+    TCYCLAIMINGHALT: null,
+    TCYCLAIMINGSWAPHALT: null,
+    TCYSTAKEDISTRIBUTIONHALT: null,
+    TCYSTAKINGHALT: null,
+    TCYUNSTAKINGHALT: null,
+    HALTTCYTRADING: null
+  };
+  let tcyConstants = {
+    MinRuneForTCYStakeDistribution: null,
+    MinTCYForTCYStakeDistribution: null
+  };
+
   const fetchJSON = async (url) => {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Failed to fetch data from ${url}: ${response.statusText}`);
@@ -59,6 +73,36 @@
     }
   };
 
+  const fetchTCYMimir = async () => {
+    try {
+      const mimirData = await fetchJSON("https://thornode.ninerealms.com/thorchain/mimir");
+      tcyMimir = {
+        TCYCLAIMINGHALT: mimirData.TCYCLAIMINGHALT,
+        TCYCLAIMINGSWAPHALT: mimirData.TCYCLAIMINGSWAPHALT,
+        TCYSTAKEDISTRIBUTIONHALT: mimirData.TCYSTAKEDISTRIBUTIONHALT,
+        TCYSTAKINGHALT: mimirData.TCYSTAKINGHALT,
+        TCYUNSTAKINGHALT: mimirData.TCYUNSTAKINGHALT,
+        HALTTCYTRADING: mimirData.HALTTCYTRADING
+      };
+      console.log('TCY Mimir Status:', tcyMimir);
+    } catch (error) {
+      console.error("Error fetching TCY mimir:", error);
+    }
+  };
+
+  const fetchTCYConstants = async () => {
+    try {
+      const constantsData = await fetchJSON("https://thornode.ninerealms.com/thorchain/constants");
+      tcyConstants = {
+        MinRuneForTCYStakeDistribution: Number(constantsData.int_64_values.MinRuneForTCYStakeDistribution) / 1e8,
+        MinTCYForTCYStakeDistribution: Number(constantsData.int_64_values.MinTCYForTCYStakeDistribution) / 1e8
+      };
+      console.log('TCY Constants:', tcyConstants);
+    } catch (error) {
+      console.error("Error fetching TCY constants:", error);
+    }
+  };
+
   const fetchData = async () => {
     try {
       // Fetch RUNE and TCY prices first
@@ -70,6 +114,8 @@
         convertedPrice: runePriceUSD
       });
       await fetchTCYPrice();
+      await fetchTCYMimir();
+      await fetchTCYConstants();
 
       // Fetch distribution history
       try {
