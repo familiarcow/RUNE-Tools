@@ -42,6 +42,9 @@
     TCYStakeSystemIncomeBps: null
   };
 
+  // New variable to store historical RUNE prices
+  let historicalRunePrices = [];
+
   const fetchJSON = async (url) => {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Failed to fetch data from ${url}: ${response.statusText}`);
@@ -105,6 +108,35 @@
     }
   };
 
+  const fetchHistoricalRunePrices = async (distributionCount) => {
+    try {
+      const count = distributionCount + 10; // Add 10 extra as requested
+      const historicalData = await fetchJSON(`https://midgard.ninerealms.com/v2/history/rune?interval=day&count=${count}`);
+      historicalRunePrices = historicalData.intervals || [];
+      console.log('Historical RUNE prices fetched:', historicalRunePrices.length, 'intervals');
+    } catch (error) {
+      console.error("Error fetching historical RUNE prices:", error);
+      historicalRunePrices = [];
+    }
+  };
+
+  const getHistoricalRunePrice = (timestamp) => {
+    // Find the price interval that contains this timestamp
+    const interval = historicalRunePrices.find(interval => {
+      const startTime = Number(interval.startTime);
+      const endTime = Number(interval.endTime);
+      return timestamp >= startTime && timestamp <= endTime;
+    });
+    
+    if (interval) {
+      return Number(interval.runePriceUSD);
+    }
+    
+    // Fallback to current price if no historical data found
+    console.warn('No historical price found for timestamp:', timestamp, 'using current price');
+    return runePriceUSD;
+  };
+
   const fetchData = async () => {
     try {
       // Fetch RUNE and TCY prices first
@@ -124,6 +156,11 @@
         const distributionData = await fetchJSON(`https://midgard.ninerealms.com/v2/tcy/distribution/${address}`);
         distributions = distributionData.distributions.sort((a, b) => Number(b.date) - Number(a.date));
         totalDistributed = Number(distributionData.total) / 1e8;
+        
+        // Fetch historical RUNE prices for the distributions
+        if (distributions.length > 0) {
+          await fetchHistoricalRunePrices(distributions.length);
+        }
       } catch (error) {
         distributions = [];
         totalDistributed = 0;
@@ -227,7 +264,8 @@
     const headers = ['Date', 'Amount (RUNE)', 'Amount (USD)'];
     const rows = distributions.map(d => {
       const runeAmount = Number(d.amount) / 1e8;
-      const usdAmount = runeAmount * runePriceUSD;
+      const historicalPrice = getHistoricalRunePrice(Number(d.date));
+      const usdAmount = runeAmount * historicalPrice;
       return [
         formatDate(Number(d.date)),
         runeAmount.toFixed(8),
@@ -664,7 +702,7 @@
                     <div class="dht-cell dht-amount">
                       <span class="amount-with-icon">{formatRuneAmount(distribution.amount)}<img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" /></span>
                     </div>
-                    <div class="dht-cell dht-usd">{formatCurrency((Number(distribution.amount) / 1e8) * runePriceUSD)}</div>
+                    <div class="dht-cell dht-usd">{formatCurrency((Number(distribution.amount) / 1e8) * getHistoricalRunePrice(Number(distribution.date)))}</div>
                   </div>
                 {/each}
               </div>
@@ -871,29 +909,6 @@
   .rune-icon {
     width: 24px;
     height: 24px;
-    margin-left: 5px;
-  }
-
-  .sub-value {
-    position: absolute;
-    bottom: 15px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    color: #a9a9a9;
-    font-size: 12px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .sub-value .rune-icon {
-    width: 16px;
-    height: 16px;
-  }
-
-  .sub-value .usd-value {
     margin-left: 5px;
   }
 
