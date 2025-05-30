@@ -22,7 +22,7 @@
   let analyzingProgress = 0;
   let totalAnalysisTime = 0;
 
-  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.thorchain.liquify.com/';
+  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.ninerealms.com/';
 
   const route = writable({ view: 'list', params: {} });
 
