@@ -485,10 +485,46 @@
   $: filteredActiveNodes = filterNodes(activeNodes, searchQuery);
   $: filteredStandbyNodes = filterNodes(standbyNodes, searchQuery);
 
+  // API endpoints with fallback
+  const API_ENDPOINTS = {
+    primary: 'https://thornode.thorchain.liquify.com',
+    fallback: 'https://thornode.ninerealms.com'
+  };
+
+  // Fetch data from API with automatic fallback
+  const fetchWithFallback = async (endpoint, options = {}) => {
+    const primaryUrl = `${API_ENDPOINTS.primary}${endpoint}`;
+    const fallbackUrl = `${API_ENDPOINTS.fallback}${endpoint}`;
+    
+    try {
+      // Try primary endpoint first
+      const response = await fetch(primaryUrl, options);
+      if (response.ok) {
+        return response;
+      }
+      throw new Error(`Primary endpoint failed: ${response.status}`);
+    } catch (error) {
+      console.warn(`Primary endpoint failed, trying fallback: ${error.message}`);
+      
+      try {
+        // Try fallback endpoint
+        const fallbackResponse = await fetch(fallbackUrl, options);
+        if (fallbackResponse.ok) {
+          console.log(`Using fallback endpoint for: ${endpoint}`);
+          return fallbackResponse;
+        }
+        throw new Error(`Fallback endpoint failed: ${fallbackResponse.status}`);
+      } catch (fallbackError) {
+        console.error(`Both endpoints failed for ${endpoint}:`, fallbackError);
+        throw fallbackError;
+      }
+    }
+  };
+
   // Add function to fetch latest block height
   const fetchLatestBlock = async () => {
     try {
-      const response = await fetch('https://thornode.thorchain.liquify.com/thorchain/lastblock');
+      const response = await fetchWithFallback('/thorchain/lastblock');
       const data = await response.json();
       const thorchainBlock = data.find(item => item.chain === 'AVAX')?.thorchain || 0;
       currentBlockHeight = thorchainBlock;
@@ -504,7 +540,7 @@
     try {
       isLoading = true;
       const [nodesResponse, churnsResponse] = await Promise.all([
-        fetch('https://thornode.thorchain.liquify.com/thorchain/nodes'),
+        fetchWithFallback('/thorchain/nodes'),
         fetch('https://midgard.ninerealms.com/v2/churns'),
         fetchLatestBlock(),
         fetchMimirValues()
@@ -671,9 +707,9 @@
   const fetchMimirValues = async () => {
     try {
       const [newNodesResponse, minBondResponse, churnIntervalResponse] = await Promise.all([
-        fetch('https://thornode.thorchain.liquify.com/thorchain/mimir/key/NUMBEROFNEWNODESPERCHURN'),
-        fetch('https://thornode.thorchain.liquify.com/thorchain/mimir/key/MinimumBondInRune'),
-        fetch('https://thornode.thorchain.liquify.com/thorchain/mimir/key/CHURNINTERVAL')
+        fetchWithFallback('/thorchain/mimir/key/NUMBEROFNEWNODESPERCHURN'),
+        fetchWithFallback('/thorchain/mimir/key/MinimumBondInRune'),
+        fetchWithFallback('/thorchain/mimir/key/CHURNINTERVAL')
       ]);
       
       if (newNodesResponse.ok) {
