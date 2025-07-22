@@ -3,6 +3,7 @@
 
   let outboundFees = [];
   let prices = {};
+  let mimirData = {};
   let isLoading = true;
   let error = null;
   let sortField = 'outbound_fee';
@@ -142,6 +143,12 @@
     return ((Number(basisPoints) / 10000) * 100).toFixed(2);
   };
 
+  // Format mimir basis points to percentage (divide by 100)
+  const formatMimirPercentage = (basisPoints) => {
+    if (!basisPoints) return '0';
+    return (Number(basisPoints) / 100).toFixed(1);
+  };
+
   // Get short asset name with chain (e.g., "BTC.BTC" -> "BTC", "ETH.USDC-0X..." -> "USDC (ETH)")
   const getShortAssetName = (asset) => {
     if (asset === 'THOR.RUNE') return 'RUNE';
@@ -247,14 +254,16 @@
       isLoading = true;
       error = null;
       
-      // Fetch both outbound fees and pools data in parallel
-      const [feesResponse, poolsResponse] = await Promise.all([
+      // Fetch outbound fees, pools, and mimir data in parallel
+      const [feesResponse, poolsResponse, mimirResponse] = await Promise.all([
         fetchWithFallback('/thorchain/outbound_fees'),
-        fetchWithFallback('/thorchain/pools')
+        fetchWithFallback('/thorchain/pools'),
+        fetchWithFallback('/thorchain/mimir')
       ]);
       
       const feesData = await feesResponse.json();
       const poolsData = await poolsResponse.json();
+      const mimirDataResponse = await mimirResponse.json();
       
       // Create price mapping from pools data
       const priceMap = {};
@@ -263,6 +272,7 @@
       });
       
       prices = priceMap;
+      mimirData = mimirDataResponse;
       outboundFees = sortData(feesData, sortField, sortDirection);
       isLoading = false;
     } catch (err) {
@@ -308,6 +318,30 @@
       </div>
     </div>
   </div>
+
+  <!-- Mimir Values Display -->
+  {#if mimirData && Object.keys(mimirData).length > 0}
+    <div class="mimir-display">
+      <h3>Network Parameters</h3>
+      <div class="mimir-values">
+        <div class="mimir-item">
+          <span class="mimir-label">Min Fee Multiplier:</span>
+          <span class="mimir-value">{formatMimirPercentage(mimirData.MINOUTBOUNDFEEMULTIPLIERBASISPOINTS)}%</span>
+        </div>
+        <div class="mimir-item">
+          <span class="mimir-label">Max Fee Multiplier:</span>
+          <span class="mimir-value">{formatMimirPercentage(mimirData.MAXOUTBOUNDFEEMULTIPLIERBASISPOINTS)}%</span>
+        </div>
+        <div class="mimir-item">
+          <span class="mimir-label">Target Surplus:</span>
+          <span class="mimir-value rune-target">
+            {formatAmountNoDecimals(mimirData.TARGETOUTBOUNDFEESURPLUSRUNE)}
+            <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="mimir-rune-icon" />
+          </span>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <h2>Outbound Fees</h2>
 
@@ -501,9 +535,66 @@
     font-size: 1.25rem;
   }
 
+  h3 {
+    color: #4A90E2;
+    margin: 0 0 12px;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
   /* First h2 should have less top margin */
   h2:first-of-type {
     margin-top: 16px;
+  }
+
+  .mimir-display {
+    background-color: #2c2c2c;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    border: 1px solid #3a3a3c;
+  }
+
+  .mimir-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: center;
+  }
+
+  .mimir-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+    text-align: center;
+  }
+
+  .mimir-label {
+    color: #888;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+
+  .mimir-value {
+    color: #4A90E2;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .rune-target {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #2ecc71 !important;
+  }
+
+  .mimir-rune-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
   }
 
   .header-controls {
@@ -927,6 +1018,24 @@
 
     .assets-count {
       font-size: 0.75rem;
+    }
+
+    .mimir-display {
+      margin: 16px -8px;
+      border-radius: 0;
+      width: 100vw;
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 16px;
+    }
+
+    .mimir-values {
+      gap: 16px;
+    }
+
+    .mimir-item {
+      min-width: 140px;
     }
 
     .table-container {
