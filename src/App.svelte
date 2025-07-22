@@ -70,14 +70,7 @@
       component: () => import("./lib/Growth.svelte"), 
       icon: "🌱", 
       path: "growth", 
-      description: "Track THORChain's growth metrics" 
-    },
-    { 
-      name: "Feed", 
-      component: () => import("./lib/Feed.svelte"), 
-      icon: "📰", 
-      path: "feed", 
-      description: "THORChain network transaction feed" 
+            description: "Track THORChain's growth metrics" 
     },
     { 
       name: "Constants and Mimirs", 
@@ -126,28 +119,7 @@
       component: () => import("./lib/LiquidityCap.svelte"), 
       icon: "🧢", 
       path: "liquidity-cap", 
-      description: "Check THORChain's liquidity cap"
-    },
-    { 
-      name: "Rune", 
-      component: () => import("./lib/Rune.svelte"), 
-      icon: "🌙", 
-      path: "rune", 
-      description: "Check RUNE price" 
-    },
-    { 
-      name: "Rune Pool", 
-      component: () => import("./lib/RunePool.svelte"), 
-      icon: "🏊", 
-      path: "pool", 
-      description: "Explore RUNEPool and track your position" 
-    },
-    { 
-      name: "Lending Position", 
-      component: () => import("./lib/LendingPosition.svelte"), 
-      icon: "⚡️", 
-      path: "lending", 
-      description: "View your current THORChain lending position" 
+                        description: "Check THORChain's liquidity cap"
     },
     { 
       name: "LP Checker", 
@@ -205,6 +177,13 @@
       path: "treasury", 
       description: "Track THORChain's treasury balances and flows" 
     },
+    { 
+      name: "Outbound Fees", 
+      component: () => import("./lib/OutboundFees.svelte"), 
+      icon: "📤", 
+      path: "outbound-fees", 
+      description: "View THORChain outbound fees and dynamic multipliers" 
+    },
         { 
       name: "Thorchad", 
       component: () => import("./lib/Thorchad.svelte"), 
@@ -232,14 +211,7 @@
       icon: "/assets/thorswap.png",
       path: "thorswap", 
       description: "Trade RUNE and other native assets on THORSwap.", 
-      externalUrl: "https://app.thorswap.finance/swap/BTC.BTC_THOR.RUNE?ref=-"
-    },
-    { 
-      name: "Debt", 
-      component: () => import("./lib/Debt.svelte"), 
-      icon: "🪣", 
-      path: "debt", 
-      description: "Check THORChain's debt" 
+            externalUrl: "https://app.thorswap.finance/swap/BTC.BTC_THOR.RUNE?ref=-"
     },
     { 
       name: "TCY Claims", 
@@ -278,7 +250,43 @@
     }
   ];
 
-  const hiddenApps = [];  // Empty again since we moved LP Checker back to apps
+  const hiddenApps = [
+    { 
+      name: "Feed", 
+      component: () => import("./lib/Feed.svelte"), 
+      icon: "📰", 
+      path: "feed", 
+      description: "THORChain network transaction feed" 
+    },
+    { 
+      name: "Rune", 
+      component: () => import("./lib/Rune.svelte"), 
+      icon: "🌙", 
+      path: "rune", 
+      description: "Check RUNE price" 
+    },
+    { 
+      name: "Rune Pool", 
+      component: () => import("./lib/RunePool.svelte"), 
+      icon: "🏊", 
+      path: "pool", 
+      description: "Explore RUNEPool and track your position" 
+    },
+    { 
+      name: "Lending Position", 
+      component: () => import("./lib/LendingPosition.svelte"), 
+      icon: "⚡️", 
+      path: "lending", 
+      description: "View your current THORChain lending position" 
+    },
+    { 
+      name: "Debt", 
+      component: () => import("./lib/Debt.svelte"), 
+      icon: "🪣", 
+      path: "debt", 
+      description: "Check THORChain's debt" 
+    }
+  ];
 
   const [send, receive] = crossfade({
     duration: 400,
