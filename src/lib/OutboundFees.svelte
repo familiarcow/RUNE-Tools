@@ -97,6 +97,12 @@
     return formatNumber((Number(amount) / 1e8).toFixed(8));
   };
 
+  // Format amount without decimals (for surplus display)
+  const formatAmountNoDecimals = (amount) => {
+    if (!amount) return '0';
+    return formatNumber(Math.round(Number(amount) / 1e8));
+  };
+
   // Format outbound fee amount (divide by 1e8 but don't round)
   const formatOutboundFee = (amount) => {
     if (!amount) return '0';
@@ -218,6 +224,23 @@
   // Reactive statement for filtered data
   $: filteredFees = filterData(outboundFees, searchQuery);
 
+  // Calculate total surplus (fee_withheld_rune - fee_spent_rune)
+  $: totalSurplus = (() => {
+    let totalWithheld = 0;
+    let totalSpent = 0;
+    
+    filteredFees.forEach(fee => {
+      if (fee.fee_withheld_rune) {
+        totalWithheld += Number(fee.fee_withheld_rune);
+      }
+      if (fee.fee_spent_rune) {
+        totalSpent += Number(fee.fee_spent_rune);
+      }
+    });
+    
+    return totalWithheld - totalSpent;
+  })();
+
   // Fetch outbound fees data
   const fetchOutboundFees = async () => {
     try {
@@ -274,6 +297,11 @@
       {/if}
     </div>
     <div class="controls-right">
+      <div class="total-surplus-display" title="Total surplus: Fee Withheld - Fee Spent (RUNE)">
+        <span class="surplus-amount">{formatAmountNoDecimals(totalSurplus)}</span>
+        <span class="surplus-label">RUNE Surplus</span>
+        <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="surplus-icon" />
+      </div>
       <div class="total-assets-display" title="Total number of assets with outbound fees">
         <span class="assets-count">{filteredFees.length}</span>
         <span class="assets-label">Assets</span>
@@ -538,6 +566,34 @@
     display: flex;
     align-items: center;
     gap: 12px;
+  }
+
+  .total-surplus-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #1a1a1a;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #3a3a3c;
+    color: #2ecc71;
+    font-size: 0.875rem;
+  }
+
+  .surplus-amount {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+
+  .surplus-label {
+    font-weight: 500;
+  }
+
+  .surplus-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
   }
 
   .total-assets-display {
@@ -851,6 +907,16 @@
       justify-content: flex-start;
       gap: 8px;
       width: 100%;
+    }
+
+    .total-surplus-display {
+      flex: 1 1 calc(50% - 4px);
+      min-width: 160px;
+      font-size: 0.75rem;
+    }
+
+    .surplus-amount {
+      font-size: 0.75rem;
     }
 
     .total-assets-display {
