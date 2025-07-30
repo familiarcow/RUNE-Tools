@@ -22,6 +22,7 @@
   let useApiFallback = false; // Flag to control API usage
   let newNodesPerChurn = 4; // Default value
   let minimumBondInRune = 3000000; // Default value 300k RUNE
+  let maxValidatorSet = 120; // Default maximum validator set size
   let nodesLeavingCount = 0;
   let baseUrl = window.location.origin;
 
@@ -709,10 +710,11 @@
   // Add function to fetch mimir values
   const fetchMimirValues = async () => {
     try {
-      const [newNodesResponse, minBondResponse, churnIntervalResponse] = await Promise.all([
+      const [newNodesResponse, minBondResponse, churnIntervalResponse, maxValidatorResponse] = await Promise.all([
         fetchWithFallback('/thorchain/mimir/key/NUMBEROFNEWNODESPERCHURN'),
         fetchWithFallback('/thorchain/mimir/key/MinimumBondInRune'),
-        fetchWithFallback('/thorchain/mimir/key/CHURNINTERVAL')
+        fetchWithFallback('/thorchain/mimir/key/CHURNINTERVAL'),
+        fetchWithFallback('/thorchain/mimir/key/DESIREDVALIDATORSET')
       ]);
       
       if (newNodesResponse.ok) {
@@ -729,6 +731,11 @@
         const churnIntervalValue = await churnIntervalResponse.text();
         churnInterval = Number(churnIntervalValue);
         updateNextChurnTime();
+      }
+
+      if (maxValidatorResponse.ok) {
+        const maxValidatorValue = await maxValidatorResponse.text();
+        maxValidatorSet = Number(maxValidatorValue) || 120;
       }
     } catch (error) {
       console.error('Error fetching mimir values:', error);
@@ -782,14 +789,26 @@
     // Find index of current node in eligible nodes
     const nodeIndex = eligibleNodes.findIndex(n => n.node_address === node.node_address);
     
-    // Check if node is within the available spots
-    return nodeIndex < (nodesLeavingCount + newNodesPerChurn);
+    // Calculate available spots considering maximum validator set
+    const currentActiveNodes = activeNodes.length;
+    const nodesAfterLeaving = currentActiveNodes - nodesLeavingCount;
+    const availableSpots = Math.min(newNodesPerChurn, maxValidatorSet - nodesAfterLeaving);
+    
+    // Check if node is within the available spots (can't be negative)
+    return nodeIndex < Math.max(0, availableSpots);
   };
 
   $: eligibleStandbyNodes = standbyNodes.filter(node => 
     node.preflight_status && 
     node.preflight_status.code === 0
   ).length;
+
+  // Calculate available spots considering maximum validator set
+  $: availableSpots = (() => {
+    const currentActiveNodes = activeNodes.length;
+    const nodesAfterLeaving = currentActiveNodes - nodesLeavingCount;
+    return Math.max(0, Math.min(newNodesPerChurn, maxValidatorSet - nodesAfterLeaving));
+  })();
 </script>
 
 <div class="nodes-container">
@@ -1360,6 +1379,10 @@ Reason: ${node.preflight_status.reason}` : ''}` :
   {#if nodesLeavingCount > 0 || newNodesPerChurn > 0}
     <div class="churn-summary">
       <div class="churn-info">
+        <span class="churn-label">Max Validators:</span>
+        <span class="churn-value" title="Maximum number of active validators allowed (DESIREDVALIDATORSET)">{maxValidatorSet}</span>
+      </div>
+      <div class="churn-info">
         <span class="churn-label">Total Standby:</span>
         <span class="churn-value">{filteredStandbyNodes.length}</span>
       </div>
@@ -1372,8 +1395,12 @@ Reason: ${node.preflight_status.reason}` : ''}` :
         <span class="churn-value">{nodesLeavingCount}</span>
       </div>
       <div class="churn-info">
-        <span class="churn-label">New Nodes Per Churn:</span>
-        <span class="churn-value">{newNodesPerChurn}</span>
+        <span class="churn-label">Available Spots:</span>
+        <span 
+          class="churn-value" 
+          class:limited={availableSpots < newNodesPerChurn}
+          title={availableSpots < newNodesPerChurn ? `Limited by max validator set (${maxValidatorSet})` : `Up to ${newNodesPerChurn} new nodes can join`}
+        >{availableSpots}</span>
       </div>
       <div class="churn-info">
         <span class="churn-label">Total Spots Available:</span>
@@ -3190,6 +3217,11 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     color: #4A90E2;
     font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
     font-size: 0.875rem;
+  }
+
+  .churn-value.limited {
+    color: #E74C3C;
+    font-weight: 600;
   }
 
   /* Mobile adjustments for churn summary */
