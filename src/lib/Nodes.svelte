@@ -609,6 +609,9 @@
   };
 
   onMount(async () => {
+    // Load starred nodes from localStorage
+    loadStarredNodes();
+    
     // Load IP info from JSON file
     ipInfoMap = new Map(Object.entries(ipInfoData));
 
