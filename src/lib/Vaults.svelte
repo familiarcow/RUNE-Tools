@@ -267,8 +267,8 @@
           <div class="vault-card" transition:fade>
             <div class="card-header" class:retiring={vault.status === 'RetiringVault'}>
               <h2>Vault {formatVaultName(vault.pub_key)}{vault.status === 'RetiringVault' ? ' (Retiring)' : ''}</h2>
-              <div class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key, 'vault pubkey')}>
-                {shortenAddress(vault.pub_key)}
+              <div class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key, 'vault ECDSA pubkey')}>
+                ECDSA: {shortenAddress(vault.pub_key)}
               </div>
               {#if vault.pub_key_eddsa}
                 <div class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key_eddsa, 'vault EdDSA pubkey')}>
