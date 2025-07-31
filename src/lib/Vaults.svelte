@@ -28,6 +28,20 @@
     XRP: '/assets/chains/XRP.svg'
   };
 
+  const chainExplorers = {
+    'BTC': 'https://blockstream.info/address/',
+    'ETH': 'https://etherscan.io/address/',
+    'BCH': 'https://blockchair.com/bitcoin-cash/address/',
+    'LTC': 'https://blockchair.com/litecoin/address/',
+    'DOGE': 'https://blockchair.com/dogecoin/address/',
+    'AVAX': 'https://snowtrace.io/address/',
+    'BSC': 'https://bscscan.com/address/',
+    'GAIA': 'https://www.mintscan.io/cosmos/account/',
+    'THOR': 'https://thorchain.net/address/',
+    'BASE': 'https://basescan.org/address/',
+    'XRP': 'https://xrpscan.com/account/'
+  };
+
   const assetLogos = {
     'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
     'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
@@ -230,6 +244,13 @@
     
     return address.slice(0, start) + '...' + address.slice(-end);
   }
+
+  function openExplorer(chain, address) {
+    const explorerUrl = chainExplorers[chain];
+    if (explorerUrl) {
+      window.open(explorerUrl + address, '_blank');
+    }
+  }
 </script>
 
 <main>
@@ -249,6 +270,11 @@
               <div class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key, 'vault pubkey')}>
                 {shortenAddress(vault.pub_key)}
               </div>
+              {#if vault.pub_key_eddsa}
+                <div class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key_eddsa, 'vault EdDSA pubkey')}>
+                  EdDSA: {shortenAddress(vault.pub_key_eddsa)}
+                </div>
+              {/if}
             </div>
 
             <div class="card-content">
@@ -269,10 +295,49 @@
                     class="address clickable" 
                     on:click={() => copyToClipboard(address.address, `${address.chain} address`)}
                   >{shortenAddress(address.address)}</span>
+                  {#if chainExplorers[address.chain]}
+                    <button 
+                      class="explorer-link" 
+                      on:click={() => openExplorer(address.chain, address.address)}
+                      title="View on explorer"
+                    >
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="2" 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round"
+                      >
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15,3 21,3 21,9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                    </button>
+                  {/if}
                 </div>
               {/each}
 
               <hr />
+
+              {#if vault.inbound_tx_count !== undefined || vault.outbound_tx_count !== undefined}
+                <div class="transaction-counts">
+                  <div class="tx-row">
+                    <span>Transactions In:</span>
+                    <span class="clickable" on:click={() => copyToClipboard(vault.inbound_tx_count?.toLocaleString() || '0', 'inbound transaction count')}>
+                      {(vault.inbound_tx_count || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div class="tx-row">
+                    <span>Transactions Out:</span>
+                    <span class="clickable" on:click={() => copyToClipboard(vault.outbound_tx_count?.toLocaleString() || '0', 'outbound transaction count')}>
+                      {(vault.outbound_tx_count || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              {/if}
 
               <div class="total-bond">
                 <div class="bond-row">
@@ -626,6 +691,26 @@
     margin-bottom: 0;
   }
 
+  .transaction-counts {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--surface-color-secondary);
+    border-radius: 4px;
+  }
+
+  .tx-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+
+  .tx-row:last-child {
+    margin-bottom: 0;
+  }
+
   .amount-with-icon {
     display: flex;
     align-items: center;
@@ -713,6 +798,32 @@
     height: 24px;
   }
 
+  .explorer-link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: var(--secondary-text-color);
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .explorer-link:hover {
+    opacity: 1;
+    background-color: var(--surface-color-secondary);
+    color: var(--text-color);
+  }
+
+  .explorer-link:active {
+    transform: scale(0.95);
+  }
+
   /* Signers styles */
   .signers-container {
     display: flex;
@@ -724,15 +835,7 @@
     border-radius: 4px;
   }
 
-  .debug-info {
-    font-family: monospace;
-    font-size: 0.8rem;
-    padding: 0.5rem;
-    background: #333;
-    color: #fff;
-    margin: 0.5rem 0;
-    border-radius: 4px;
-  }
+
 
   .signer-tag {
     background: var(--surface-color);
