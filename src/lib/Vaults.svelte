@@ -24,7 +24,8 @@
     BSC: '/assets/chains/BSC.svg',
     GAIA: '/assets/chains/GAIA.svg',
     THOR: '/assets/chains/THOR.svg',
-    BASE: '/assets/chains/BASE.svg'
+    BASE: '/assets/chains/BASE.svg',
+    XRP: '/assets/chains/XRP.svg'
   };
 
   const assetLogos = {
