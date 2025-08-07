@@ -64,14 +64,7 @@
       icon: "💰", 
       path: "earnings", 
       description: "Check the THORChain protocol's earnings" 
-    },
-    { 
-      name: "Growth", 
-      component: () => import("./lib/Growth.svelte"), 
-      icon: "🌱", 
-      path: "growth", 
-            description: "Track THORChain's growth metrics" 
-    },
+        },
     { 
       name: "Constants and Mimirs", 
       component: () => import("./lib/Constants.svelte"), 
@@ -285,6 +278,13 @@
       icon: "🪣", 
       path: "debt", 
       description: "Check THORChain's debt" 
+    },
+    { 
+      name: "Growth", 
+      component: () => import("./lib/Growth.svelte"), 
+      icon: "🌱", 
+      path: "growth", 
+      description: "Track THORChain's growth metrics" 
     }
   ];
 
