@@ -87,6 +87,13 @@
       description: "Check THORChain's incentive pendulum balance" 
     },
     { 
+      name: "Churn Countdown", 
+      component: () => import("./lib/ChurnCountdown.svelte"), 
+      icon: "⏳", 
+      path: "churn", 
+      description: "Countdown to the next validator churn" 
+    },
+    { 
       name: "Supply Tracker", 
       component: () => import("./lib/Supply.svelte"), 
       icon: "🔥", 
