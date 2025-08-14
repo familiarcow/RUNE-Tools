@@ -72,13 +72,7 @@
       path: "constants", 
       description: "View THORChain's network parameters and settings" 
     },
-    { 
-      name: "Block Date", 
-      component: () => import("./lib/BlockDate.svelte"), 
-      icon: "📅", 
-      path: "blockdate", 
-      description: "Convert THORChain block height to date and vice versa" 
-    },
+
     { 
       name: "Incentive Pendulum", 
       component: () => import("./lib/IncentivePendulum.svelte"), 
@@ -299,6 +293,13 @@
       icon: "/assets/services/ledger.svg", 
       path: "ledger", 
       description: "Test Ledger swap quote requests" 
+    },
+    { 
+      name: "Block Date", 
+      component: () => import("./lib/BlockDate.svelte"), 
+      icon: "📅", 
+      path: "blockdate", 
+      description: "Convert THORChain block height to date and vice versa" 
     }
   ];
 
