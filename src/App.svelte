@@ -288,13 +288,6 @@
       description: "Track THORChain's growth metrics" 
     },
     { 
-      name: "Ledger", 
-      component: () => import("./lib/Ledger.svelte"), 
-      icon: "/assets/services/ledger.svg", 
-      path: "ledger", 
-      description: "Test Ledger swap quote requests" 
-    },
-    { 
       name: "Block Date", 
       component: () => import("./lib/BlockDate.svelte"), 
       icon: "📅", 
