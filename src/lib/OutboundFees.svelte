@@ -51,10 +51,10 @@
     'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'assets/coins/coinbase-wrapped-btc-logo.svg'
   };
 
-  // API endpoints with fallback (same pattern as Nodes.svelte)
+
   const API_ENDPOINTS = {
-    primary: 'https://thornode.thorchain.liquify.com',
-    fallback: 'https://thornode.ninerealms.com'
+    primary: 'https://thornode.ninerealms.com',
+    fallback: 'https://thornode.thorchain.liquify.com'
   };
 
   // Fetch data from API with automatic fallback
