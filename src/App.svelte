@@ -123,13 +123,6 @@
       description: "Check your THORChain LP positions" 
     },
     { 
-      name: "Savers", 
-      component: () => import("./lib/SaversTracker.svelte"), 
-      icon: "📈", 
-      path: "savers", 
-      description: "Track the Savers yield curve and Liquidity Provider rewards" 
-    },
-    { 
       name: "Version", 
       component: () => import("./lib/Version.svelte"), 
       icon: "🔧", 
@@ -184,21 +177,6 @@
       icon: "🧙‍♂️", 
       path: "thorchad", 
       description: "THORChad your profile picture" 
-    },
-    { 
-      name: "Base", 
-      component: () => import("./lib/Base.svelte"), 
-      icon: "/assets/chains/BASE.svg", 
-      path: "base", 
-      description: "Track Base chain stats and pools on THORChain" 
-    },
-
-        { 
-      name: "cbBTC Exchange", 
-      icon: "/assets/cbtx-logo.png",
-      path: "cbtx", 
-      description: "Trade from Base to Bitcoin & more for the lowest fees",  
-      externalUrl: "https://cbbtc.exchange"
     },
     { 
       name: "Trade on THORSwap", 
@@ -300,6 +278,27 @@
       icon: "📅", 
       path: "blockdate", 
       description: "Convert THORChain block height to date and vice versa" 
+    },
+    { 
+      name: "Savers", 
+      component: () => import("./lib/SaversTracker.svelte"), 
+      icon: "📈", 
+      path: "savers", 
+      description: "Track the Savers yield curve and Liquidity Provider rewards" 
+    },
+    { 
+      name: "Base", 
+      component: () => import("./lib/Base.svelte"), 
+      icon: "/assets/chains/BASE.svg", 
+      path: "base", 
+      description: "Track Base chain stats and pools on THORChain" 
+    },
+    { 
+      name: "cbBTC Exchange", 
+      icon: "/assets/cbtx-logo.png",
+      path: "cbtx", 
+      description: "Trade from Base to Bitcoin & more for the lowest fees",  
+      externalUrl: "https://cbbtc.exchange"
     }
   ];
 
