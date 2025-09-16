@@ -235,6 +235,13 @@
       path: "secured-assets",
       description: "Track THORChain's secured assets"
     },
+    {
+      name: "THORChain Dominance",
+      component: () => import("./lib/ThorchainDominance.svelte"),
+      icon: "📊",
+      path: "dominance",
+      description: "Compare THORChain's market dominance against competitors"
+    },
     { 
       name: "Shop", 
       icon: "🏪", 
