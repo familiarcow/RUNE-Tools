@@ -5,6 +5,7 @@
 
   const oraclePrices = writable({});
   const poolPrices = writable({});
+  const runePrice = writable(null);
   const loading = writable(true);
 
   // Asset to symbol mapping for oracle prices
@@ -117,15 +118,28 @@
     }
   }
 
+  async function fetchRunePrice() {
+    try {
+      const response = await fetch('https://thornode.ninerealms.com/thorchain/network');
+      const data = await response.json();
+      return Number(data.rune_price_in_tor) / 1e8;
+    } catch (error) {
+      console.error('Failed to fetch RUNE price:', error);
+      return null;
+    }
+  }
+
   async function loadData() {
     loading.set(true);
     try {
-      const [oracleData, poolData] = await Promise.all([
+      const [oracleData, poolData, runePriceData] = await Promise.all([
         fetchOraclePrices(),
-        fetchPoolPrices()
+        fetchPoolPrices(),
+        fetchRunePrice()
       ]);
       oraclePrices.set(oracleData);
       poolPrices.set(poolData);
+      runePrice.set(runePriceData);
     } finally {
       loading.set(false);
     }
@@ -197,30 +211,54 @@
   }
 
   // Compute comparison data - show ALL matching pool assets for each oracle symbol
-  $: comparisonData = Object.keys($oraclePrices).flatMap(symbol => {
-    // Find ALL matching pool assets for this oracle symbol
-    const matchingAssets = Object.keys(assetToOracleSymbol).filter(
-      asset => assetToOracleSymbol[asset] === symbol
-    );
+  $: comparisonData = (() => {
+    const poolComparisons = Object.keys($oraclePrices).flatMap(symbol => {
+      // Find ALL matching pool assets for this oracle symbol
+      const matchingAssets = Object.keys(assetToOracleSymbol).filter(
+        asset => assetToOracleSymbol[asset] === symbol
+      );
 
-    const oraclePrice = $oraclePrices[symbol];
-    
-    return matchingAssets.map(asset => {
-      const poolPrice = $poolPrices[asset];
-      const delta = poolPrice && oraclePrice 
-        ? ((poolPrice - oraclePrice) / oraclePrice) * 100
-        : null;
+      const oraclePrice = $oraclePrices[symbol];
+      
+      return matchingAssets.map(asset => {
+        const poolPrice = $poolPrices[asset];
+        const delta = poolPrice && oraclePrice 
+          ? ((poolPrice - oraclePrice) / oraclePrice) * 100
+          : null;
 
-      return {
-        symbol,
-        asset,
+        return {
+          symbol,
+          asset,
+          oraclePrice,
+          poolPrice,
+          delta,
+          hasPoolPrice: !!poolPrice,
+          isRune: false
+        };
+      }).filter(item => item.hasPoolPrice);
+    });
+
+    // Add RUNE comparison if both oracle RUNE price and network RUNE price are available
+    const runeComparisons = [];
+    if ($oraclePrices.RUNE && $runePrice) {
+      const oraclePrice = $oraclePrices.RUNE;
+      const networkPrice = $runePrice;
+      const delta = ((networkPrice - oraclePrice) / oraclePrice) * 100;
+      
+      runeComparisons.push({
+        symbol: 'RUNE',
+        asset: 'THOR.RUNE',
         oraclePrice,
-        poolPrice,
+        poolPrice: networkPrice,
         delta,
-        hasPoolPrice: !!poolPrice
-      };
-    }).filter(item => item.hasPoolPrice);
-  }).sort((a, b) => Math.abs(b.delta || 0) - Math.abs(a.delta || 0));
+        hasPoolPrice: true,
+        isRune: true
+      });
+    }
+
+    return [...poolComparisons, ...runeComparisons]
+      .sort((a, b) => Math.abs(b.delta || 0) - Math.abs(a.delta || 0));
+  })();
 
   function slideIn(node, { duration = 400 }) {
     return {
@@ -273,21 +311,21 @@
         <div class="stat-card">
           <div class="stat-icon">🔗</div>
           <div class="stat-value">{comparisonData.length}</div>
-          <div class="stat-label">Pool Assets vs Oracle</div>
+          <div class="stat-label">Network Assets vs Oracle</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">📈</div>
           <div class="stat-value">
             {comparisonData.filter(d => d.delta > 0).length}
           </div>
-          <div class="stat-label">Pool &gt; Oracle</div>
+          <div class="stat-label">Network &gt; Oracle</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">📉</div>
           <div class="stat-value">
             {comparisonData.filter(d => d.delta < 0).length}
           </div>
-          <div class="stat-label">Pool &lt; Oracle</div>
+          <div class="stat-label">Network &lt; Oracle</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">⚖️</div>
@@ -305,7 +343,7 @@
               <tr>
                 <th>Asset</th>
                 <th>Oracle Price</th>
-                <th>Pool Price</th>
+                <th>Network Price</th>
                 <th>Difference</th>
               </tr>
             </thead>
