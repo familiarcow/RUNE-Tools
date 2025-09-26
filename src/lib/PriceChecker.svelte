@@ -6,6 +6,7 @@
   const pools = writable([]);
   const currentTab = writable('prices');
   const externalPrices = writable({});
+  const oraclePrices = writable({});
   const showPoolInfo = writable(false);
   const showTradeBalanceInUSD = writable(false);
 
@@ -154,6 +155,20 @@
     }
   }
 
+  async function getOraclePrices() {
+    try {
+      const response = await fetch("https://thornode.ninerealms.com/thorchain/oracle/prices");
+      const data = await response.json();
+      return data.prices.reduce((acc, item) => {
+        acc[item.symbol] = parseFloat(item.price);
+        return acc;
+      }, {});
+    } catch (error) {
+      console.error('Failed to fetch oracle prices:', error);
+      return {};
+    }
+  }
+
   function getExternalPrice(asset) {
     const coinGeckoId = assetToCoinGeckoMap[asset] || asset.split('.')[1].toLowerCase();
     let price = $externalPrices[coinGeckoId]?.usd;
@@ -167,10 +182,44 @@
     return price || null;
   }
 
-  $: combinedPoolData = $pools.length > 0 && Object.keys($externalPrices).length > 0
+  function getOraclePrice(asset) {
+    const parts = asset.split('.');
+    let symbol = parts[1] || parts[0];
+    
+    // Handle specific mappings for oracle symbols
+    const oracleSymbolMap = {
+      'WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': 'BTC',
+      'USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'USDC',
+      'USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': 'USDC',
+      'USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'USDC',
+      'USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913': 'USDC',
+      'USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'USDT',
+      'USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'USDT',
+      'USDT-0X55D398326F99059FF775485246999027B3197955': 'USDT',
+      'CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'BTC',
+      'CBTC-0XCB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'BTC'
+    };
+    
+    // Use mapped symbol if available
+    if (oracleSymbolMap[symbol]) {
+      symbol = oracleSymbolMap[symbol];
+    }
+    
+    // For wrapped or contract tokens, try to extract the base symbol
+    if (symbol.includes('-0X')) {
+      const baseSymbol = symbol.split('-')[0];
+      symbol = oracleSymbolMap[symbol] || baseSymbol;
+    }
+    
+    return $oraclePrices[symbol] || null;
+  }
+
+  $: combinedPoolData = $pools.length > 0 && (Object.keys($externalPrices).length > 0 || Object.keys($oraclePrices).length > 0)
     ? $pools.map(pool => {
         const externalPrice = getExternalPrice(pool.asset);
+        const oraclePrice = getOraclePrice(pool.asset);
         const difference = externalPrice ? ((pool.usd_price - externalPrice) / externalPrice) * 100 : null;
+        const oracleDifference = oraclePrice ? ((pool.usd_price - oraclePrice) / oraclePrice) * 100 : null;
         const tradeBalanceUSD = (pool.trade_asset_depth / 1e8) * pool.usd_price;
         const totalPoolDepthUSD = (pool.balance_asset / 1e8) * 2 * pool.usd_price;
         const tradePoolRatio = (pool.trade_asset_depth / (2 * pool.balance_asset)) * 100;
@@ -178,7 +227,9 @@
         return {
           ...pool,
           externalPrice,
+          oraclePrice,
           difference,
+          oracleDifference,
           tradeBalanceUSD,
           totalPoolDepthUSD,
           tradePoolRatio
@@ -191,9 +242,14 @@
     console.log('Pools data:', poolsData);
     pools.set(poolsData);
     const assets = poolsData.map(pool => pool.asset);
-    const prices = await getExternalPrices(assets);
+    const [prices, oracleData] = await Promise.all([
+      getExternalPrices(assets),
+      getOraclePrices()
+    ]);
     console.log('External prices:', prices);
+    console.log('Oracle prices:', oracleData);
     externalPrices.set(prices);
+    oraclePrices.set(oracleData);
   }
 
   onMount(() => {
@@ -315,8 +371,10 @@
                   <tr>
                     <th>Asset</th>
                     <th>THORChain Price</th>
-                    <th>External Price</th>
-                    <th>Difference</th>
+                    <th>CoinGecko</th>
+                    <th>Oracle Price</th>
+                    <th>CoinGecko Delta</th>
+                    <th>Oracle Delta</th>
                     {#if $showPoolInfo}
                       <th>Trade Balance {$showTradeBalanceInUSD ? '(USD)' : '(Asset)'}</th>
                       <th>Total Pool Depth USD</th>
@@ -327,6 +385,7 @@
                 <tbody>
                   {#each combinedPoolData as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
+                    {@const oracleDifference = formatPriceDifference(pool.oracleDifference)}
                     {@const balanceUSD = pool.balance_asset * pool.usd_price}
                     {@const totalPoolDepthUSD = pool.balance_asset * 2 * pool.usd_price}
                     <tr>
@@ -351,7 +410,9 @@
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                       <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
+                      <td class="price-cell">{pool.oraclePrice ? formatNumberUSD(pool.oraclePrice) : 'N/A'}</td>
                       <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
+                      <td class="difference-cell" style="color: {oracleDifference.color}">{oracleDifference.text}</td>
                       {#if $showPoolInfo}
                         <td class="balance-cell">
                           {$showTradeBalanceInUSD 
@@ -379,13 +440,16 @@
                   <tr>
                     <th>Asset</th>
                     <th>THORChain Price</th>
-                    <th>External Price</th>
-                    <th>Difference</th>
+                    <th>CoinGecko</th>
+                    <th>Oracle Price</th>
+                    <th>CoinGecko Delta</th>
+                    <th>Oracle Delta</th>
                   </tr>
                 </thead>
                 <tbody>
                   {#each filterAssets(combinedPoolData, bitcoinAssets) as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
+                    {@const oracleDifference = formatPriceDifference(pool.oracleDifference)}
                     <tr>
                       <td class="asset-cell">
                         <div class="logo-container">
@@ -408,7 +472,9 @@
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                       <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
+                      <td class="price-cell">{pool.oraclePrice ? formatNumberUSD(pool.oraclePrice) : 'N/A'}</td>
                       <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
+                      <td class="difference-cell" style="color: {oracleDifference.color}">{oracleDifference.text}</td>
                     </tr>
                   {/each}
                 </tbody>
@@ -424,13 +490,16 @@
                   <tr>
                     <th>Asset</th>
                     <th>THORChain Price</th>
-                    <th>External Price</th>
-                    <th>Difference</th>
+                    <th>CoinGecko</th>
+                    <th>Oracle Price</th>
+                    <th>CoinGecko Delta</th>
+                    <th>Oracle Delta</th>
                   </tr>
                 </thead>
                 <tbody>
                   {#each filterAssets(combinedPoolData, stablecoinAssets) as pool}
                     {@const difference = formatPriceDifference(pool.difference)}
+                    {@const oracleDifference = formatPriceDifference(pool.oracleDifference)}
                     <tr>
                       <td class="asset-cell">
                         <div class="logo-container">
@@ -453,7 +522,9 @@
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                       <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
+                      <td class="price-cell">{pool.oraclePrice ? formatNumberUSD(pool.oraclePrice) : 'N/A'}</td>
                       <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
+                      <td class="difference-cell" style="color: {oracleDifference.color}">{oracleDifference.text}</td>
                     </tr>
                   {/each}
                 </tbody>
