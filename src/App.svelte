@@ -102,6 +102,13 @@
       description: "Check pool prices and compare prices of similar assets" 
     },
     { 
+      name: "Oracle Prices", 
+      component: () => import("./lib/OraclePrice.svelte"), 
+      icon: "🔮", 
+      path: "oracle", 
+      description: "Compare THORChain oracle prices vs pool prices" 
+    },
+    { 
       name: "Vaults", 
       component: () => import("./lib/Vaults.svelte"), 
       icon: "🔒", 
