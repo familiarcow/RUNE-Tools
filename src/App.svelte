@@ -214,6 +214,13 @@
       description: "Track THORChain's trade assets and vault balances" 
     },
     {
+      name: "Orderbooks",
+      component: () => import("./lib/Orderbooks.svelte"),
+      icon: "📊",
+      path: "orderbooks",
+      description: "Monitor active limit swaps (orderbooks) on THORChain stagenet"
+    },
+    {
       name: "Secured Assets",
       component: () => import("./lib/SecuredAssets.svelte"),
       icon: "🧪",
