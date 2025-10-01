@@ -14,6 +14,8 @@
   let loadingPairDetails = false;
   let pools = [];
   let poolPrices = new Map();
+  let testingQuote = new Set(); // Track which swaps are testing quotes
+  let quoteResults = new Map(); // Store quote results
 
   const STAGENET_API = 'https://stagenet-thornode.ninerealms.com/thorchain';
 
@@ -240,6 +242,57 @@
 
   function openTxLink(txid) {
     window.open(`https://thorchain.net/tx/${txid}`, '_blank');
+  }
+
+  async function testQuote(swap) {
+    const swapId = swap.swap?.tx?.id;
+    if (!swapId) return;
+
+    testingQuote.add(swapId);
+    testingQuote = testingQuote; // Trigger reactivity
+
+    try {
+      // Extract swap parameters
+      const fromAsset = `${swap.swap.tx.chain}.${swap.swap.tx.chain}`;
+      const toAsset = swap.swap.target_asset;
+      const amount = swap.swap.tx.coins[0].amount; // Already in 1e8 format
+      const destination = swap.swap.destination;
+      
+      // Use streaming parameters from the swap state
+      const streamingInterval = swap.swap.state?.interval || "0";
+      const streamingQuantity = swap.swap.state?.quantity || "4";
+
+      // Build the quote URL for stagenet
+      let url = `${STAGENET_API}/quote/swap?`;
+      url += `amount=${amount}&from_asset=${fromAsset}&to_asset=${toAsset}&destination=${destination}`;
+      url += `&streaming_interval=${streamingInterval}&streaming_quantity=${streamingQuantity}`;
+
+      const response = await fetch(url);
+      const result = await response.json();
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Store the result
+      quoteResults.set(swapId, {
+        expected_amount_out: parseInt(result.expected_amount_out) / 1e8,
+        target_amount: parseInt(swap.swap.trade_target) / 1e8,
+        difference: (parseInt(result.expected_amount_out) - parseInt(swap.swap.trade_target)) / 1e8,
+        percentage_diff: ((parseInt(result.expected_amount_out) - parseInt(swap.swap.trade_target)) / parseInt(swap.swap.trade_target)) * 100
+      });
+      quoteResults = quoteResults; // Trigger reactivity
+
+    } catch (err) {
+      console.error('Error fetching quote:', err);
+      quoteResults.set(swapId, {
+        error: err.message
+      });
+      quoteResults = quoteResults;
+    } finally {
+      testingQuote.delete(swapId);
+      testingQuote = testingQuote;
+    }
   }
 
   // Update filtered swaps whenever limitSwaps, searchTerm, or selectedFilter changes
@@ -585,8 +638,45 @@
                         >
                           🔗
                         </button>
+                        <button 
+                          class="tx-btn test-quote-btn" 
+                          on:click={() => testQuote(swap)}
+                          disabled={testingQuote.has(swap.swap?.tx?.id)}
+                          title="Test current quote"
+                        >
+                          {testingQuote.has(swap.swap?.tx?.id) ? '⏳' : '📊'}
+                        </button>
                       </div>
                     </div>
+                    
+                    <!-- Quote Results -->
+                    {#if quoteResults.has(swap.swap?.tx?.id)}
+                      <div class="quote-results">
+                        {#if quoteResults.get(swap.swap.tx.id).error}
+                          <div class="quote-error">
+                            ⚠️ Error: {quoteResults.get(swap.swap.tx.id).error}
+                          </div>
+                        {:else}
+                          <div class="quote-comparison">
+                            <div class="quote-row">
+                              <span class="quote-label">Expected Output:</span>
+                              <span class="quote-value">{formatAmount(quoteResults.get(swap.swap.tx.id).expected_amount_out * 1e8)} {getAssetDisplay(swap.swap?.target_asset)}</span>
+                            </div>
+                            <div class="quote-row">
+                              <span class="quote-label">Target Output:</span>
+                              <span class="quote-value">{formatAmount(quoteResults.get(swap.swap.tx.id).target_amount * 1e8)} {getAssetDisplay(swap.swap?.target_asset)}</span>
+                            </div>
+                            <div class="quote-row">
+                              <span class="quote-label">Difference:</span>
+                              <span class="quote-value {quoteResults.get(swap.swap.tx.id).difference >= 0 ? 'positive' : 'negative'}">
+                                {quoteResults.get(swap.swap.tx.id).difference >= 0 ? '+' : ''}{formatAmount(quoteResults.get(swap.swap.tx.id).difference * 1e8)} 
+                                ({quoteResults.get(swap.swap.tx.id).percentage_diff >= 0 ? '+' : ''}{quoteResults.get(swap.swap.tx.id).percentage_diff.toFixed(2)}%)
+                              </span>
+                            </div>
+                          </div>
+                        {/if}
+                      </div>
+                    {/if}
                   </div>
                 </div>
               {/each}
@@ -1156,6 +1246,61 @@
   .link-btn:hover {
     background: rgba(33, 150, 243, 0.2);
     border-color: rgba(33, 150, 243, 0.4);
+  }
+
+  .test-quote-btn:hover:not(:disabled) {
+    background: rgba(156, 39, 176, 0.2);
+    border-color: rgba(156, 39, 176, 0.4);
+  }
+
+  .test-quote-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .quote-results {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .quote-error {
+    color: #ff6b6b;
+    font-size: 0.85rem;
+  }
+
+  .quote-comparison {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .quote-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+
+  .quote-label {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .quote-value {
+    color: var(--text-color);
+    font-weight: 600;
+    font-family: monospace;
+  }
+
+  .quote-value.positive {
+    color: #4CAF50;
+  }
+
+  .quote-value.negative {
+    color: #ff6b6b;
   }
 
   .address-container {
