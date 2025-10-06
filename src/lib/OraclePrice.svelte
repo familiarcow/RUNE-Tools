@@ -8,66 +8,130 @@
   const runePrice = writable(null);
   const loading = writable(true);
 
-  // Asset to symbol mapping for oracle prices
-  const assetToOracleSymbol = {
-    'BTC.BTC': 'BTC',
-    'ETH.ETH': 'ETH',
-    'BSC.BNB': 'BNB',
-    'BCH.BCH': 'BCH',
-    'LTC.LTC': 'LTC',
-    'AVAX.AVAX': 'AVAX',
-    'GAIA.ATOM': 'ATOM',
-    'DOGE.DOGE': 'DOGE',
-    'THOR.RUNE': 'RUNE',
-    'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'SOL',
-    'XRP.XRP': 'XRP',
-    'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'USDC',
-    'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'USDT',
-    'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': 'USDC',
-    'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'USDT',
-    'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'USDC',
-    'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'USDT',
-    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913': 'USDC',
-    'TRX.TRX': 'TRX'
-  };
+  // Function to map any asset to oracle symbol
+  function getOracleSymbolForAsset(asset) {
+    const upperAsset = asset.toUpperCase();
+    
+    // Direct matches for native assets - these SHOULD be compared to oracle
+    const nativeAssetMappings = {
+      'BTC.BTC': 'BTC',
+      'ETH.ETH': 'ETH', 
+      'BSC.BNB': 'BNB',
+      'BCH.BCH': 'BCH',
+      'LTC.LTC': 'LTC',
+      'AVAX.AVAX': 'AVAX',
+      'GAIA.ATOM': 'ATOM',
+      'DOGE.DOGE': 'DOGE',
+      'XRP.XRP': 'XRP',
+      'TRX.TRX': 'TRX'
+    };
+    
+    // First check exact native asset matches
+    if (nativeAssetMappings[upperAsset]) {
+      return nativeAssetMappings[upperAsset];
+    }
+    
+    // Special case: RUNE is handled separately with network price
+    if (upperAsset === 'THOR.RUNE') {
+      return null; // RUNE handled separately
+    }
+    
+    // Check for WRAPPED/TOKENIZED versions on OTHER chains
+    // BTC wrapped tokens (not native BTC.BTC)
+    if (upperAsset.includes('WBTC') || upperAsset.includes('BTCB') || 
+        (upperAsset.includes('BTC') && !upperAsset.startsWith('BTC.'))) {
+      return 'BTC';
+    }
+    
+    // ETH wrapped tokens (not native ETH.ETH) 
+    if (upperAsset.includes('WETH') || 
+        (upperAsset.includes('ETH') && !upperAsset.startsWith('ETH.'))) {
+      return 'ETH';
+    }
+    
+    // Stablecoins on any chain
+    if (upperAsset.includes('USDC')) {
+      return 'USDC';
+    }
+    if (upperAsset.includes('USDT')) {
+      return 'USDT';
+    }
+    
+    // Cross-chain wrapped tokens
+    if (upperAsset.includes('SOL') && !upperAsset.startsWith('SOL.')) {
+      return 'SOL';
+    }
+    if (upperAsset.includes('AVAX') && !upperAsset.startsWith('AVAX.')) {
+      return 'AVAX';
+    }
+    if (upperAsset.includes('BNB') && !upperAsset.startsWith('BSC.')) {
+      return 'BNB';
+    }
+    if (upperAsset.includes('ATOM') && !upperAsset.startsWith('GAIA.')) {
+      return 'ATOM';
+    }
+    if (upperAsset.includes('DOGE') && !upperAsset.startsWith('DOGE.')) {
+      return 'DOGE';
+    }
+    if (upperAsset.includes('LTC') && !upperAsset.startsWith('LTC.')) {
+      return 'LTC';
+    }
+    if (upperAsset.includes('BCH') && !upperAsset.startsWith('BCH.')) {
+      return 'BCH';
+    }
+    if (upperAsset.includes('XRP') && !upperAsset.startsWith('XRP.')) {
+      return 'XRP';
+    }
+    if (upperAsset.includes('TRX') && !upperAsset.startsWith('TRX.')) {
+      return 'TRX';
+    }
+    
+    return null;
+  }
 
-  // Asset logos mapping
-  const assetLogos = {
-    'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
-    'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BSC.BNB': 'assets/coins/binance-coin-bnb-logo.svg',
-    'BCH.BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
-    'LTC.LTC': 'assets/coins/litecoin-ltc-logo.svg',
-    'AVAX.AVAX': 'assets/coins/avalanche-avax-logo.svg',
-    'GAIA.ATOM': 'assets/coins/cosmos-atom-logo.svg',
-    'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
-    'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
-    'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'assets/coins/solana-sol-logo.svg',
-    'XRP.XRP': 'assets/chains/XRP.svg',
-    'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'assets/coins/usd-coin-usdc-logo.svg',
-    'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'assets/coins/tether-usdt-logo.svg',
-    'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': 'assets/coins/usd-coin-usdc-logo.svg',
-    'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg',
-    'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'assets/coins/tether-usdt-logo.svg',
-    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913': 'assets/coins/usd-coin-usdc-logo.svg',
-    'TRX.TRX': 'assets/coins/fallback-logo.svg',
-    // Oracle symbol fallbacks
-    'BTC': 'assets/coins/bitcoin-btc-logo.svg',
-    'ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BNB': 'assets/coins/binance-coin-bnb-logo.svg',
-    'BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
-    'LTC': 'assets/coins/litecoin-ltc-logo.svg',
-    'AVAX': 'assets/coins/avalanche-avax-logo.svg',
-    'ATOM': 'assets/coins/cosmos-atom-logo.svg',
-    'DOGE': 'assets/coins/dogecoin-doge-logo.svg',
-    'RUNE': 'assets/coins/RUNE-ICON.svg',
-    'SOL': 'assets/coins/solana-sol-logo.svg',
-    'XRP': 'assets/chains/XRP.svg',
-    'USDC': 'assets/coins/usd-coin-usdc-logo.svg',
-    'USDT': 'assets/coins/tether-usdt-logo.svg',
-    'TRX': 'assets/coins/fallback-logo.svg'
-  };
+  // Function to get appropriate logo for any asset
+  function getAssetLogo(asset, oracleSymbol) {
+    const upperAsset = asset.toUpperCase();
+    
+    // First try exact asset match
+    const exactLogos = {
+      'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
+      'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
+      'BSC.BNB': 'assets/coins/binance-coin-bnb-logo.svg',
+      'BCH.BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
+      'LTC.LTC': 'assets/coins/litecoin-ltc-logo.svg',
+      'AVAX.AVAX': 'assets/coins/avalanche-avax-logo.svg',
+      'GAIA.ATOM': 'assets/coins/cosmos-atom-logo.svg',
+      'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
+      'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
+      'XRP.XRP': 'assets/chains/XRP.svg',
+      'TRX.TRX': 'assets/coins/fallback-logo.svg'
+    };
+    
+    if (exactLogos[upperAsset]) {
+      return exactLogos[upperAsset];
+    }
+    
+    // Use oracle symbol to determine logo for wrapped/tokenized assets
+    const symbolLogos = {
+      'BTC': 'assets/coins/bitcoin-btc-logo.svg',
+      'ETH': 'assets/coins/ethereum-eth-logo.svg',
+      'BNB': 'assets/coins/binance-coin-bnb-logo.svg',
+      'BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
+      'LTC': 'assets/coins/litecoin-ltc-logo.svg',
+      'AVAX': 'assets/coins/avalanche-avax-logo.svg',
+      'ATOM': 'assets/coins/cosmos-atom-logo.svg',
+      'DOGE': 'assets/coins/dogecoin-doge-logo.svg',
+      'RUNE': 'assets/coins/RUNE-ICON.svg',
+      'SOL': 'assets/coins/solana-sol-logo.svg',
+      'XRP': 'assets/chains/XRP.svg',
+      'USDC': 'assets/coins/usd-coin-usdc-logo.svg',
+      'USDT': 'assets/coins/tether-usdt-logo.svg',
+      'TRX': 'assets/coins/fallback-logo.svg'
+    };
+    
+    return symbolLogos[oracleSymbol] || 'assets/coins/fallback-logo.svg';
+  }
 
   // Chain logos mapping
   const chainLogos = {
@@ -212,30 +276,27 @@
 
   // Compute comparison data - show ALL matching pool assets for each oracle symbol
   $: comparisonData = (() => {
-    const poolComparisons = Object.keys($oraclePrices).flatMap(symbol => {
-      // Find ALL matching pool assets for this oracle symbol
-      const matchingAssets = Object.keys(assetToOracleSymbol).filter(
-        asset => assetToOracleSymbol[asset] === symbol
-      );
-
-      const oraclePrice = $oraclePrices[symbol];
+    const poolComparisons = [];
+    
+    // For each pool asset, check if we can map it to an oracle symbol
+    Object.keys($poolPrices).forEach(asset => {
+      const oracleSymbol = getOracleSymbolForAsset(asset);
+      const oraclePrice = $oraclePrices[oracleSymbol];
+      const poolPrice = $poolPrices[asset];
       
-      return matchingAssets.map(asset => {
-        const poolPrice = $poolPrices[asset];
-        const delta = poolPrice && oraclePrice 
-          ? ((poolPrice - oraclePrice) / oraclePrice) * 100
-          : null;
-
-        return {
-          symbol,
+      if (oracleSymbol && oraclePrice && poolPrice) {
+        const delta = ((poolPrice - oraclePrice) / oraclePrice) * 100;
+        
+        poolComparisons.push({
+          symbol: oracleSymbol,
           asset,
           oraclePrice,
           poolPrice,
           delta,
-          hasPoolPrice: !!poolPrice,
+          hasPoolPrice: true,
           isRune: false
-        };
-      }).filter(item => item.hasPoolPrice);
+        });
+      }
     });
 
     // Add RUNE comparison if both oracle RUNE price and network RUNE price are available
@@ -354,7 +415,7 @@
                     <div class="asset-info">
                       <div class="logo-container">
                         <img 
-                          src={assetLogos[item.asset] || assetLogos[item.symbol] || 'assets/coins/fallback-logo.svg'} 
+                          src={getAssetLogo(item.asset, item.symbol)} 
                           alt={item.symbol}
                           class="asset-icon"
                         />
