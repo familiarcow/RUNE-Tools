@@ -17,11 +17,11 @@
   let testingQuote = new Set(); // Track which swaps are testing quotes
   let quoteResults = new Map(); // Store quote results
 
-  const STAGENET_API = 'https://stagenet-thornode.ninerealms.com/thorchain';
+  const MAINNET_API = 'https://thornode.ninerealms.com/thorchain';
 
   async function fetchLimitSwapsSummary() {
     try {
-      const response = await fetch(`${STAGENET_API}/queue/limit_swaps/summary`);
+      const response = await fetch(`${MAINNET_API}/queue/limit_swaps/summary`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       limitSwapsSummary = data;
@@ -33,7 +33,7 @@
 
   async function fetchPools() {
     try {
-      const response = await fetch(`${STAGENET_API}/pools`);
+      const response = await fetch(`${MAINNET_API}/pools`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       pools = Array.isArray(data) ? data : [];
@@ -54,7 +54,7 @@
 
   async function fetchLimitSwaps() {
     try {
-      const response = await fetch(`${STAGENET_API}/queue/limit_swaps`);
+      const response = await fetch(`${MAINNET_API}/queue/limit_swaps`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       
@@ -83,7 +83,7 @@
         sort_by: 'ratio',
         sort_order: 'asc'
       });
-      const response = await fetch(`${STAGENET_API}/queue/limit_swaps?${params}`);
+      const response = await fetch(`${MAINNET_API}/queue/limit_swaps?${params}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       
@@ -262,8 +262,8 @@
       const streamingInterval = swap.swap.state?.interval || "0";
       const streamingQuantity = swap.swap.state?.quantity || "4";
 
-      // Build the quote URL for stagenet
-      let url = `${STAGENET_API}/quote/swap?`;
+      // Build the quote URL for mainnet
+      let url = `${MAINNET_API}/quote/swap?`;
       url += `amount=${amount}&from_asset=${fromAsset}&to_asset=${toAsset}&destination=${destination}`;
       url += `&streaming_interval=${streamingInterval}&streaming_quantity=${streamingQuantity}`;
 
@@ -328,8 +328,8 @@
 
 <div class="orderbooks-container">
   <div class="header">
-    <h1>THORChain Orderbooks (Stagenet)</h1>
-    <p class="subtitle">Monitor active limit swaps on THORChain's stagenet</p>
+    <h1>THORChain Orderbooks</h1>
+    <p class="subtitle">Monitor active limit swaps on THORChain mainnet</p>
   </div>
 
   {#if loading}
