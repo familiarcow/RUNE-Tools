@@ -14,6 +14,7 @@
   let loadingPairDetails = false;
   let pools = [];
   let poolPrices = new Map();
+  let runePrice = 0; // RUNE price in USD
   let testingQuote = new Set(); // Track which swaps are testing quotes
   let quoteResults = new Map(); // Store quote results
 
@@ -46,9 +47,32 @@
           poolPrices.set(pool.asset, usdPrice);
         }
       });
+      
+      // Add THOR.RUNE price if we have it
+      if (runePrice > 0) {
+        poolPrices.set('THOR.RUNE', runePrice);
+      }
     } catch (err) {
       console.error('Error fetching pools:', err);
       // Don't set error for pools as it's not critical
+    }
+  }
+
+  async function fetchNetworkInfo() {
+    try {
+      const response = await fetch(`${MAINNET_API}/network`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      
+      // Get RUNE price in USD from rune_price_in_tor
+      if (data.rune_price_in_tor) {
+        runePrice = parseInt(data.rune_price_in_tor) / 1e8;
+        // Update poolPrices map with RUNE price
+        poolPrices.set('THOR.RUNE', runePrice);
+      }
+    } catch (err) {
+      console.error('Error fetching network info:', err);
+      // Don't set error for network info as it's not critical
     }
   }
 
@@ -109,6 +133,7 @@
     await Promise.all([
       fetchLimitSwapsSummary(),
       fetchLimitSwaps(),
+      fetchNetworkInfo(),
       fetchPools()
     ]);
     
@@ -226,6 +251,12 @@
   }
 
   function getAssetPriceUSD(asset) {
+    // Check poolPrices map first (includes THOR.RUNE)
+    if (poolPrices.has(asset)) {
+      return poolPrices.get(asset);
+    }
+    
+    // Fallback to pool data for other assets
     const pool = getPoolByAsset(asset);
     if (!pool || !pool.asset_tor_price) return null;
     return parseInt(pool.asset_tor_price) / 1e8;
@@ -253,7 +284,7 @@
 
     try {
       // Extract swap parameters
-      const fromAsset = `${swap.swap.tx.chain}.${swap.swap.tx.chain}`;
+      const fromAsset = swap.swap.tx.chain === 'THOR' ? 'THOR.RUNE' : `${swap.swap.tx.chain}.${swap.swap.tx.chain}`;
       const toAsset = swap.swap.target_asset;
       const amount = swap.swap.tx.coins[0].amount; // Already in 1e8 format
       const destination = swap.swap.destination;
@@ -559,7 +590,7 @@
                 >
                   <div class="swap-header">
                     <div class="swap-pair">
-                      <span class="from-asset">{swap.swap?.tx?.chain}.{swap.swap?.tx?.chain}</span>
+                      <span class="from-asset">{swap.swap?.tx?.chain === 'THOR' ? 'THOR.RUNE' : `${swap.swap?.tx?.chain}.${swap.swap?.tx?.chain}`}</span>
                       <span class="arrow">→</span>
                       <span class="to-asset">{getAssetDisplay(swap.swap?.target_asset)}</span>
                     </div>
