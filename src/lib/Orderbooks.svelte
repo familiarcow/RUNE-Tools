@@ -8,7 +8,9 @@
   let error = null;
   let selectedFilter = 'all';
   let searchTerm = '';
+  let summarySearchTerm = '';
   let filteredSwaps = [];
+  let filteredPairs = [];
   let selectedPair = null;
   let pairSwaps = [];
   let loadingPairDetails = false;
@@ -40,11 +42,32 @@
       pools = Array.isArray(data) ? data : [];
       
       // Create a map of asset -> USD price for quick lookup
+      // Store multiple formats for easy lookups
       poolPrices.clear();
       pools.forEach(pool => {
         if (pool.asset && pool.asset_tor_price) {
           const usdPrice = parseInt(pool.asset_tor_price) / 1e8;
+          
+          // Store with original asset name (e.g., ETH.USDC-0X123...)
           poolPrices.set(pool.asset, usdPrice);
+          
+          // Store normalized version (e.g., ETH.USDC)  
+          const normalizedAsset = normalizeAsset(pool.asset);
+          poolPrices.set(normalizedAsset, usdPrice);
+          
+          // Create alternative format mappings for different asset types
+          // If pool has ETH.USDC-0X123, also map ETH-USDC-0X123 and ETH~USDC-0X123
+          if (pool.asset.includes('.') && pool.asset.includes('-0X')) {
+            // Secured asset format (dash separator)
+            const dashVersion = pool.asset.replace('.', '-');
+            poolPrices.set(dashVersion, usdPrice);
+            poolPrices.set(normalizeAsset(dashVersion), usdPrice);
+            
+            // Trade asset format (tilde separator)  
+            const tildeVersion = pool.asset.replace('.', '~');
+            poolPrices.set(tildeVersion, usdPrice);
+            poolPrices.set(normalizeAsset(tildeVersion), usdPrice);
+          }
         }
       });
       
@@ -52,6 +75,9 @@
       if (runePrice > 0) {
         poolPrices.set('THOR.RUNE', runePrice);
       }
+      
+      // Debug: Log all ETH-related pools
+      console.log('All ETH pools from API:', pools.filter(p => p.asset.includes('ETH')).map(p => ({ asset: p.asset, balance: p.balance_asset, price: p.asset_tor_price })));
     } catch (err) {
       console.error('Error fetching pools:', err);
       // Don't set error for pools as it's not critical
@@ -174,23 +200,73 @@
     }).format(usdValue);
   }
 
-  function getAssetDisplay(asset) {
+  function normalizeAsset(asset) {
     if (!asset) return '';
     
-    // Handle assets with contract addresses (e.g., BSC.USDT-0X...)
-    const parts = asset.split('-');
-    if (parts.length > 1 && parts[1].startsWith('0X')) {
-      // Return chain.token format (e.g., BSC.USDT)
-      return parts[0];
+    // Handle assets with contract addresses first
+    // Format: ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48
+    const dashParts = asset.split('-');
+    let cleanAsset = asset;
+    
+    // Check if the last part is a contract address (starts with 0X and is long enough)
+    if (dashParts.length >= 3) {
+      const lastPart = dashParts[dashParts.length - 1];
+      if (lastPart.toUpperCase().startsWith('0X') && lastPart.length > 10) {
+        // Remove the contract address part
+        cleanAsset = dashParts.slice(0, -1).join('-');
+      }
     }
     
-    // For regular assets, return as-is
-    return asset;
+    // Now normalize the separators to dot notation for consistency
+    // . = native asset (keep as-is)
+    // - = secured asset (convert to .)
+    // ~ = trade asset (convert to .)
+    if (cleanAsset.includes('-') && !cleanAsset.includes('.') && !cleanAsset.includes('~')) {
+      // This is a secured asset, convert to dot notation
+      const parts = cleanAsset.split('-');
+      if (parts.length === 2) {
+        return `${parts[0]}.${parts[1]}`;
+      }
+    } else if (cleanAsset.includes('~')) {
+      // This is a trade asset, convert to dot notation
+      return cleanAsset.replace('~', '.');
+    }
+    
+    // Native assets with . or already clean assets
+    return cleanAsset;
+  }
+
+  function getAssetType(asset) {
+    if (!asset) return 'unknown';
+    
+    // Remove contract address if present
+    const dashParts = asset.split('-');
+    let cleanAsset = asset;
+    if (dashParts.length >= 3) {
+      const lastPart = dashParts[dashParts.length - 1];
+      if (lastPart.toUpperCase().startsWith('0X') && lastPart.length > 10) {
+        cleanAsset = dashParts.slice(0, -1).join('-');
+      }
+    }
+    
+    if (cleanAsset.includes('.')) return 'native';
+    if (cleanAsset.includes('-')) return 'secured';
+    if (cleanAsset.includes('~')) return 'trade';
+    return 'unknown';
+  }
+
+  function getAssetDisplay(asset) {
+    return normalizeAsset(asset);
   }
 
   function getChainFromAsset(asset) {
     if (!asset) return '';
-    const parts = asset.split('.');
+    
+    // Use normalized asset (always uses dot notation)
+    const normalizedAsset = normalizeAsset(asset);
+    
+    // Split on dot to get chain part
+    const parts = normalizedAsset.split('.');
     return parts[0] || '';
   }
 
@@ -205,8 +281,12 @@
   }
 
   function getPairRatio(sourceAsset, targetAsset) {
-    const sourcePrice = poolPrices.get(sourceAsset);
-    const targetPrice = poolPrices.get(targetAsset);
+    // Normalize assets for price lookups
+    const normalizedSource = normalizeAsset(sourceAsset);
+    const normalizedTarget = normalizeAsset(targetAsset);
+    
+    const sourcePrice = getAssetPriceUSD(normalizedSource);
+    const targetPrice = getAssetPriceUSD(normalizedTarget);
     
     if (!sourcePrice || !targetPrice) return null;
     
@@ -224,7 +304,96 @@
   }
 
   function getPoolByAsset(asset) {
-    return pools.find(pool => pool.asset === asset);
+    if (!asset) return null;
+    
+    const normalizedAsset = normalizeAsset(asset);
+    
+    // Debug logging for ETH assets
+    const isETH = asset.includes('ETH') && (asset.includes('USDC') || asset.includes('DAI'));
+    if (isETH) {
+      console.log('=== POOL LOOKUP DEBUG ===');
+      console.log('Looking for pool with asset:', asset);
+      console.log('Normalized to:', normalizedAsset);
+    }
+    
+    // Convert secured/trade asset format to native pool format
+    // ETH-USDC-0X123 -> ETH.USDC-0X123 (what pools API uses)
+    function toPoolFormat(assetName) {
+      if (!assetName) return assetName;
+      
+      // Handle secured assets: ETH-USDC-0X123 -> ETH.USDC-0X123
+      const parts = assetName.split('-');
+      if (parts.length >= 3 && parts[parts.length - 1].toUpperCase().startsWith('0X')) {
+        // Has contract address, convert first dash to dot
+        return `${parts[0]}.${parts.slice(1).join('-')}`;
+      }
+      
+      // Handle secured assets without contract: ETH-USDC -> ETH.USDC  
+      if (parts.length === 2 && !assetName.includes('.')) {
+        return `${parts[0]}.${parts[1]}`;
+      }
+      
+      // Handle trade assets: ETH~USDC-0X123 -> ETH.USDC-0X123
+      if (assetName.includes('~')) {
+        return assetName.replace('~', '.');
+      }
+      
+      return assetName;
+    }
+    
+    const poolFormatAsset = toPoolFormat(asset);
+    const poolFormatNormalized = toPoolFormat(normalizedAsset);
+    
+    if (isETH) {
+      console.log('Pool format asset:', poolFormatAsset);
+      console.log('Pool format normalized:', poolFormatNormalized);
+    }
+    
+    // Try multiple formats to find the pool
+    // 1. Try pool format of original asset (ETH.USDC-0X123)
+    let pool = pools.find(p => p.asset === poolFormatAsset);
+    if (pool) {
+      if (isETH) console.log('Found pool by pool format:', pool.asset);
+      return pool;
+    }
+    
+    // 2. Try normalized asset first (e.g., ETH.USDC)
+    pool = pools.find(p => p.asset === normalizedAsset);
+    if (pool) {
+      if (isETH) console.log('Found pool by normalized asset:', pool.asset);
+      return pool;
+    }
+    
+    // 3. Try pool format of normalized asset
+    pool = pools.find(p => p.asset === poolFormatNormalized);
+    if (pool) {
+      if (isETH) console.log('Found pool by pool format normalized:', pool.asset);
+      return pool;
+    }
+    
+    // 4. Try original asset format (fallback)
+    pool = pools.find(p => p.asset === asset);
+    if (pool) {
+      if (isETH) console.log('Found pool by original asset:', pool.asset);
+      return pool;
+    }
+    
+    // 5. Try finding any pool asset that when normalized matches our asset
+    pool = pools.find(p => normalizeAsset(p.asset) === normalizedAsset);
+    if (pool) {
+      if (isETH) console.log('Found pool by normalized match:', pool.asset);
+      return pool;
+    }
+    
+    if (isETH) {
+      console.log('No pool found.');
+      console.log('Tried formats:', [poolFormatAsset, normalizedAsset, poolFormatNormalized, asset]);
+      console.log('Available ETH pools:', pools.filter(p => p.asset.includes('ETH')).map(p => p.asset));
+      console.log('Available USDC pools:', pools.filter(p => p.asset.includes('USDC')).map(p => p.asset));
+      console.log('Available DAI pools:', pools.filter(p => p.asset.includes('DAI')).map(p => p.asset));
+    }
+    
+    return null;
   }
 
   function formatUSDShort(amount) {
@@ -244,22 +413,62 @@
   }
 
   function getPoolDepthUSD(pool) {
-    if (!pool || !pool.balance_asset || !pool.asset_tor_price) return 0;
+    if (!pool || !pool.balance_asset || !pool.asset_tor_price) {
+      console.log('Pool depth calculation failed:', { pool, hasBalance: !!pool?.balance_asset, hasPrice: !!pool?.asset_tor_price });
+      return 0;
+    }
     const balanceAsset = parseInt(pool.balance_asset) / 1e8;
     const assetPrice = parseInt(pool.asset_tor_price) / 1e8;
-    return 2 * balanceAsset * assetPrice;
+    const depth = 2 * balanceAsset * assetPrice;
+    
+    // Debug logging for ETH assets
+    if (pool.asset && pool.asset.includes('ETH') && (pool.asset.includes('USDC') || pool.asset.includes('DAI'))) {
+      console.log('Pool depth calculation for', pool.asset, ':', { balanceAsset, assetPrice, depth });
+    }
+    
+    return depth;
   }
 
+
   function getAssetPriceUSD(asset) {
-    // Check poolPrices map first (includes THOR.RUNE)
+    if (!asset) return null;
+    
+    // Normalize the asset for consistent lookups
+    const normalizedAsset = normalizeAsset(asset);
+    
+    // Debug logging for ETH assets
+    if (asset.includes('ETH') && (asset.includes('USDC') || asset.includes('DAI'))) {
+      console.log('=== PRICE LOOKUP DEBUG ===');
+      console.log('Original asset:', asset);
+      console.log('Normalized asset:', normalizedAsset);
+      console.log('All ETH pool mappings:', Array.from(poolPrices.entries()).filter(([k, v]) => k.includes('ETH') && (k.includes('USDC') || k.includes('DAI'))));
+      console.log('Has normalized?', poolPrices.has(normalizedAsset));
+      console.log('Has original?', poolPrices.has(asset));
+    }
+    
+    // Try normalized asset first
+    if (poolPrices.has(normalizedAsset)) {
+      return poolPrices.get(normalizedAsset);
+    }
+    
+    // Try original asset as fallback
     if (poolPrices.has(asset)) {
       return poolPrices.get(asset);
     }
     
-    // Fallback to pool data for other assets
-    const pool = getPoolByAsset(asset);
-    if (!pool || !pool.asset_tor_price) return null;
-    return parseInt(pool.asset_tor_price) / 1e8;
+    // Fallback to pool data search with normalized asset
+    const pool = getPoolByAsset(normalizedAsset);
+    if (pool && pool.asset_tor_price) {
+      return parseInt(pool.asset_tor_price) / 1e8;
+    }
+    
+    // Final fallback: search pools with original asset name
+    const originalPool = pools.find(pool => pool.asset === asset);
+    if (originalPool && originalPool.asset_tor_price) {
+      return parseInt(originalPool.asset_tor_price) / 1e8;
+    }
+    
+    return null;
   }
 
   function copyToClipboard(text) {
@@ -284,7 +493,7 @@
 
     try {
       // Extract swap parameters
-      const fromAsset = swap.swap.tx.chain === 'THOR' ? 'THOR.RUNE' : `${swap.swap.tx.chain}.${swap.swap.tx.chain}`;
+      const fromAsset = swap.swap.tx.coins[0].asset || 'THOR.RUNE';
       const toAsset = swap.swap.target_asset;
       const amount = swap.swap.tx.coins[0].amount; // Already in 1e8 format
       const destination = swap.swap.destination;
@@ -326,6 +535,31 @@
     }
   }
 
+  // Update filtered pairs for summary screen
+  function updateFilteredPairs() {
+    if (!limitSwapsSummary?.asset_pairs || !Array.isArray(limitSwapsSummary.asset_pairs)) {
+      filteredPairs = [];
+      return;
+    }
+    
+    filteredPairs = limitSwapsSummary.asset_pairs.filter(pair => {
+      if (summarySearchTerm === '') return true;
+      
+      const searchLower = summarySearchTerm.toLowerCase();
+      const sourceAsset = getAssetDisplay(pair.source_asset).toLowerCase();
+      const targetAsset = getAssetDisplay(pair.target_asset).toLowerCase();
+      const sourceChain = getChainFromAsset(pair.source_asset).toLowerCase();
+      const targetChain = getChainFromAsset(pair.target_asset).toLowerCase();
+      
+      return sourceAsset.includes(searchLower) || 
+             targetAsset.includes(searchLower) ||
+             sourceChain.includes(searchLower) ||
+             targetChain.includes(searchLower) ||
+             pair.source_asset.toLowerCase().includes(searchLower) ||
+             pair.target_asset.toLowerCase().includes(searchLower);
+    });
+  }
+
   // Update filtered swaps whenever limitSwaps, searchTerm, or selectedFilter changes
   function updateFilteredSwaps() {
     if (!Array.isArray(limitSwaps)) {
@@ -348,7 +582,13 @@
     });
   }
   
-  // Reactive statement to update filtered swaps
+  // Reactive statements for filtering
+  $: {
+    limitSwapsSummary;
+    summarySearchTerm;
+    updateFilteredPairs();
+  }
+  
   $: {
     limitSwaps;
     searchTerm;
@@ -403,13 +643,23 @@
       <!-- Asset Pairs Table -->
       <div class="pairs-section" in:fly={{ y: 20, duration: 400, delay: 100 }}>
         <div class="section-header">
-          <h2>Trading Pairs ({limitSwapsSummary?.asset_pairs?.length || 0})</h2>
+          <h2>Trading Pairs ({filteredPairs.length} of {limitSwapsSummary?.asset_pairs?.length || 0})</h2>
           <button on:click={loadData} class="refresh-btn" title="Refresh Data">
             🔄
           </button>
         </div>
         
-        {#if limitSwapsSummary?.asset_pairs?.length}
+        <!-- Search for pairs -->
+        <div class="summary-search">
+          <input 
+            type="text" 
+            placeholder="Search pairs by asset name or chain..." 
+            bind:value={summarySearchTerm}
+            class="summary-search-input"
+          />
+        </div>
+        
+        {#if filteredPairs.length > 0}
           <div class="pairs-table">
             <div class="table-header">
               <div class="header-cell">Source Asset</div>
@@ -419,7 +669,7 @@
               <div class="header-cell">Total Value (USD)</div>
               <div class="header-cell">Action</div>
             </div>
-            {#each limitSwapsSummary.asset_pairs as pair, i}
+            {#each filteredPairs as pair, i}
               <div 
                 class="table-row" 
                 in:fly={{ y: 20, duration: 300, delay: i * 100 }}
@@ -427,13 +677,19 @@
                 <div class="cell">
                   <div class="asset-info">
                     <span class="asset-name">{getAssetDisplay(pair.source_asset)}</span>
-                    <span class="chain-badge">{getChainFromAsset(pair.source_asset)}</span>
+                    <div class="asset-badges">
+                      <span class="chain-badge">{getChainFromAsset(pair.source_asset)}</span>
+                      <span class="asset-type-badge asset-type-{getAssetType(pair.source_asset)}">{getAssetType(pair.source_asset)}</span>
+                    </div>
                   </div>
                 </div>
                 <div class="cell">
                   <div class="asset-info">
                     <span class="asset-name">{getAssetDisplay(pair.target_asset)}</span>
-                    <span class="chain-badge">{getChainFromAsset(pair.target_asset)}</span>
+                    <div class="asset-badges">
+                      <span class="chain-badge">{getChainFromAsset(pair.target_asset)}</span>
+                      <span class="asset-type-badge asset-type-{getAssetType(pair.target_asset)}">{getAssetType(pair.target_asset)}</span>
+                    </div>
                   </div>
                 </div>
                 <div class="cell ratio">
@@ -456,6 +712,10 @@
                 </div>
               </div>
             {/each}
+          </div>
+        {:else if limitSwapsSummary?.asset_pairs?.length > 0}
+          <div class="no-pairs">
+            <p>No trading pairs match your search</p>
           </div>
         {:else}
           <div class="no-pairs">
@@ -590,9 +850,15 @@
                 >
                   <div class="swap-header">
                     <div class="swap-pair">
-                      <span class="from-asset">{swap.swap?.tx?.chain === 'THOR' ? 'THOR.RUNE' : `${swap.swap?.tx?.chain}.${swap.swap?.tx?.chain}`}</span>
+                      <div class="asset-with-type">
+                        <span class="from-asset">{getAssetDisplay(swap.swap?.tx?.coins?.[0]?.asset || 'THOR.RUNE')}</span>
+                        <span class="asset-type-badge asset-type-{getAssetType(swap.swap?.tx?.coins?.[0]?.asset || 'THOR.RUNE')}">{getAssetType(swap.swap?.tx?.coins?.[0]?.asset || 'THOR.RUNE')}</span>
+                      </div>
                       <span class="arrow">→</span>
-                      <span class="to-asset">{getAssetDisplay(swap.swap?.target_asset)}</span>
+                      <div class="asset-with-type">
+                        <span class="to-asset">{getAssetDisplay(swap.swap?.target_asset)}</span>
+                        <span class="asset-type-badge asset-type-{getAssetType(swap.swap?.target_asset)}">{getAssetType(swap.swap?.target_asset)}</span>
+                      </div>
                     </div>
                     <div class="swap-ratio">
                       <span class="ratio-badge">
@@ -604,7 +870,7 @@
                   <div class="swap-details">
                     <div class="detail-row">
                       <span class="label">Amount:</span>
-                      <span class="value">{formatAmount(swap.swap?.tx?.coins?.[0]?.amount)} {swap.swap?.tx?.chain}</span>
+                      <span class="value">{formatAmount(swap.swap?.tx?.coins?.[0]?.amount)} {getAssetDisplay(swap.swap?.tx?.coins?.[0]?.asset || 'THOR.RUNE')}</span>
                     </div>
                     <div class="detail-row">
                       <span class="label">Target:</span>
@@ -675,7 +941,7 @@
                           disabled={testingQuote.has(swap.swap?.tx?.id)}
                           title="Test current quote"
                         >
-                          {testingQuote.has(swap.swap?.tx?.id) ? '⏳' : '📊'}
+                          {testingQuote.has(swap.swap?.tx?.id) ? '⏳' : '🏃'}
                         </button>
                       </div>
                     </div>
@@ -864,6 +1130,25 @@
     color: var(--text-muted);
   }
 
+  .summary-search {
+    margin-bottom: 1.5rem;
+  }
+
+  .summary-search-input {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--surface-color);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text-color);
+    font-size: 1rem;
+    max-width: 400px;
+  }
+
+  .summary-search-input::placeholder {
+    color: var(--text-muted);
+  }
+
   .filter-select {
     padding: 0.75rem;
     background: var(--surface-color);
@@ -963,6 +1248,12 @@
     font-size: 1rem;
   }
 
+  .asset-badges {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
   .chain-badge {
     background: rgba(255, 255, 255, 0.1);
     padding: 0.2rem 0.5rem;
@@ -970,6 +1261,39 @@
     font-size: 0.75rem;
     color: var(--text-muted);
     width: fit-content;
+  }
+
+  .asset-type-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    width: fit-content;
+  }
+
+  .asset-type-native {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+  }
+
+  .asset-type-secured {
+    background: rgba(255, 193, 7, 0.2);
+    color: #FFC107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+  }
+
+  .asset-type-trade {
+    background: rgba(156, 39, 176, 0.2);
+    color: #9C27B0;
+    border: 1px solid rgba(156, 39, 176, 0.3);
+  }
+
+  .asset-type-unknown {
+    background: rgba(158, 158, 158, 0.2);
+    color: #9E9E9E;
+    border: 1px solid rgba(158, 158, 158, 0.3);
   }
 
   .cell.count, .cell.value {
@@ -1003,12 +1327,15 @@
   }
 
   .ratio-badge {
-    background: rgba(255, 62, 0, 0.1);
+    background: linear-gradient(135deg, rgba(255, 62, 0, 0.15), rgba(255, 62, 0, 0.05));
     color: var(--primary-color);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
     font-size: 0.8rem;
-    font-weight: 500;
+    font-weight: 600;
+    border: 1px solid rgba(255, 62, 0, 0.2);
+    text-align: center;
+    backdrop-filter: blur(4px);
   }
 
   .view-details-btn {
@@ -1146,37 +1473,79 @@
 
   .swaps-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 1200px) {
+    .swaps-grid {
+      grid-template-columns: repeat(3, 1fr);
+      max-width: none;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1199px) {
+    .swaps-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 767px) {
+    .swaps-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    
+    .swap-card {
+      padding: 1rem;
+    }
   }
 
   .swap-card {
-    background: var(--surface-color);
+    background: linear-gradient(135deg, var(--surface-color), rgba(255, 255, 255, 0.02));
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 1.5rem;
-    transition: all 0.2s ease;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   }
 
   .swap-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+    border-color: rgba(255, 62, 0, 0.3);
   }
 
   .swap-header {
     margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .swap-pair {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .asset-with-type {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: flex-start;
+    flex: 1;
   }
 
   .from-asset, .to-asset {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1.1rem;
+    letter-spacing: -0.02em;
   }
 
   .from-asset {
@@ -1188,8 +1557,26 @@
   }
 
   .arrow {
-    color: var(--text-muted);
-    font-size: 1.2rem;
+    color: var(--text-color);
+    font-size: 1.4rem;
+    font-weight: 300;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    padding: 0.4rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    min-width: 2.4rem;
+    height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .swap-card:hover .arrow {
+    opacity: 1;
+    background: rgba(255, 62, 0, 0.1);
+    color: var(--primary-color);
+    transform: scale(1.1);
   }
 
   .swap-chains {
@@ -1207,22 +1594,40 @@
 
   .swap-details {
     margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .detail-row {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 0.5rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  .detail-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
   }
 
   .detail-row .label {
     color: var(--text-muted);
     font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 80px;
   }
 
   .detail-row .value {
     color: var(--text-color);
-    font-weight: 500;
+    font-weight: 600;
+    text-align: right;
+    flex: 1;
   }
 
   .detail-row .value.address {
@@ -1231,14 +1636,18 @@
   }
 
   .swap-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.1);
+    margin: 0 -1.25rem -1.25rem -1.25rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0 0 12px 12px;
   }
 
   .tx-id {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 0.75rem;
   }
 
   .tx-id .value.tx {
@@ -1249,24 +1658,29 @@
 
   .tx-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin-left: 1rem;
   }
 
   .tx-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    padding: 0.25rem 0.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     transition: all 0.2s ease;
     color: var(--text-color);
+    font-weight: 500;
+    min-width: 2.2rem;
+    text-align: center;
+    backdrop-filter: blur(4px);
   }
 
   .tx-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   .copy-btn:hover {
@@ -1361,10 +1775,6 @@
   @media (max-width: 768px) {
     .orderbooks-container {
       padding: 1rem;
-    }
-
-    .swaps-grid {
-      grid-template-columns: 1fr;
     }
 
     .controls {
