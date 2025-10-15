@@ -658,6 +658,13 @@
         </div>
       </div>
       <div class="button-container">
+        <button class="action-button refresh-button" on:click={fetchBondData} title="Refresh Data">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
         <button class="action-button bookmark-button" on:click={addBookmark} title={isMobile ? "Add to Home Screen" : "Bookmark"}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
@@ -1017,6 +1024,15 @@
   .action-button img {
     width: 24px;
     height: 24px;
+  }
+
+  .refresh-button {
+    background-color: #6366f1;
+    color: white;
+  }
+
+  .refresh-button:hover {
+    background-color: #4f46e5;
   }
 
   .bookmark-button {
