@@ -701,6 +701,7 @@
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     position: relative;
     overflow: hidden;
+    border-radius: 16px 16px 0 0;
   }
 
   h2::before {
@@ -1000,62 +1001,48 @@
   form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: 24px;
-    background: var(--form-bg, #ffffff);
+    gap: 20px;
+    padding: 32px;
+    background: linear-gradient(145deg, #1a1a1a 0%, #2c2c2c 100%);
     border-radius: 16px;
     position: relative;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--form-border, rgba(226, 232, 240, 0.8));
-  }
-
-  @media (prefers-color-scheme: dark) {
-    form {
-      --form-bg: #1e293b;
-      --form-border: rgba(71, 85, 105, 0.5);
-    }
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   label {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    color: var(--label-color, #374151);
+    gap: 10px;
+    color: #c0c0c0;
     font-weight: 600;
-    font-size: 14px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    label {
-      --label-color: #d1d5db;
-    }
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   input {
-    padding: 14px 16px;
+    padding: 16px 20px;
     border-radius: 12px;
-    border: 2px solid var(--input-border, #e2e8f0);
-    background-color: var(--input-bg, #ffffff);
-    color: var(--input-text, #1e293b);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    color: #ffffff;
     font-size: 16px;
     font-weight: 500;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   input:focus {
     outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    transform: translateY(-1px);
+    border-color: rgba(99, 102, 241, 0.6);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(99, 102, 241, 0.2), 0 0 20px rgba(99, 102, 241, 0.3);
+    transform: translateY(-2px);
+    background: linear-gradient(145deg, #333333 0%, #404040 100%);
   }
 
-  @media (prefers-color-scheme: dark) {
-    input {
-      --input-border: #475569;
-      --input-bg: #334155;
-      --input-text: #f1f5f9;
-    }
+  input::placeholder {
+    color: #888888;
   }
 
   button[type="submit"] {
