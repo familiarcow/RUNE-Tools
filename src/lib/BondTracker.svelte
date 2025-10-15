@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
 
   let my_bond_address = "";
-  let node_address = "";
+  let node_address = ""; // Keep for backwards compatibility
   let showData = false;
   let my_bond = 0;
   let my_bond_ownership_percentage = 0;
@@ -19,8 +19,15 @@
   let nodeAddressSuffix = "";
   let isMobile = false;
   let nodeStatus = "";
+  
+  // New variables for multiple bond tracking
+  let bondNodes = []; // Array of node data with bonds > 1 RUNE
+  let isMultiNode = false; // Whether user has multiple nodes
+  let totalBond = 0;
+  let totalAward = 0;
+  let aggregateAPY = 0;
 
-  $: currentCurrency = 'USD';
+  let currentCurrency = 'USD';
   const currencies = ['USD', 'EUR', 'GBP', 'JPY'];
   let exchangeRates = {};
 
@@ -50,7 +57,19 @@
   const switchCurrency = () => {
     const currentIndex = currencies.indexOf(currentCurrency);
     currentCurrency = currencies[(currentIndex + 1) % currencies.length];
+    updateCurrencyURL();
   };
+
+  const updateCurrencyURL = () => {
+    const url = new URL(window.location);
+    if (currentCurrency !== 'USD') {
+      url.searchParams.set("currency", currentCurrency);
+    } else {
+      url.searchParams.delete("currency");
+    }
+    window.history.pushState({}, '', url);
+  };
+
 
   const formatCurrency = (value, currency) => {
     if (!exchangeRates[currency]) return '';
@@ -85,14 +104,22 @@
   const updateAddressesFromURL = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlBondAddress = urlParams.get("bond_address");
-    const urlNodeAddress = urlParams.get("node_address");
-    if (urlBondAddress && urlNodeAddress) {
+    const urlCurrency = urlParams.get("currency");
+    
+    // Set currency from URL parameter, default to USD if not specified or invalid
+    if (urlCurrency && currencies.includes(urlCurrency.toUpperCase())) {
+      currentCurrency = urlCurrency.toUpperCase();
+    } else {
+      currentCurrency = 'USD';
+    }
+    
+    if (urlBondAddress) {
       my_bond_address = urlBondAddress;
-      node_address = urlNodeAddress;
       bondAddressSuffix = urlBondAddress.slice(-4);
-      nodeAddressSuffix = urlNodeAddress.slice(-4);
       showData = true;
-      fetchData();
+      
+      // Always use new multi-node mode, ignore node_address parameter
+      fetchBondData();
     }
   };
 
@@ -147,6 +174,126 @@
     }
   };
 
+  const formatBondAmount = (bondAmount) => {
+    const runeAmount = bondAmount / 1e8;
+    if (runeAmount >= 1000000) {
+      return Math.round(runeAmount / 1000000) + "M";
+    } else if (runeAmount >= 1000) {
+      return Math.round(runeAmount / 1000) + "k";
+    } else {
+      return Math.round(runeAmount);
+    }
+  };
+
+  const fetchBondData = async () => {
+    try {
+      // Fetch bond data from midgard
+      const bondData = await fetchJSON(`https://midgard.ninerealms.com/v2/bonds/${my_bond_address}`);
+      
+      // Filter nodes with bond > 1 RUNE (1e8 base units)
+      const nodesWithBond = bondData.nodes.filter(node => Number(node.bond) > 1e8);
+      
+      if (nodesWithBond.length === 1) {
+        // Single node - use existing UI
+        isMultiNode = false;
+        const singleNode = nodesWithBond[0];
+        node_address = singleNode.address;
+        nodeAddressSuffix = node_address.slice(-4);
+        await fetchData();
+      } else if (nodesWithBond.length > 1) {
+        // Multiple nodes - use new UI
+        isMultiNode = true;
+        await fetchMultiNodeData(nodesWithBond);
+      }
+    } catch (error) {
+      console.error("Error fetching bond data:", error);
+    }
+  };
+
+  const fetchMultiNodeData = async (nodes) => {
+    try {
+      // Fetch common data first
+      const [churns, runePriceData, btcPoolData] = await Promise.all([
+        fetchJSON(`https://midgard.ninerealms.com/v2/churns`),
+        fetchJSON("https://thornode.ninerealms.com/thorchain/network"),
+        fetchJSON("https://thornode.ninerealms.com/thorchain/pool/BTC.BTC")
+      ]);
+
+      recentChurnTimestamp = Number(churns[0].date) / 1e9;
+      runePriceUSD = runePriceData.rune_price_in_tor / 1e8;
+      
+      const balanceAsset = btcPoolData.balance_asset;
+      const balanceRune = btcPoolData.balance_rune;
+      const btcruneprice = balanceAsset / balanceRune;
+
+      // Fetch detailed data for each node
+      const nodeDataPromises = nodes.map(async (node) => {
+        const nodeData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/node/${node.address}`);
+        const bondProviders = nodeData.bond_providers.providers;
+        
+        let userBond = 0;
+        let totalBond = 0;
+        
+        for (const provider of bondProviders) {
+          if (provider.bond_address === my_bond_address) {
+            userBond = Number(provider.bond);
+          }
+          totalBond += Number(provider.bond);
+        }
+        
+        const bondOwnershipPercentage = userBond / totalBond;
+        const nodeOperatorFee = Number(nodeData.bond_providers.node_operator_fee) / 10000;
+        const currentAward = Number(nodeData.current_award) * (1 - nodeOperatorFee);
+        const userAward = bondOwnershipPercentage * currentAward;
+        
+        // Calculate APY for this node
+        const currentTime = Date.now() / 1000;
+        const timeDiff = currentTime - recentChurnTimestamp;
+        const timeDiffInYears = timeDiff / (60 * 60 * 24 * 365.25);
+        const APR = userAward / userBond / timeDiffInYears;
+        const nodeAPY = (1 + APR / 365) ** 365 - 1;
+
+        return {
+          address: node.address,
+          addressSuffix: node.address.slice(-4),
+          status: nodeData.status,
+          bond: userBond,
+          award: userAward,
+          apy: nodeAPY,
+          fee: nodeOperatorFee,
+          bondFormatted: formatBondAmount(userBond),
+          bondFullAmount: Math.round(userBond / 1e8),
+          btcValue: (userBond * btcruneprice) / 1e8
+        };
+      });
+
+      bondNodes = await Promise.all(nodeDataPromises);
+      
+      // Calculate totals
+      totalBond = bondNodes.reduce((sum, node) => sum + node.bond, 0);
+      totalAward = bondNodes.reduce((sum, node) => sum + node.award, 0);
+      
+      // Calculate weighted average APY
+      let weightedAPYSum = 0;
+      for (const node of bondNodes) {
+        const weight = node.bond / totalBond;
+        weightedAPYSum += node.apy * weight;
+      }
+      aggregateAPY = weightedAPYSum;
+      
+      // Update legacy variables for existing reactive statements
+      my_bond = totalBond;
+      my_award = totalAward;
+      APY = aggregateAPY;
+      bondvaluebtc = bondNodes.reduce((sum, node) => sum + node.btcValue, 0);
+
+      await fetchChurnInterval();
+      
+    } catch (error) {
+      console.error("Error fetching multi-node data:", error);
+    }
+  };
+
   const fetchData = async () => {
     try {
       const nodeData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/node/${node_address}`);
@@ -183,12 +330,11 @@
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (my_bond_address && node_address) {
+    if (my_bond_address) {
       bondAddressSuffix = my_bond_address.slice(-4);
-      nodeAddressSuffix = node_address.slice(-4);
       showData = true;
-      updateURL();
-      fetchData();
+      updateURLBondOnly();
+      fetchBondData();
     }
   };
 
@@ -199,11 +345,23 @@
     window.history.pushState({}, '', url);
   };
 
+  const updateURLBondOnly = () => {
+    const url = new URL(window.location);
+    url.searchParams.set("bond_address", my_bond_address);
+    url.searchParams.delete("node_address");
+    if (currentCurrency !== 'USD') {
+      url.searchParams.set("currency", currentCurrency);
+    } else {
+      url.searchParams.delete("currency");
+    }
+    window.history.pushState({}, '', url);
+  };
+
   let showToast = false;
   let toastMessage = "";
 
   const openRuneScan = () => {
-    window.open(`https://runescan.io/address/${my_bond_address}`, '_blank');
+    window.open(`https://thorchain.net/address/${my_bond_address}`, '_blank');
   };
 
   // Modify the existing showToast logic
@@ -221,7 +379,16 @@
   const copyLink = () => {
     const url = new URL(window.location);
     url.searchParams.set("bond_address", my_bond_address);
-    url.searchParams.set("node_address", node_address);
+    if (!isMultiNode && node_address) {
+      url.searchParams.set("node_address", node_address);
+    } else {
+      url.searchParams.delete("node_address");
+    }
+    if (currentCurrency !== 'USD') {
+      url.searchParams.set("currency", currentCurrency);
+    } else {
+      url.searchParams.delete("currency");
+    }
     navigator.clipboard.writeText(url.toString()).then(() => {
       showToastMessage("Link copied to clipboard!");
     });
@@ -291,11 +458,7 @@
         <h2>Bond Tracker</h2>
         <label>
           Bond Address:
-          <input type="text" bind:value={my_bond_address} required />
-        </label>
-        <label>
-          Node Address:
-          <input type="text" bind:value={node_address} required />
+          <input type="text" bind:value={my_bond_address} required placeholder="Enter your bond address" />
         </label>
         <button type="submit">Track Bond</button>
       </form>
@@ -366,13 +529,51 @@
                   <span class="link-label">Next Churn</span>
                   <span class="link-value">{countdown}</span>
                 </div>
-                <div class="info-item">
-                  <span class="link-label">{nodeAddressSuffix} Fee</span>
-                  <span class="link-value">{(nodeOperatorFee * 100).toFixed(2)}%</span>
-                </div>
+                {#if !isMultiNode}
+                  <div class="info-item">
+                    <span class="link-label">{nodeAddressSuffix} Fee</span>
+                    <span class="link-value">{(nodeOperatorFee * 100).toFixed(2)}%</span>
+                  </div>
+                {:else}
+                  <div class="info-item">
+                    <span class="link-label">Nodes</span>
+                    <span class="link-value">{bondNodes.length}</span>
+                  </div>
+                {/if}
               </div>
             </div>
           </div>
+
+          {#if isMultiNode}
+            <!-- Multi-node status display -->
+            <div class="card multi-nodes">
+              <h3>Node Status</h3>
+              <div class="nodes-list">
+                {#each bondNodes as node}
+                  <div class="node-item">
+                    <div class="node-status">
+                      <div class="status-indicator" class:active={node.status === 'Active'} class:inactive={node.status !== 'Active'}></div>
+                      <span class="node-suffix">{node.addressSuffix}</span>
+                      <button class="node-link" on:click={() => window.open(`https://thorchain.net/node/${node.address}`, '_blank')} title="View Node Info">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                          <polyline points="15,3 21,3 21,9"></polyline>
+                          <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="node-details">
+                      <span class="node-bond">
+                        {numFormat(node.bondFullAmount)}
+                        <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="node-rune-icon" />
+                      </span>
+                      <span class="node-fee">Fee: {(node.fee * 100).toFixed(1)}%</span>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
         </div>
       </div>
       <div class="button-container">
@@ -388,7 +589,10 @@
           </svg>
         </button>
         <button class="action-button runescan-button" on:click={openRuneScan} title="Open in RuneScan">
-          <img src="/assets/viewblock.png" alt="RuneScan" width="24" height="24" />
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
         </button>
         <button class="action-button currency-switch" on:click={switchCurrency} title="Switch Currency">
           {#if currentCurrency === 'USD'}
@@ -717,6 +921,7 @@
     background-color: #e0a800;
   }
 
+
   .random-node {
     background-color: #6c757d;
   }
@@ -872,6 +1077,26 @@
       font-size: 12px;
       padding: 10px 20px;
     }
+
+    .multi-nodes {
+      grid-column: 1 / -1;
+    }
+
+    .node-item {
+      padding: 6px 8px;
+    }
+
+    .node-suffix {
+      font-size: 12px;
+    }
+
+    .node-bond {
+      font-size: 12px;
+    }
+
+    .node-fee {
+      font-size: 10px;
+    }
   }
 
   .status-text {
@@ -886,5 +1111,106 @@
     font-size: 12px;
     text-align: center;
     width: 100%;
+  }
+
+  /* Multi-node styles */
+  .multi-nodes {
+    grid-column: 1 / -1; /* Span full width */
+    height: auto;
+    min-height: 120px;
+  }
+
+  .nodes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .node-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: rgba(74, 144, 226, 0.05);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+  }
+
+  .node-item:hover {
+    background-color: rgba(74, 144, 226, 0.15);
+  }
+
+  .node-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+
+  .status-indicator.active {
+    background-color: #28a745;
+    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
+  }
+
+  .status-indicator.inactive {
+    background-color: #dc3545;
+    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
+  }
+
+  .node-suffix {
+    font-weight: 600;
+    color: #4A90E2;
+    font-size: 14px;
+  }
+
+  .node-details {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .node-bond {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .node-rune-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .node-fee {
+    font-size: 12px;
+    color: #a9a9a9;
+  }
+
+  .node-link {
+    background: none;
+    border: none;
+    color: #4A90E2;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    margin-left: 6px;
+  }
+
+  .node-link:hover {
+    background-color: rgba(74, 144, 226, 0.2);
+    transform: scale(1.1);
   }
 </style>
