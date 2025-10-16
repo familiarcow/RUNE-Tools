@@ -649,29 +649,59 @@
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 40px 20px;
-    font-family: 'Exo 2', sans-serif;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    color: #FFFFFF;
+    background-color: #1a1a1a;
+    min-height: 100vh;
   }
 
   .app-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 40px;
     gap: 15px;
-    position: relative;
+  }
+
+  .app-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
   }
 
   .app-header img {
     width: 40px;
     height: 40px;
+    position: relative;
+    z-index: 1;
   }
 
   .app-header h2 {
     margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-    color: #f8f8f8;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #FFFFFF;
+    background: transparent;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
   }
 
   .info-icon {
@@ -694,33 +724,52 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
-    margin-bottom: 40px;
-    padding: 0 20px;
+    margin-bottom: 30px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .stat-box {
-    background-color: #2c2c2c;
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
     border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 16px;
     height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .stat-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(99, 102, 241, 0.6);
+    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
   }
 
   .stat-header h3 {
-    color: #888;
-    font-size: 16px;
-    margin: 0 0 10px 0;
+    color: #a0a0a0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+    position: absolute;
+    top: 16px;
+    left: 16px;
   }
 
   .stat-value {
-    color: #4A90E2;
+    color: #ffffff;
     font-size: 24px;
-    font-weight: 600;
+    font-weight: 800;
+    letter-spacing: -0.3px;
     margin: 0;
+    position: absolute;
+    top: 45%;
+    left: 16px;
+    transform: translateY(-50%);
   }
 
   .info-panel {
@@ -756,10 +805,10 @@
 
   table {
     width: 100%;
-    background-color: #2c2c2c;
-    border-radius: 12px;
+    background-color: #1a1a1a;
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     margin-bottom: 30px;
     border-collapse: separate;
     border-spacing: 0;
@@ -770,30 +819,37 @@
     width: 1%;
     white-space: nowrap;
     vertical-align: middle;
-    border-right: 1px solid #3a3a3c;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
-    background-color: #2c2c2c;
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .key-cell:hover {
-    background-color: #3a3a3c;
+    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .votes-cell {
-    padding: 15px;
+    padding: 20px;
     width: auto;
     vertical-align: top;
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
   }
 
   th {
-    background-color: #1a1a1a;
-    color: #888;
-    font-weight: 600;
-    padding: 15px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 20px;
     text-align: center;
     vertical-align: middle;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   th:first-child {
@@ -803,15 +859,23 @@
   }
 
   td {
-    border-top: 1px solid #3a3a3c;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .vote-group {
-    background: #1a1a1a;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .vote-group:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .vote-group:last-child {
@@ -1341,11 +1405,16 @@
 
   /* Update/add these styles */
   tr {
-    background-color: #2c2c2c;
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    transition: all 0.2s ease;
+  }
+
+  tr:hover {
+    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
   }
 
   tr:not(:last-child) {
-    border-bottom: 8px solid #1a1a1a;  /* Add spacing between rows */
+    border-bottom: 8px solid #1a1a1a;
   }
 
   .key-cell {
@@ -1353,20 +1422,20 @@
     width: 1%;
     white-space: nowrap;
     vertical-align: middle;
-    border-right: 1px solid #3a3a3c;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
-    background-color: #2c2c2c;  /* Ensure background color is consistent */
+    background: inherit;
   }
 
   .votes-cell {
-    padding: 15px;
+    padding: 20px;
     width: auto;
     vertical-align: top;
-    background-color: #2c2c2c;  /* Ensure background color is consistent */
+    background: inherit;
   }
 
   table {
-    background-color: #1a1a1a;  /* Change table background to match spacing color */
+    background-color: #1a1a1a;
     border-collapse: separate;
     border-spacing: 0;
   }

@@ -158,28 +158,58 @@
     max-width: 900px;
     margin: 0 auto;
     padding: 20px;
-    font-family: 'Exo 2', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    color: #FFFFFF;
+    background-color: #1a1a1a;
+    min-height: 100vh;
   }
 
   .app-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 40px;
     gap: 15px;
-    position: relative;
+  }
+
+  .app-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
   }
 
   .app-header img {
     width: 40px;
     height: 40px;
+    position: relative;
+    z-index: 1;
   }
 
   .app-header h2 {
     margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-    color: #f8f8f8;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #FFFFFF;
+    background: transparent;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
   }
 
   .info-icon {
@@ -204,31 +234,39 @@
 
   .search-input {
     width: 100%;
-    padding: 12px;
-    background-color: #2c2c2c;
-    border: 1px solid #3a3a3c;
-    border-radius: 6px;
-    color: #fff;
+    padding: 12px 16px;
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: #ffffff;
     font-size: 16px;
-    transition: all 0.3s ease;
+    font-family: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   .search-input:focus {
     outline: none;
-    border-color: #4A90E2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    border-color: rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
+  }
+
+  .search-input::placeholder {
+    color: #a0a0a0;
   }
 
   .table-wrapper {
-    background-color: #2c2c2c;
-    border-radius: 12px;
+    background-color: #1a1a1a;
+    border-radius: 16px;
     overflow-x: auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   }
 
   table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     background-color: #1a1a1a;
     table-layout: fixed;
   }
@@ -246,50 +284,62 @@
   }
 
   th {
-    background-color: #1a1a1a;
-    color: #888;
-    font-weight: 600;
-    padding: 12px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 20px 16px;
     text-align: left;
-    border-bottom: 2px solid #3a3a3c;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
   }
 
-  tr {
-    background-color: #2c2c2c;
-    border-bottom: 1px solid #3a3a3c;
+  th:last-child {
+    border-right: none;
   }
 
-  tr:last-child {
+  tbody tr {
+    background: #2c2c2c;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  tbody tr:nth-child(even) {
+    background: #252525;
+  }
+
+  tbody tr:hover {
+    background: #3a3a3a !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  tbody tr:last-child {
     border-bottom: none;
   }
 
   .key-cell {
-    padding: 12px 16px;
+    padding: 16px;
     vertical-align: middle;
     cursor: pointer;
-    transition: background-color 0.2s;
-    border-right: none;
-  }
-
-  .key-cell:hover {
-    background-color: #3a3a3c;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .key-name {
     font-size: 16px;
     font-weight: 600;
     color: #4A90E2;
+    font-family: inherit;
   }
 
   .value-cell {
-    padding: 12px 16px;
+    padding: 16px;
     vertical-align: middle;
     cursor: pointer;
-    transition: background-color 0.2s;
-  }
-
-  .value-cell:hover {
-    background-color: #3a3a3c;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .value-content {
@@ -306,29 +356,33 @@
   }
 
   .status-cell {
-    padding: 12px 16px;
+    padding: 16px;
     vertical-align: middle;
     text-align: center;
   }
 
   .status {
     display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
     min-width: 80px;
     text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .status.overridden {
-    background: rgba(255, 169, 77, 0.1);
+    background: rgba(255, 169, 77, 0.15);
     color: #ffa94d;
+    border: 1px solid rgba(255, 169, 77, 0.3);
   }
 
   .status.default {
-    background: rgba(105, 219, 124, 0.1);
+    background: rgba(105, 219, 124, 0.15);
     color: #69db7c;
+    border: 1px solid rgba(105, 219, 124, 0.3);
   }
 
   .toast {
@@ -336,32 +390,47 @@
     bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #4A90E2;
-    color: #fff;
+    background: linear-gradient(135deg, #4A90E2 0%, #357abd 100%);
+    color: #ffffff;
     padding: 12px 24px;
-    border-radius: 6px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    font-weight: 600;
     z-index: 1000;
   }
 
   .loading {
     text-align: center;
-    color: #888;
+    color: #a0a0a0;
     font-size: 18px;
+    font-weight: 600;
     padding: 40px;
   }
 
   .error {
     text-align: center;
-    color: #ff6b6b;
+    color: #dc3545;
     font-size: 18px;
+    font-weight: 600;
     padding: 40px;
+    background: rgba(220, 53, 69, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(220, 53, 69, 0.2);
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 600px) {
     .container {
-      padding: 10px;
+      padding: 16px;
       max-width: 100%;
+    }
+
+    .app-header {
+      padding: 16px;
+    }
+
+    .app-header h2 {
+      font-size: 24px;
     }
 
     table {
@@ -369,13 +438,13 @@
     }
 
     .key-cell, .value-cell, .status-cell {
-      padding: 10px;
+      padding: 12px;
     }
 
     .status {
       min-width: 60px;
-      font-size: 12px;
-      padding: 3px 6px;
+      font-size: 11px;
+      padding: 4px 8px;
     }
 
     .long-value {
@@ -383,7 +452,15 @@
     }
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 400px) {
+    .app-header {
+      padding: 12px;
+    }
+
+    .app-header h2 {
+      font-size: 22px;
+    }
+
     .key-column {
       width: 40%;
     }
@@ -398,6 +475,10 @@
 
     .value-content {
       max-width: 120px;
+    }
+
+    .key-cell, .value-cell, .status-cell {
+      padding: 10px;
     }
   }
 </style>

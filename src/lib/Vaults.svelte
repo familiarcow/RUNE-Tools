@@ -25,7 +25,8 @@
     GAIA: '/assets/chains/GAIA.svg',
     THOR: '/assets/chains/THOR.svg',
     BASE: '/assets/chains/BASE.svg',
-    XRP: '/assets/chains/XRP.svg'
+    XRP: '/assets/chains/XRP.svg',
+    TRON: '/assets/chains/TRON.svg'
   };
 
   const chainExplorers = {
@@ -39,7 +40,8 @@
     'GAIA': 'https://www.mintscan.io/cosmos/account/',
     'THOR': 'https://thorchain.net/address/',
     'BASE': 'https://basescan.org/address/',
-    'XRP': 'https://xrpscan.com/account/'
+    'XRP': 'https://xrpscan.com/account/',
+    'TRON': 'https://tronscan.org/#/address/'
   };
 
   const assetLogos = {
@@ -463,20 +465,48 @@
 
 <style>
   main {
-    padding: 1rem;
-    color: var(--text-color);
+    padding: 20px;
+    color: #FFFFFF;
+    background-color: #1a1a1a;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   }
 
   .container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0 2rem;
+    padding: 0 20px;
   }
 
   h1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #FFFFFF;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
     text-align: center;
-    margin-bottom: 2rem;
-    font-size: 1.5rem;
+  }
+
+  h1::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
   }
 
   .vaults-container {
@@ -493,50 +523,58 @@
   }
 
   .vault-card {
-    background-color: var(--surface-color);
-    border-radius: 8px;
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .vault-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(99, 102, 241, 0.6);
+    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
   }
 
   .card-header {
-    background-color: #4A90E2;
-    padding: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 12px;
   }
 
   .card-header.retiring {
-    background-color: #9B51E0;
+    background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 100%);
   }
 
   .card-header h2 {
     margin: 0;
-    color: #ecf0f1;
-    font-size: 1.2rem;
+    color: #FFFFFF;
+    font-size: 20px;
+    font-weight: 700;
+    font-family: inherit;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .pubkey {
-    font-family: monospace;
-    font-size: 0.8rem;
-    color: rgba(236, 240, 241, 0.8);
-    margin-top: 0.5rem;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 8px;
     white-space: nowrap;
   }
 
   .card-content {
-    padding: 1rem;
+    padding: 12px;
   }
 
   .address-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 13px;
     width: 100%;
   }
 
@@ -548,13 +586,15 @@
   .chain-name {
     min-width: 60px;
     flex-shrink: 0;
-    color: var(--text-color);
+    color: #ffffff;
+    font-weight: 600;
   }
 
   .address {
-    font-family: monospace;
-    font-size: 0.8rem;
-    color: var(--secondary-text-color);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: #c0c0c0;
     white-space: nowrap;
     flex: 1;
   }
@@ -563,8 +603,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.25rem;
-    font-size: 0.9rem;
+    margin-bottom: 2px;
+    font-size: 13px;
   }
 
   .amount-group {
@@ -574,65 +614,120 @@
   }
 
   .asset-name {
-    color: var(--text-color);
-    font-weight: 500;
+    color: #ffffff;
+    font-weight: 600;
+    font-family: inherit;
   }
 
   .amount {
-    font-family: monospace;
-    color: var(--text-color);
+    font-family: inherit;
+    font-weight: 600;
+    color: #ffffff;
   }
 
   .usd-value {
-    font-size: 0.65rem;
-    color: var(--secondary-text-color);
-    opacity: 0.8;
+    font-size: 12px;
+    font-weight: 500;
+    color: #a0a0a0;
+    opacity: 0.9;
   }
 
   hr {
     border: none;
-    border-top: 1px solid var(--border-color);
-    margin: 1rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 8px 0;
   }
 
   h4 {
-    margin: 0.5rem 0;
-    color: var(--text-color);
-    font-size: 1rem;
-    font-weight: 500;
+    margin: 8px 0;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: -0.2px;
+    text-transform: uppercase;
+    opacity: 0.9;
   }
 
   .loading {
     text-align: center;
-    padding: 2rem;
-    color: var(--text-color);
+    padding: 40px;
+    color: #a0a0a0;
+    font-size: 18px;
+    font-weight: 600;
   }
 
   .error {
-    color: var(--error-color);
+    color: #dc3545;
     text-align: center;
-    padding: 2rem;
+    padding: 40px;
+    font-size: 18px;
+    font-weight: 600;
+    background: rgba(220, 53, 69, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(220, 53, 69, 0.2);
   }
 
   @media (max-width: 600px) {
+    main {
+      padding: 12px;
+    }
+
     .container {
-      padding: 0 1rem;
+      padding: 0 12px;
     }
 
     h1 {
-      font-size: 1.2rem;
+      font-size: 24px;
+      padding: 12px;
     }
 
     .vaults-container {
       grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .card-header {
+      padding: 10px;
     }
 
     .card-header h2 {
-      font-size: 1rem;
+      font-size: 18px;
     }
 
     .card-content {
-      padding: 0.75rem;
+      padding: 10px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    main {
+      padding: 8px;
+    }
+
+    .container {
+      padding: 0 8px;
+    }
+
+    h1 {
+      font-size: 22px;
+      padding: 10px;
+    }
+
+    .card-header {
+      padding: 8px;
+    }
+
+    .card-header h2 {
+      font-size: 16px;
+    }
+
+    .card-content {
+      padding: 8px;
+    }
+
+    .total-bond, .transaction-counts, .signers-container {
+      padding: 6px;
     }
   }
 
@@ -655,13 +750,15 @@
     bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: var(--surface-color);
-    color: var(--text-color);
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(135deg, #4A90E2 0%, #357abd 100%);
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    font-weight: 600;
     z-index: 1000;
-    font-size: 0.9rem;
+    font-size: 14px;
     max-width: 80%;
     text-align: center;
   }
@@ -672,12 +769,13 @@
   }
 
   .total-bond {
-    font-size: 0.9rem;
-    color: var(--text-color);
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    background: var(--surface-color-secondary);
-    border-radius: 4px;
+    font-size: 13px;
+    color: #ffffff;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .bond-row {
@@ -692,12 +790,13 @@
   }
 
   .transaction-counts {
-    font-size: 0.9rem;
-    color: var(--text-color);
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    background: var(--surface-color-secondary);
-    border-radius: 4px;
+    font-size: 13px;
+    color: #ffffff;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .tx-row {
@@ -732,14 +831,15 @@
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0.5rem;
-    color: var(--text-color);
+    padding: 6px;
+    color: #ffffff;
     opacity: 0.7;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
   }
 
   .expand-button:hover {
     opacity: 1;
+    transform: scale(1.1);
   }
 
   .expand-button.expanded svg {
@@ -803,21 +903,20 @@
     border: none;
     cursor: pointer;
     padding: 4px;
-    color: var(--secondary-text-color);
-    opacity: 0.7;
-    transition: all 0.2s ease;
-    border-radius: 4px;
+    color: #c0c0c0;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-left: auto;
     flex-shrink: 0;
+    transition: all 0.2s ease;
+    opacity: 0.7;
   }
 
   .explorer-link:hover {
+    color: #ffffff;
     opacity: 1;
-    background-color: var(--surface-color-secondary);
-    color: var(--text-color);
+    transform: scale(1.1);
   }
 
   .explorer-link:active {
@@ -828,28 +927,30 @@
   .signers-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-    padding: 0.75rem;
-    background: var(--surface-color-secondary);
-    border-radius: 4px;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
 
 
   .signer-tag {
-    background: var(--surface-color);
-    padding: 0.25rem 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
     border-radius: 4px;
-    font-family: monospace;
-    font-size: 0.8rem;
-    color: var(--text-color);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     transition: all 0.2s ease;
   }
 
   .signer-tag:hover {
+    background: rgba(255, 255, 255, 0.15);
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   }
 </style>

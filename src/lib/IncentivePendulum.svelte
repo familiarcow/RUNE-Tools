@@ -434,24 +434,47 @@
     width: 95%;
     margin: 0 auto;
     padding: 20px;
-    font-family: 'Exo', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    color: #FFFFFF;
+    background-color: #1a1a1a;
+    min-height: 100vh;
   }
 
   .container {
     background-color: #1a1a1a;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     overflow: hidden;
   }
 
   h2 {
     text-align: center;
     margin: 0;
-    padding: 20px;
-    background-color: #2c2c2c;
-    color: #4A90E2;
-    font-size: 22px;
-    font-weight: 600;
+    padding: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #FFFFFF;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  h2::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
   }
 
   .grid {
@@ -462,36 +485,46 @@
   }
 
   .card {
-    background-color: #2c2c2c;
-    border-radius: 8px;
-    padding: 12px;
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    border-radius: 12px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     height: 120px;
     position: relative;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
   .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(99, 102, 241, 0.6);
+    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
   }
 
   h3 {
-    font-size: 14px;
+    font-size: 12px;
     margin: 0;
-    color: #a9a9a9;
-    font-weight: 500;
+    color: #a0a0a0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: absolute;
+    top: 16px;
+    left: 16px;
   }
 
   .main-value {
     font-size: 24px;
-    font-weight: bold;
-    color: white;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: #ffffff;
     position: absolute;
-    top: 50%;
-    left: 15px;
-    right: 15px;
+    top: 45%;
+    left: 16px;
+    right: 16px;
     transform: translateY(-50%);
     text-align: center;
     display: flex;
@@ -500,75 +533,144 @@
   }
 
   .rune-icon {
-    width: 20px;
-    height: 20px;
-    margin-left: 5px;
+    width: 24px;
+    height: 24px;
+    margin-left: 6px;
+    vertical-align: top;
+    position: relative;
+    top: 2px;
   }
 
   .toggle-button {
     display: block;
     margin: 20px auto;
-    padding: 10px 20px;
-    background-color: #4a4a4a;
-    color: white;
+    padding: 12px 24px;
+    background: linear-gradient(145deg, #4a4a4a 0%, #5a5a5a 100%);
+    color: #ffffff;
     border: none;
-    border-radius: 5px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
   .toggle-button:hover {
-    background-color: #5a5a5a;
+    background: linear-gradient(145deg, #5a5a5a 0%, #6a6a6a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   .asset-table {
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-  }
-
-  .asset-table th, .asset-table td {
-    padding: 10px;
-    text-align: left;
-    border-bottom: 1px solid #4a4a4a;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 20px;
+    background-color: #1a1a1a;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   }
 
   .asset-table th {
-    background-color: #3a3a3a;
-    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 20px 16px;
+    text-align: left;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .asset-table th:last-child {
+    border-right: none;
+  }
+
+  .asset-table td {
+    padding: 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    color: #ffffff;
+    transition: all 0.2s ease;
+  }
+
+  .asset-table tbody tr:nth-child(even) td {
+    background: #252525;
+  }
+
+  .asset-table tbody tr:hover td {
+    background: #3a3a3a !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .asset-table tbody tr:last-child td {
+    border-bottom: none;
   }
 
   @media (max-width: 600px) {
+    .incentive-pendulum {
+      padding: 16px;
+    }
+
+    h2 {
+      padding: 16px;
+      font-size: 24px;
+    }
+
     .grid {
       grid-template-columns: 1fr;
+      padding: 16px;
     }
 
     .card {
-      height: auto;
-      min-height: 100px;
+      min-height: 110px;
+      padding: 16px;
     }
 
     .main-value {
       position: static;
       transform: none;
       margin: 10px 0;
-      font-size: 18px;
+      font-size: 22px;
+    }
+
+    h3 {
+      position: static;
+      margin-bottom: 8px;
     }
   }
 
   .network-state {
     padding: 40px 20px;
-    background: linear-gradient(180deg, rgba(74, 144, 226, 0.1) 0%, rgba(26, 26, 26, 0.8) 100%);
-    border-bottom: 1px solid #3a3a3a;
+    background: linear-gradient(145deg, rgba(103, 126, 234, 0.1) 0%, rgba(26, 26, 26, 0.95) 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
-    border: 2px solid rgba(74, 144, 226, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 16px;
-    margin: 20px 10px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    margin: 20px 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     overflow: hidden;
     position: relative;
+  }
+
+  .network-state::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(103, 126, 234, 0.05) 0%, transparent 50%, rgba(118, 75, 162, 0.05) 100%);
+    pointer-events: none;
   }
 
   .balance-scale {
@@ -582,29 +684,30 @@
 
   .scale-beam {
     width: calc(100% - 120px);
-    height: 10px;
-    background: linear-gradient(90deg, #4A90E2 0%, #6AA8E8 50%, #4A90E2 100%);
+    height: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     position: absolute;
     top: 60px;
     left: 50%;
     transform-origin: center;
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 5px;
-    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(103, 126, 234, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .scale-pan {
     width: 120px;
     height: 50px;
-    background: linear-gradient(180deg, #2c2c2c 0%, #1a1a1a 100%);
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
     border-radius: 0 0 50px 50px;
     position: absolute;
-    top: 70px;
+    top: 72px;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(74, 144, 226, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -619,44 +722,49 @@
   }
 
   .scale-stand {
-    width: 12px;
+    width: 14px;
     height: 180px;
-    background: linear-gradient(90deg, #4A90E2 0%, #6AA8E8 50%, #4A90E2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     position: absolute;
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 6px;
-    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+    border-radius: 7px;
+    box-shadow: 0 6px 16px rgba(103, 126, 234, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .scale-stand::after {
     content: '';
     position: absolute;
-    bottom: 0;
+    bottom: -1px;
     left: 50%;
     transform: translateX(-50%);
-    width: 40px;
-    height: 8px;
-    background: linear-gradient(90deg, #4A90E2 0%, #6AA8E8 50%, #4A90E2 100%);
-    border-radius: 4px;
+    width: 44px;
+    height: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 5px;
+    box-shadow: 0 4px 12px rgba(103, 126, 234, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .pan-label-box {
     position: absolute;
-    top: -30px;
+    top: -32px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(26, 26, 26, 0.9);
-    padding: 4px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 6px 16px;
     border-radius: 12px;
-    font-size: 14px;
-    color: #4A90E2;
+    font-size: 12px;
+    color: #ffffff;
     white-space: nowrap;
-    border: 1px solid rgba(74, 144, 226, 0.3);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    font-weight: 700;
     letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .pan-content {
@@ -664,47 +772,53 @@
     align-items: center;
     gap: 6px;
     font-size: 16px;
+    font-weight: 700;
     color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    letter-spacing: -0.2px;
   }
 
   .scale-icon {
-    width: 18px;
-    height: 18px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    width: 20px;
+    height: 20px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+    vertical-align: top;
+    position: relative;
+    top: 1px;
   }
 
   .state-label {
     margin-top: 25px;
     font-size: 18px;
     font-weight: 600;
-    color: #a9a9a9;
+    color: #a0a0a0;
     text-align: center;
-    background: rgba(26, 26, 26, 0.9);
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
     padding: 12px 24px;
     border-radius: 24px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(74, 144, 226, 0.3);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
   .state-value {
     color: #4A90E2;
     font-size: 22px;
-    font-weight: 700;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   }
 
   .reward-indicator {
     margin-top: 20px;
     font-size: 16px;
-    color: #a9a9a9;
+    color: #c0c0c0;
     text-align: center;
-    background: rgba(26, 26, 26, 0.9);
-    padding: 10px 20px;
+    background: linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%);
+    padding: 12px 24px;
     border-radius: 16px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(74, 144, 226, 0.3);
-    font-weight: 500;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
   }
 
   /* Add smooth animations for the scale pans */
@@ -829,59 +943,74 @@
   }
 
   .edit-button {
-    background-color: #4A90E2;
+    background: linear-gradient(145deg, #4A90E2 0%, #357abd 100%);
   }
 
   .edit-button:hover {
-    background-color: #3A80D2;
+    background: linear-gradient(145deg, #357abd 0%, #2c6ba0 100%);
   }
 
   input[type="number"] {
     width: 100%;
-    background-color: #3a3a3a;
-    border: 1px solid #4a4a4a;
-    color: white;
-    padding: 5px;
-    border-radius: 4px;
+    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    padding: 8px;
+    border-radius: 8px;
     font-size: 18px;
+    font-weight: 600;
     text-align: center;
+    font-family: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   input[type="number"]:focus {
     outline: none;
-    border-color: #4A90E2;
+    border-color: rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: linear-gradient(145deg, #4a4a4a 0%, #5a5a5a 100%);
   }
 
   select {
     width: 100%;
-    background-color: #3a3a3a;
-    border: 1px solid #4a4a4a;
-    color: white;
-    padding: 5px;
-    border-radius: 4px;
+    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    padding: 8px;
+    border-radius: 8px;
     font-size: 16px;
+    font-weight: 600;
     text-align: center;
+    font-family: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   select:focus {
     outline: none;
-    border-color: #4A90E2;
+    border-color: rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: linear-gradient(145deg, #4a4a4a 0%, #5a5a5a 100%);
   }
 
   /* Add these new styles */
   .mimir-section {
     padding: 20px;
     margin: 20px 10px;
-    background: rgba(26, 26, 26, 0.9);
-    border-radius: 12px;
-    border: 1px solid rgba(74, 144, 226, 0.3);
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   .mimir-section h3 {
     color: #4A90E2;
     font-size: 18px;
+    font-weight: 700;
     margin-bottom: 15px;
     text-align: center;
+    font-family: inherit;
   }
 
   .mimir-grid {
@@ -891,42 +1020,66 @@
   }
 
   .mimir-card {
-    background: #2c2c2c;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid rgba(74, 144, 226, 0.2);
-    transition: all 0.3s ease;
+    background: linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%);
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .mimir-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .mimir-label {
     color: #4A90E2;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     margin-bottom: 8px;
-    font-family: monospace;
+    font-family: inherit;
   }
 
   .mimir-value {
     font-size: 24px;
-    font-weight: bold;
-    color: white;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: #ffffff;
     margin-bottom: 8px;
   }
 
   .mimir-description {
-    color: #a9a9a9;
+    color: #a0a0a0;
     font-size: 12px;
+    font-weight: 500;
     line-height: 1.4;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 400px) {
+    .incentive-pendulum {
+      padding: 12px;
+    }
+
+    h2 {
+      padding: 12px;
+      font-size: 22px;
+    }
+
+    .card {
+      min-height: 100px;
+      padding: 12px;
+    }
+
+    .main-value {
+      font-size: 20px;
+    }
+
     .mimir-section {
-      padding: 15px;
+      padding: 12px;
       margin: 10px 5px;
     }
 
