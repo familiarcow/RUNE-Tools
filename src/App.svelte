@@ -23,6 +23,9 @@
   const HOLIDAY_MODE = false; // Easy to toggle holiday features on/off
   const SHOW_BANNER = false; // Easy to toggle banner on/off
 
+  // Check for desktop app iframe mode
+  let isDesktopApp = false;
+  
   let selectedApp = null;
   let addressParam = writable('');
   let votingSearchTerm = writable('');
@@ -402,47 +405,46 @@
   }
 
   function getAppParams(app) {
-    if (app.name === "Bond Tracker") {
-      const bondAddress = new URLSearchParams(window.location.search).get("bond_address");
-      const nodeAddress = new URLSearchParams(window.location.search).get("node_address");
-      if (bondAddress && nodeAddress) {
-        return `?bond_address=${bondAddress}&node_address=${nodeAddress}`;
-      }
-    } else if (app.name === "Rune Pool") {
-      const address = new URLSearchParams(window.location.search).get("address");
-      if (address) {
-        return `?address=${address}`;
-      }
-    } else if (app.name === "Swapper Clout") {
-      const address = new URLSearchParams(window.location.search).get("address");
-      if (address) {
-        return `?address=${address}`;
-      }
-    } else if (app.name === "LP Checker") {
-      const pool = new URLSearchParams(window.location.search).get("pool");
-      const address = new URLSearchParams(window.location.search).get("address");
-      if (pool && address) {
-        return `?pool=${pool}&address=${address}`;
-      } else if (pool) {
-        return `?pool=${pool}`;
-      } else if (address) {
-        return `?address=${address}`;
-      }
-    } else if (app.name === "Affiliates") {
-      const thorname = new URLSearchParams(window.location.search).get("thorname");
-      if (thorname) {
-        return `?thorname=${thorname}`;
-      }
-    } else if (app.name === "Voting") {
-      const key = new URLSearchParams(window.location.search).get("key");
-      if (key) {
-        return `?key=${key}`;
-      }
+    const urlParams = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams();
+    
+    // Always preserve the desktop app flag
+    if (isDesktopApp) {
+      params.set('source', 'desktop-app');
     }
-    return "";
+    
+    // Add app-specific parameters
+    if (app.name === "Bond Tracker") {
+      const bondAddress = urlParams.get("bond_address");
+      const nodeAddress = urlParams.get("node_address");
+      if (bondAddress) params.set("bond_address", bondAddress);
+      if (nodeAddress) params.set("node_address", nodeAddress);
+    } else if (app.name === "Rune Pool") {
+      const address = urlParams.get("address");
+      if (address) params.set("address", address);
+    } else if (app.name === "Swapper Clout") {
+      const address = urlParams.get("address");
+      if (address) params.set("address", address);
+    } else if (app.name === "LP Checker") {
+      const pool = urlParams.get("pool");
+      const address = urlParams.get("address");
+      if (pool) params.set("pool", pool);
+      if (address) params.set("address", address);
+    } else if (app.name === "Affiliates") {
+      const thorname = urlParams.get("thorname");
+      if (thorname) params.set("thorname", thorname);
+    } else if (app.name === "Voting") {
+      const key = urlParams.get("key");
+      if (key) params.set("key", key);
+    }
+    
+    return params.toString() ? `?${params.toString()}` : "";
   }
 
   async function handlePopState() {
+    // Re-check desktop app mode on navigation
+    checkDesktopAppMode();
+    
     const path = window.location.pathname.slice(1).split('/')[0];
     const app = [...apps, ...hiddenApps].find(a => a.path === path);
     selectedApp = app || null;
@@ -499,7 +501,13 @@
     }
   }
 
+  function checkDesktopAppMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    isDesktopApp = urlParams.get('source') === 'desktop-app';
+  }
+
   onMount(() => {
+    checkDesktopAppMode();
     handlePopState();
     window.addEventListener('popstate', handlePopState);
     return () => {
@@ -533,20 +541,28 @@
     </svg>
   `;
 
+  const backIcon = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m12 19-7-7 7-7"></path>
+      <path d="M19 12H5"></path>
+    </svg>
+  `;
+
   function toggleMenu() {
     menuOpen = !menuOpen;
   }
 
   function goHome() {
     selectedApp = null;
-    history.pushState(null, '', '/');
+    const homeUrl = isDesktopApp ? '/?source=desktop-app' : '/';
+    history.pushState(null, '', homeUrl);
     menuOpen = false;
 
     // Track home page view
     if (typeof gtag !== 'undefined') {
       gtag('event', 'page_view', {
         page_title: 'Home',
-        page_path: '/',
+        page_path: homeUrl,
         page_location: window.location.href
       });
     }
@@ -720,12 +736,13 @@
   </style>
 </svelte:head>
 
-<main class:mobile={isMobile}>
+<main class:mobile={isMobile} class:desktop-app={isDesktopApp}>
   {#if HOLIDAY_MODE}
     <Snow />
   {/if}
   <header>
     <div class="header-content">
+      {#if !isDesktopApp}
       <div class="logo-container">
         <div class="logo-wrapper" on:click={goHome}>
           {#if HOLIDAY_MODE}
@@ -736,6 +753,19 @@
           {/if}
         </div>
       </div>
+      {:else}
+      <div class="logo-container desktop-mode">
+        {#if selectedApp}
+          <button 
+            class="nav-button back-button" 
+            on:click={goHome}
+            title="Back to Home"
+          >
+            {@html backIcon}
+          </button>
+        {/if}
+      </div>
+      {/if}
       <div class="title-container">
         {#if selectedApp}
           <h2 class="rune-tools-title">
@@ -838,7 +868,9 @@
     </div>
   </div>
 
+  {#if !isDesktopApp}
   <Footer />
+  {/if}
 </main>
 
 <style>
@@ -867,6 +899,13 @@
     color: var(--text-color);
     padding-top: calc(45px + var(--banner-height, 0px));
     position: relative;
+  }
+
+  /* Desktop mode styling for logo container */
+  .logo-container.desktop-mode {
+    /* Keep the same width but remove content */
+    flex: 0 0 auto;
+    width: 33.33%;
   }
 
   header {
@@ -1090,7 +1129,7 @@
     line-height: 1.2;
   }
 
-  .home-button, .menu-button {
+  .home-button, .menu-button, .back-button {
     background: none;
     border: none;
     cursor: pointer;
@@ -1099,8 +1138,21 @@
     transition: color 0.3s ease;
   }
 
-  .home-button:hover, .menu-button:hover {
+  .home-button:hover, .menu-button:hover, .back-button:hover {
     color: var(--primary-color);
+  }
+
+  .back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .back-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(-2px);
   }
 
   .menu-overlay {
