@@ -188,6 +188,13 @@
       path: "thorchad", 
       description: "THORChad your profile picture" 
     },
+    {
+      name: "POL Tracker",
+      component: () => import("./lib/POL.svelte"),
+      icon: "🏛️",
+      path: "pol",
+      description: "Track THORChain's protocol-owned liquidity positions"
+    },
     { 
       name: "Trade on THORSwap", 
       icon: "/assets/thorswap.png",
