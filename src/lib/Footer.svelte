@@ -15,7 +15,7 @@
   let startX = 0;
   let startY = 0;
   let isDragging = false;
-  const totalPages = 3;
+  const totalPages = 2;
   let autoScrollTimer;
   let isUserInteracting = false;
 
@@ -51,6 +51,13 @@
   const pages = [
     {
       content: {
+        type: 'desktop-app',
+        href: "/desktop",
+        text: "NEW DESKTOP APP - Rune Tools Wallet for MacOS and Windows"
+      }
+    },
+    {
+      content: {
         type: 'links',
         elements: [
           { href: "https://github.com/cow9r/RUNE-Tools", text: "Source" },
@@ -60,20 +67,6 @@
           { href: "https://x.com/RuneDotTools", text: "Follow on 𝕏" },
           { type: 'sound' }
         ]
-      }
-    },
-    {
-      content: {
-        type: 'vultisig',
-        href: "https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a",
-        text: "Register for the Vultisig airdrop campaign"
-      }
-    },
-    {
-      content: {
-        type: 'thorswap',
-        href: "https://app.thorswap.finance/swap?ref=-",
-        text: "Trade RUNE and swap native assets on THORSwap"
       }
     }
   ];
@@ -295,23 +288,11 @@
               {/if}
             {/each}
           </span>
-        {:else if pages[currentPage].content.type === 'vultisig'}
+        {:else if pages[currentPage].content.type === 'desktop-app'}
           <span>
             <a 
               href={pages[currentPage].content.href}
-              target="_blank" 
-              class="source-link"
-              on:click|stopPropagation={() => trackFooterClick(pages[currentPage].content.text)}
-            >
-              {pages[currentPage].content.text}
-            </a>
-          </span>
-        {:else if pages[currentPage].content.type === 'thorswap'}
-          <span>
-            <a 
-              href={pages[currentPage].content.href}
-              target="_blank" 
-              class="source-link"
+              class="source-link desktop-link"
               on:click|stopPropagation={() => trackFooterClick(pages[currentPage].content.text)}
             >
               {pages[currentPage].content.text}
@@ -384,6 +365,25 @@
   .source-link:hover {
     opacity: 1;
     text-shadow: 0 0 8px rgba(49, 253, 157, 0.3);
+  }
+
+  .desktop-link {
+    color: #ffd700 !important;
+    font-weight: 700;
+    animation: gold-glow 2s infinite alternate;
+  }
+
+  .desktop-link:hover {
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.6) !important;
+  }
+
+  @keyframes gold-glow {
+    from {
+      text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+    }
+    to {
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
   }
 
   .sound-button {

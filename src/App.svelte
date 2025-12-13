@@ -33,6 +33,14 @@
 
   // Replace the existing apps array with dynamic imports
   const apps = [
+    {
+      name: "Desktop App",
+      component: () => import("./lib/DesktopApp.svelte"),
+      icon: "🖥️",
+      path: "desktop",
+      description: "Download the native RUNE Tools wallet for macOS and Windows",
+      special: "gold"
+    },
     { 
       name: "Swap Quote", 
       component: () => import("./lib/SwapEstimator.svelte"), 
@@ -840,6 +848,7 @@
               {#each row as app, i}
                 <button 
                   class="app-button"
+                  class:gold-border={app.special === 'gold'}
                   on:click={() => handleAppClick(app)}
                   on:mouseenter={() => handleMouseEnter(app)}
                   on:mouseleave={handleMouseLeave}
@@ -1084,6 +1093,36 @@
     transform: scale(1.05) translateY(-3px);
     background-color: #3a3a3a; /* Lighter color on hover */
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Special gold border for desktop app */
+  .app-button.gold-border {
+    border: 2px solid #ffd700;
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .app-button.gold-border::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+    animation: shimmer 3s infinite;
+  }
+
+  .app-button.gold-border:hover {
+    border-color: #ffed4e;
+    box-shadow: 0 8px 15px rgba(255, 215, 0, 0.3), 0 0 20px rgba(255, 215, 0, 0.2);
+    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
   }
 
   /* Add active state for click feedback */
