@@ -46,52 +46,128 @@
     { value: 365, label: '1 year' }
   ];
 
+  async function fetchThorchainData() {
+    console.log('🔍 Fetching THORChain data from Midgard API...');
+    
+    try {
+      let apiUrl;
+      
+      if (useCustomRange) {
+        // Convert dates to Unix timestamps
+        const fromTimestamp = Math.floor(new Date(startDate + 'T00:00:00.000Z').getTime() / 1000);
+        const toTimestamp = Math.floor(new Date(endDate + 'T23:59:59.999Z').getTime() / 1000);
+        
+        // For custom ranges, use from/to timestamps
+        apiUrl = `https://midgard.ninerealms.com/v2/history/swaps?interval=day&from=${fromTimestamp}&to=${toTimestamp}`;
+        console.log(`📅 Custom range: ${startDate} to ${endDate} (${fromTimestamp} to ${toTimestamp})`);
+      } else {
+        // For preset ranges, use count
+        apiUrl = `https://midgard.ninerealms.com/v2/history/swaps?interval=day&count=${days}`;
+        console.log(`📅 Preset range: last ${days} days`);
+      }
+      
+      console.log(`📡 Fetching THORChain from:`, apiUrl);
+      
+      const response = await fetch(apiUrl);
+      console.log(`📊 THORChain Midgard response status:`, response.status);
+      
+      if (!response.ok) {
+        console.warn(`⚠️ THORChain Midgard endpoint failed:`, response.status, response.statusText);
+        return null;
+      }
+      
+      const data = await response.json();
+      console.log(`✅ THORChain Midgard data received:`, {
+        intervalsCount: data.intervals?.length,
+        sampleInterval: data.intervals?.[0]
+      });
+      
+      // Convert Midgard data to DefiLlama-like format
+      const totalDataChart = data.intervals?.map(interval => {
+        // Use endTime to match when the trading day completed (like DefiLlama)
+        const timestamp = parseInt(interval.endTime);
+        // Convert totalVolumeUSD from 1e2 format to regular USD
+        const volume = parseFloat(interval.totalVolumeUSD) / 1e2;
+        
+        // Debug: Log timestamp conversion
+        const dateFromTimestamp = new Date(timestamp * 1000).toISOString().split('T')[0];
+        console.log(`🕐 THORChain interval: endTime=${timestamp}, date=${dateFromTimestamp}, volume=${volume}`);
+        
+        return [timestamp, volume];
+      }) || [];
+      
+      console.log(`🔄 Processed ${totalDataChart.length} THORChain data points`);
+      console.log(`📋 Sample processed data:`, totalDataChart.slice(-3));
+      
+      return {
+        protocol: 'thorchain',
+        name: 'THORChain',
+        color: '#33FF99',
+        data: {
+          totalDataChart: totalDataChart,
+          total24h: totalDataChart.length > 0 ? totalDataChart[totalDataChart.length - 1][1] : 0,
+          total7d: totalDataChart.slice(-7).reduce((sum, [, volume]) => sum + volume, 0)
+        }
+      };
+      
+    } catch (err) {
+      console.error(`❌ Error fetching THORChain from Midgard:`, err);
+      return null;
+    }
+  }
+
   async function fetchProtocolData() {
     isLoading = true;
     error = null;
     
     try {
-      console.log('🔍 Fetching DEX data from DefiLlama for all protocols...');
+      console.log('🔍 Fetching DEX data for all protocols...');
       
-      // Fetch data for each protocol from DefiLlama DEX endpoints
-      const protocolData = await Promise.all(
-        Object.entries(protocols).map(async ([key, protocol]) => {
-          try {
-            // NEAR Intents uses a different API endpoint
-            const apiUrl = key === 'near-intents' 
-              ? `https://api.llama.fi/summary/dexs/${protocol.slug}`
-              : `https://api.llama.fi/overview/dexs/${protocol.slug}`;
-            
-            console.log(`📡 Fetching ${protocol.name} from:`, apiUrl);
-            
-            const response = await fetch(apiUrl);
-            console.log(`📊 ${protocol.name} response status:`, response.status);
-            
-            if (!response.ok) {
-              console.warn(`⚠️  ${protocol.name} endpoint failed:`, response.status, response.statusText);
+      // Fetch THORChain data from Midgard and other protocols from DefiLlama
+      const protocolData = await Promise.all([
+        // Fetch THORChain from Midgard
+        fetchThorchainData(),
+        
+        // Fetch other protocols from DefiLlama
+        ...Object.entries(protocols)
+          .filter(([key]) => key !== 'thorchain') // Exclude thorchain since we're using Midgard
+          .map(async ([key, protocol]) => {
+            try {
+              // NEAR Intents uses a different API endpoint
+              const apiUrl = key === 'near-intents' 
+                ? `https://api.llama.fi/summary/dexs/${protocol.slug}`
+                : `https://api.llama.fi/overview/dexs/${protocol.slug}`;
+              
+              console.log(`📡 Fetching ${protocol.name} from:`, apiUrl);
+              
+              const response = await fetch(apiUrl);
+              console.log(`📊 ${protocol.name} response status:`, response.status);
+              
+              if (!response.ok) {
+                console.warn(`⚠️  ${protocol.name} endpoint failed:`, response.status, response.statusText);
+                return null;
+              }
+              
+              const data = await response.json();
+              console.log(`✅ ${protocol.name} data received:`, {
+                total24h: data.total24h,
+                total7d: data.total7d,
+                totalDataChartLength: data.totalDataChart?.length,
+                sampleDataPoints: data.totalDataChart?.slice(-3)
+              });
+              
+              return {
+                protocol: key,
+                name: protocol.name,
+                color: protocol.color,
+                data: data
+              };
+            } catch (err) {
+              console.error(`❌ Error fetching ${protocol.name}:`, err);
               return null;
             }
-            
-            const data = await response.json();
-            console.log(`✅ ${protocol.name} data received:`, {
-              total24h: data.total24h,
-              total7d: data.total7d,
-              totalDataChartLength: data.totalDataChart?.length,
-              sampleDataPoints: data.totalDataChart?.slice(-3)
-            });
-            
-            return {
-              protocol: key,
-              name: protocol.name,
-              color: protocol.color,
-              data: data
-            };
-          } catch (err) {
-            console.error(`❌ Error fetching ${protocol.name}:`, err);
-            return null;
-          }
-        })
-      );
+          })
+      ]);
       
       // Filter out failed requests
       const validData = protocolData.filter(p => p !== null);
@@ -166,18 +242,29 @@
         // Get the last N days of data
         const recentData = data.totalDataChart.slice(-days);
         
+        // Extra debug logging for NEAR Intents
+        if (protocol === 'near-intents') {
+          console.log(`🔍 NEAR Intents DEBUG:`);
+          console.log(`  - Total data points: ${data.totalDataChart.length}`);
+          console.log(`  - Taking last ${days} points`);
+          console.log(`  - Recent data length: ${recentData.length}`);
+          console.log(`  - Last 5 raw data points:`, data.totalDataChart.slice(-5));
+          console.log(`  - DateMap date range:`, Array.from(dateMap.keys()));
+        }
+        
         recentData.forEach(([timestamp, volume], index) => {
           const date = new Date(timestamp * 1000).toISOString().split('T')[0];
           
-          console.log(`🔍 Processing data point ${index}: timestamp=${timestamp}, date=${date}, volume=${volume}, protocol=${protocol}`);
-          console.log(`🗓️  Available dates in dateMap:`, Array.from(dateMap.keys()).slice(-5));
+          if (protocol === 'near-intents') {
+            console.log(`🔍 NEAR Intents data point ${index}: timestamp=${timestamp}, date=${date}, volume=${volume}`);
+          }
           
           if (dateMap.has(date)) {
             const dayData = dateMap.get(date);
             dayData[protocol] = volume || 0;
             console.log(`✅ ${date} - ${name}: $${(volume || 0).toLocaleString()} added successfully`);
           } else {
-            console.warn(`❌ Date ${date} not found in dateMap for ${name}`);
+            console.warn(`❌ Date ${date} not found in dateMap for ${name} (timestamp: ${timestamp})`);
           }
         });
         
@@ -323,7 +410,7 @@
     }
     
     const { protocols: protoConfig, data } = volumeData;
-    const labels = data.map(d => new Date(d.date).toLocaleDateString());
+    const labels = data.map(d => new Date(d.date + 'T12:00:00.000Z').toLocaleDateString());
     
     const datasets = Object.keys(protoConfig).map(protocolKey => {
       const protocol = protoConfig[protocolKey];
@@ -418,7 +505,7 @@
     }
     
     const { data } = volumeData;
-    const labels = data.map(d => new Date(d.date).toLocaleDateString());
+    const labels = data.map(d => new Date(d.date + 'T12:00:00.000Z').toLocaleDateString());
     
     // Calculate THORChain dominance percentage
     const dominanceData = data.map(d => {
@@ -741,7 +828,7 @@
     </div>
     
     <div class="data-source-note">
-      <p><strong>Data Sources:</strong> All volume data fetched from DefiLlama's free DEX endpoints. Note: Some endpoints may require Pro API for historical data, fallback demo data will be used if API limits are reached.</p>
+      <p><strong>Data Sources:</strong> THORChain volume data fetched from Midgard API (midgard.ninerealms.com). Other protocol data from DefiLlama's free DEX endpoints. Note: Some endpoints may require Pro API for historical data, fallback demo data will be used if API limits are reached.</p>
     </div>
   {/if}
 
