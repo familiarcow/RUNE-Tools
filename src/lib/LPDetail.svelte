@@ -4,6 +4,7 @@
 
   export let address = null;
   export let pool = null;
+  export let height = null;
   export let goBack;
   export let runePrice;
   export let assetPrices;
@@ -14,7 +15,7 @@
   let error = null;
   let showMore = false;
 
-  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.ninerealms.com';
+  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode-archive.ninerealms.com';
 
   const assetLogos = {
     'BTC.BTC': '/assets/coins/bitcoin-btc-logo.svg',
@@ -62,8 +63,14 @@
   async function loadLPData() {
     loading = true;
     error = null;
+
+    let url = `${API_DOMAIN}/thorchain/pool/${pool}/liquidity_provider/${address}`;
+    if (height) {
+      url += `?height=${height}`;
+    }
+
     try {
-      const response = await axios.get(`${API_DOMAIN}/thorchain/pool/${pool}/liquidity_provider/${address}`);
+      const response = await axios.get(url);
       lpData = response.data;
 
       // Divide deposit and redeem values by 1e8
@@ -193,7 +200,11 @@
         
         <!-- Total Value Card -->
         <div class="total-value">
-          <span class="total-label">Total Value</span>
+          {#if height}
+            <span class="total-label">Total Value (as of height {height})</span>
+          {:else}
+            <span class="total-label">Total Value</span>
+          {/if}
           <span class="total-amount">
             {formatUSD((lpData.rune_redeem_value * runePrice) + (lpData.asset_redeem_value * assetPrices[pool]))}
           </span>

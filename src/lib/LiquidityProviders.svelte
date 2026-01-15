@@ -7,6 +7,7 @@
   let activeTab = 'checker';
   let selectedPool = null;
   let selectedAddress = null;
+  let selectedBlockHeight = null;
   let runePrice = 0;
   let assetPrices = {};
 
@@ -16,7 +17,7 @@
   let loading = true;
   let error = null;
 
-  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.ninerealms.com';
+  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode-archive.ninerealms.com';
 
   // Add this store to track the active tab across components
   const activeTabStore = writable('checker');
@@ -26,8 +27,9 @@
     activeTab = value;
   });
 
-  // Add a temporary store for the address input
+  // Add a temporary store for the address input and block height
   let addressInput = '';
+  let blockHeightInput = '';
 
   onMount(async () => {
     try {
@@ -49,10 +51,14 @@
       const urlParams = new URLSearchParams(window.location.search);
       const pool = urlParams.get('pool');
       const address = urlParams.get('address');
+      const blockHeight = urlParams.get('height');
 
       if (pool && address) {
         selectedPool = pool;
         selectedAddress = address;
+        if (blockHeight) {
+          selectedBlockHeight = blockHeight;
+        }
         activeTabStore.set('detail'); // Use the store instead of direct assignment
       }
 
@@ -95,9 +101,13 @@
   }
 
   function updateURL() {
-    const url = activeTab === 'detail' && selectedPool && selectedAddress
-      ? `/lp?pool=${selectedPool}&address=${selectedAddress}`
-      : '/lp';
+    let url = '/lp';
+    if (activeTab === 'detail' && selectedPool && selectedAddress) {
+      url += `?pool=${selectedPool}&address=${selectedAddress}`;
+      if (selectedBlockHeight) {
+        url += `&height=${selectedBlockHeight}`;
+      }
+    }
     history.pushState(null, '', url);
   }
 
@@ -126,6 +136,9 @@
     if (selectedPool && addressInput) {
       // Only update selectedAddress when submitting
       selectedAddress = addressInput;
+      if (blockHeightInput) {
+        selectedBlockHeight = blockHeightInput;
+      }
       activeTabStore.set('detail');
       updateURL();
       updateTitle(selectedAddress);
@@ -174,6 +187,7 @@
             <LPDetail 
               address={selectedAddress}
               pool={selectedPool}
+              height={selectedBlockHeight}
               goBack={handleGoBack}
               {runePrice}
               {assetPrices}
@@ -193,6 +207,12 @@
                 placeholder="Enter LP address" 
                 bind:value={addressInput}
                 on:input={handleAddressInput}
+              />
+              <input
+                type="number"
+                placeholder="Block height (optional)"
+                bind:value={blockHeightInput}
+                min="4786560"
               />
               <button 
                 on:click={handleDetailSubmit} 
