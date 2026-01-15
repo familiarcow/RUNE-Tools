@@ -15,7 +15,8 @@
   let error = null;
   let showMore = false;
 
-  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode-archive.ninerealms.com';
+  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.ninerealms.com';
+  const ARCHIVE_DOMAIN = 'https://thornode-archive.ninerealms.com';
 
   const assetLogos = {
     'BTC.BTC': '/assets/coins/bitcoin-btc-logo.svg',
@@ -64,7 +65,8 @@
     loading = true;
     error = null;
 
-    let url = `${API_DOMAIN}/thorchain/pool/${pool}/liquidity_provider/${address}`;
+    const domain = height ? ARCHIVE_DOMAIN : API_DOMAIN;
+    let url = `${domain}/thorchain/pool/${pool}/liquidity_provider/${address}`;
     if (height) {
       url += `?height=${height}`;
     }

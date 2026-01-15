@@ -17,7 +17,7 @@
   let loading = true;
   let error = null;
 
-  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode-archive.ninerealms.com';
+  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.ninerealms.com';
 
   // Add this store to track the active tab across components
   const activeTabStore = writable('checker');
@@ -95,6 +95,11 @@
 
   // Update the handleGoBack function
   function handleGoBack() {
+    selectedPool = null;
+    selectedAddress = null;
+    selectedBlockHeight = null;
+    addressInput = '';
+    blockHeightInput = '';
     activeTabStore.set('checker');
     updateURL();
     updateTitle(null);
@@ -213,6 +218,11 @@
                 placeholder="Block height (optional)"
                 bind:value={blockHeightInput}
                 min="4786560"
+                on:blur={(e) => {
+                  if (e.target.value && parseInt(e.target.value) < 4786560) {
+                    blockHeightInput = '4786560';
+                  }
+                }}
               />
               <button 
                 on:click={handleDetailSubmit} 
