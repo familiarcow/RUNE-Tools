@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
+  import { thornode } from '$lib/api';
+  import { PageHeader, LoadingBar } from '$lib/components';
 
   let loading = true;
   let error = null;
@@ -72,17 +74,14 @@
 
   async function fetchVaultData() {
     try {
-      // Fetch vault data
-      const vaultsResponse = await fetch('https://thornode.ninerealms.com/thorchain/vaults/asgard');
-      const vaults = await vaultsResponse.json();
+      // Fetch vault data, pools, and TVLCAPBASISPOINTS in parallel
+      const [vaults, pools, tvlCapValue] = await Promise.all([
+        thornode.fetch('/thorchain/vaults/asgard'),
+        thornode.fetch('/thorchain/pools'),
+        thornode.fetch('/thorchain/mimir/key/TVLCAPBASISPOINTS')
+      ]);
 
-      // Fetch pool data for asset prices
-      const poolsResponse = await fetch('https://thornode.ninerealms.com/thorchain/pools');
-      const pools = await poolsResponse.json();
-
-      // Fetch TVLCAPBASISPOINTS
-      const tvlCapResponse = await fetch('https://thornode.ninerealms.com/thorchain/mimir/key/TVLCAPBASISPOINTS');
-      tvlCapBasisPoints = await tvlCapResponse.json();
+      tvlCapBasisPoints = tvlCapValue;
 
       // Create a map of asset prices in RUNE
       const assetPrices = {};
@@ -123,8 +122,7 @@
       totalVaultValueInRune = vaultAssets.reduce((sum, asset) => sum + asset.runeValue, 0);
 
       // Fetch node data for security budget
-      const nodesResponse = await fetch('https://thornode.ninerealms.com/thorchain/nodes');
-      const nodes = await nodesResponse.json();
+      const nodes = await thornode.fetch('/thorchain/nodes');
 
       // Get active nodes and sort by bond size (largest to smallest)
       const activeNodes = nodes
@@ -166,10 +164,13 @@
 
 <main>
   <div class="container">
-    <h1>THORChain Liquidity Cap Analysis</h1>
+    <PageHeader title="Liquidity Cap Analysis" />
 
     {#if loading}
-      <div class="loading" transition:fade>Loading data...</div>
+      <div class="loading-container">
+        <LoadingBar width="200px" height="20px" />
+        <p class="loading-text">Loading data...</p>
+      </div>
     {:else if error}
       <div class="error" transition:fade>Error: {error}</div>
     {:else}
@@ -281,24 +282,35 @@
     width: 100%;
   }
 
-  h1 {
-    text-align: center;
-    margin-bottom: 2rem;
-    font-size: 1.5rem;
-  }
-
   h2 {
     font-size: 1.2rem;
     margin-bottom: 0.5rem;
   }
 
-  .loading, .error {
-    text-align: center;
-    padding: 2rem;
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+  }
+
+  .loading-text {
+    color: #a0a0a0;
+    font-size: 14px;
+    margin: 0;
   }
 
   .error {
-    color: var(--error-color);
+    text-align: center;
+    color: #dc3545;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 40px;
+    background: rgba(220, 53, 69, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(220, 53, 69, 0.2);
   }
 
   .summary-card {
