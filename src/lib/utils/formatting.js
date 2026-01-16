@@ -421,3 +421,49 @@ export function formatBlocksCountdown(blocks, blockTimeSeconds = 6, options = {}
   const seconds = blocks * blockTimeSeconds;
   return formatCountdown(seconds, options);
 }
+
+// ============================================
+// Clipboard Utilities
+// ============================================
+
+/**
+ * Copy text to clipboard
+ *
+ * Uses the modern Clipboard API with a fallback for older browsers.
+ *
+ * @param {string} text - Text to copy to clipboard
+ * @param {string} [description] - Optional description for logging/notifications
+ * @returns {Promise<boolean>} True if copy succeeded, false otherwise
+ *
+ * @example
+ * await copyToClipboard('thor1abc...xyz');
+ * await copyToClipboard(address, 'wallet address');
+ */
+export async function copyToClipboard(text, description) {
+  if (!text) return false;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    if (description) {
+      console.log(`Copied ${description}: ${text}`);
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to copy text:', err);
+    // Fallback for older browsers
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return true;
+    } catch (fallbackErr) {
+      console.error('Fallback copy also failed:', fallbackErr);
+      return false;
+    }
+  }
+}

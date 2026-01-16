@@ -3,6 +3,10 @@
   import { tweened } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
   import ipInfoData from '../../public/ip-info.json';
+  import { formatNumber as formatNumberUtil, formatCountdown, copyToClipboard } from '$lib/utils/formatting';
+  import { fromBaseUnit, blocksToSeconds } from '$lib/utils/blockchain';
+  import { calculateAPR as calcAPR, calculateAPY as calcAPY } from '$lib/utils/calculations';
+  import { fetchWithFallback, fetchMimirValue } from '$lib/utils/api';
 
   let nodes = [];
   let activeNodes = [];
@@ -285,14 +289,14 @@
 
   $: sortedChains = [...uniqueChains].sort();
 
-  // Format number with commas
+  // Format number with commas (using shared utility)
   const formatNumber = (num) => {
-    return new Intl.NumberFormat().format(num);
+    return formatNumberUtil(num, { maximumFractionDigits: 0 });
   };
 
-  // Format RUNE amount (divide by 1e8)
+  // Format RUNE amount (divide by 1e8 using shared utility)
   const formatRune = (amount) => {
-    return formatNumber((Number(amount) / 1e8).toFixed(2));
+    return formatNumberUtil(fromBaseUnit(amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   // Calculate chain height difference
@@ -354,23 +358,22 @@
     return new Date(timestamp).toLocaleDateString();
   };
 
-  // Calculate APY for a node
+  // Calculate APY for a node (using shared calculation utilities)
   const calculateAPY = (node) => {
     if (!lastChurnHeight) return null;
-    
+
     const currentTime = Date.now() / 1000;
-    const timeDiff = currentTime - lastChurnHeight;
-    const timeDiffInYears = timeDiff / (60 * 60 * 24 * 365.25);
-    
-    if (timeDiffInYears <= 0) return null;
-    
+    const timeDiffSeconds = currentTime - lastChurnHeight;
+
+    if (timeDiffSeconds <= 0) return null;
+
     const currentAward = Number(node.current_award);
     const totalBond = Number(node.total_bond);
-    
+
     if (totalBond <= 0) return null;
-    
-    const APR = currentAward / totalBond / timeDiffInYears;
-    return (1 + APR / 365) ** 365 - 1;
+
+    const apr = calcAPR(currentAward, totalBond, timeDiffSeconds);
+    return calcAPY(apr, 365);
   };
 
   // Sort function for nodes
@@ -486,42 +489,6 @@
   $: filteredActiveNodes = filterNodes(activeNodes, searchQuery);
   $: filteredStandbyNodes = filterNodes(standbyNodes, searchQuery);
 
-  // API endpoints with fallback
-  const API_ENDPOINTS = {
-    primary: 'https://thornode.thorchain.liquify.com',
-    fallback: 'https://thornode.ninerealms.com'
-  };
-
-  // Fetch data from API with automatic fallback
-  const fetchWithFallback = async (endpoint, options = {}) => {
-    const primaryUrl = `${API_ENDPOINTS.primary}${endpoint}`;
-    const fallbackUrl = `${API_ENDPOINTS.fallback}${endpoint}`;
-    
-    try {
-      // Try primary endpoint first
-      const response = await fetch(primaryUrl, options);
-      if (response.ok) {
-        return response;
-      }
-      throw new Error(`Primary endpoint failed: ${response.status}`);
-    } catch (error) {
-      console.warn(`Primary endpoint failed, trying fallback: ${error.message}`);
-      
-      try {
-        // Try fallback endpoint
-        const fallbackResponse = await fetch(fallbackUrl, options);
-        if (fallbackResponse.ok) {
-          console.log(`Using fallback endpoint for: ${endpoint}`);
-          return fallbackResponse;
-        }
-        throw new Error(`Fallback endpoint failed: ${fallbackResponse.status}`);
-      } catch (fallbackError) {
-        console.error(`Both endpoints failed for ${endpoint}:`, fallbackError);
-        throw fallbackError;
-      }
-    }
-  };
-
   // Add function to fetch latest block height
   const fetchLatestBlock = async () => {
     try {
@@ -544,7 +511,7 @@
         fetchWithFallback('/thorchain/nodes'),
         fetch('https://midgard.ninerealms.com/v2/churns'),
         fetchLatestBlock(),
-        fetchMimirValues()
+        fetchMimirValuesLocal()
       ]);
 
       const [nodesData, churnsData] = await Promise.all([
@@ -673,16 +640,6 @@
     return null;
   };
 
-  // Add copyToClipboard function
-  const copyToClipboard = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      // Could add a toast notification here in the future
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
-
   // Add vault color mapping
   let vaultColorMap = new Map();
   const colors = [
@@ -707,35 +664,23 @@
     return vaultColorMap.get(vaultId);
   };
 
-  // Add function to fetch mimir values
-  const fetchMimirValues = async () => {
+  // Fetch mimir values using shared utility
+  const fetchMimirValuesLocal = async () => {
     try {
-      const [newNodesResponse, minBondResponse, churnIntervalResponse, maxValidatorResponse] = await Promise.all([
-        fetchWithFallback('/thorchain/mimir/key/NUMBEROFNEWNODESPERCHURN'),
-        fetchWithFallback('/thorchain/mimir/key/MinimumBondInRune'),
-        fetchWithFallback('/thorchain/mimir/key/CHURNINTERVAL'),
-        fetchWithFallback('/thorchain/mimir/key/DESIREDVALIDATORSET')
+      const [newNodes, minBond, churnIntervalValue, maxValidator] = await Promise.all([
+        fetchMimirValue('NUMBEROFNEWNODESPERCHURN'),
+        fetchMimirValue('MinimumBondInRune'),
+        fetchMimirValue('CHURNINTERVAL'),
+        fetchMimirValue('DESIREDVALIDATORSET')
       ]);
-      
-      if (newNodesResponse.ok) {
-        const newNodesValue = await newNodesResponse.text();
-        newNodesPerChurn = Number(newNodesValue) || 4;
-      }
-      
-      if (minBondResponse.ok) {
-        const minBondValue = await minBondResponse.text();
-        minimumBondInRune = Number(minBondValue) / 1e8;
-      }
 
-      if (churnIntervalResponse.ok) {
-        const churnIntervalValue = await churnIntervalResponse.text();
-        churnInterval = Number(churnIntervalValue);
+      newNodesPerChurn = newNodes || 4;
+      minimumBondInRune = fromBaseUnit(minBond);
+      churnInterval = churnIntervalValue;
+      maxValidatorSet = maxValidator || 120;
+
+      if (churnInterval) {
         updateNextChurnTime();
-      }
-
-      if (maxValidatorResponse.ok) {
-        const maxValidatorValue = await maxValidatorResponse.text();
-        maxValidatorSet = Number(maxValidatorValue) || 120;
       }
     } catch (error) {
       console.error('Error fetching mimir values:', error);
@@ -744,7 +689,7 @@
 
   const updateNextChurnTime = () => {
     if (churnInterval && recentChurnTimestamp) {
-      const churnIntervalSeconds = churnInterval * 6;
+      const churnIntervalSeconds = blocksToSeconds(churnInterval);
       nextChurnTime = recentChurnTimestamp + churnIntervalSeconds;
       updateCountdown();
     }
@@ -753,14 +698,7 @@
   const updateCountdown = () => {
     const now = Date.now() / 1000;
     const secondsLeft = nextChurnTime - now;
-    if (secondsLeft <= 0) {
-      countdown = "Churning...";
-    } else {
-      const days = Math.floor(secondsLeft / (3600 * 24));
-      const hours = Math.floor((secondsLeft % (3600 * 24)) / 3600);
-      const minutes = Math.floor((secondsLeft % 3600) / 60);
-      countdown = `${days > 0 ? days + "d " : ""}${hours}h ${minutes}m`;
-    }
+    countdown = formatCountdown(secondsLeft, { zeroText: 'Churning...' });
   };
 
   // Function to calculate nodes that will be churned out
@@ -851,7 +789,7 @@
         <span class="eligible-label">Eligible</span>
       </div>
       <div class="total-bond-display" title="Total Bond of Active Nodes">
-        <span class="bond-amount">{formatNumber((activeNodes.reduce((sum, node) => sum + Number(node.total_bond), 0) / 1e8).toFixed(0))}</span>
+        <span class="bond-amount">{formatNumber(fromBaseUnit(activeNodes.reduce((sum, node) => sum + Number(node.total_bond), 0)).toFixed(0))}</span>
         <img src="assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
       </div>
       <button class="pause-button" on:click={togglePause} title={isPaused ? "Resume Updates" : "Pause Updates"}>
