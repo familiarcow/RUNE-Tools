@@ -7,6 +7,7 @@
   // State
   let isLoading = true;
   let errorMessage = '';
+  let isChurningHalted = false;         // from Mimir HALTCHURNING
 
   let churnIntervalBlocks = 0;          // from Mimir CHURNINTERVAL
   let lastChurnHeight = 0;              // from Midgard churns
@@ -81,10 +82,21 @@
 
   // Data loaders
   async function loadChurnIntervalBlocks() {
-    const txt = await thornode.fetch('/thorchain/mimir/key/CHURNINTERVAL', { parseJson: false, cache: false });
+    const txt = await thornode.getMimir('CHURNINTERVAL', { cache: false });
     const n = Number(txt);
     if (!Number.isFinite(n) || n <= 0) throw new Error('Invalid CHURNINTERVAL');
     churnIntervalBlocks = n;
+  }
+
+  async function loadHaltChurningStatus() {
+    try {
+      const txt = await thornode.getMimir('HALTCHURNING', { cache: false });
+      const val = Number(txt);
+      isChurningHalted = val === 1;
+    } catch (e) {
+      // If the key doesn't exist or errors, assume churning is not halted
+      isChurningHalted = false;
+    }
   }
 
   async function loadRecentChurn() {
@@ -294,6 +306,7 @@
       await Promise.all([
         loadChurnIntervalBlocks(),
         loadRecentChurn(),
+        loadHaltChurningStatus(),
       ]);
       await loadNetworkNextChurnHint();
       await loadCurrentHeight();
@@ -324,6 +337,7 @@
           await Promise.all([
             loadChurnIntervalBlocks(),
             loadRecentChurn(),
+            loadHaltChurningStatus(),
           ]);
           await loadNetworkNextChurnHint();
           updateComputed(false);
@@ -397,7 +411,16 @@
     <div class="cc-error">{errorMessage}</div>
   {:else}
     <div class="cc-body">
-      <div class="digital" style="--digit-h: 86px; --digit-w: 64px; justify-content: center;">
+      {#if isChurningHalted}
+        <div class="halted-banner" transition:fade={{ duration: 200 }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+          </svg>
+          <span>Churning is currently <strong>PAUSED</strong> by mimir</span>
+        </div>
+      {/if}
+      <div class="digital" class:dimmed={isChurningHalted} style="--digit-h: 86px; --digit-w: 64px; justify-content: center;">
         <div class="group">
           <div class="digit">
             {#key h0}
@@ -536,6 +559,33 @@
 
   .cc-loading, .cc-error { text-align: center; color: #9aa3ad; padding: 20px 0; }
   .cc-error { color: #ff8080; }
+
+  .halted-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(220, 53, 69, 0.15) 100%);
+    border: 1px solid rgba(255, 152, 0, 0.4);
+    border-radius: 10px;
+    color: #ffa94d;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+  }
+  .halted-banner svg {
+    flex-shrink: 0;
+    color: #ff6b6b;
+  }
+  .halted-banner strong {
+    color: #ff6b6b;
+    letter-spacing: 0.5px;
+  }
+
+  .digital.dimmed {
+    opacity: 0.4;
+    filter: grayscale(0.5);
+  }
 
   .cc-body { display: grid; gap: 20px; }
 
