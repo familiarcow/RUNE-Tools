@@ -391,3 +391,120 @@ export async function getNetworkBondStats(options = {}) {
     averageProvidersPerNode: totalProviders / nodes.length
   };
 }
+
+// ============================================
+// Churn Utilities
+// ============================================
+
+/**
+ * Calculate the next churn timestamp
+ *
+ * Churning is when nodes rotate in/out of the active set.
+ * The next churn time is: lastChurnTimestamp + (churnIntervalBlocks * 6 seconds)
+ *
+ * @param {number} lastChurnTimestamp - Unix timestamp of last churn (seconds)
+ * @param {number} churnIntervalBlocks - Churn interval in blocks (from MIMIR)
+ * @param {number} [blockTimeSeconds=6] - Seconds per block
+ * @returns {number} Unix timestamp of next expected churn (seconds)
+ *
+ * @example
+ * // Last churn was Jan 1, 2024, interval is 43200 blocks (~3 days)
+ * const lastChurn = 1704067200; // Jan 1, 2024 00:00:00 UTC
+ * const nextChurn = calculateNextChurnTime(lastChurn, 43200);
+ * // => 1704326400 (Jan 4, 2024 00:00:00 UTC)
+ */
+export function calculateNextChurnTime(lastChurnTimestamp, churnIntervalBlocks, blockTimeSeconds = 6) {
+  if (!lastChurnTimestamp || !churnIntervalBlocks) return 0;
+
+  const churnIntervalSeconds = churnIntervalBlocks * blockTimeSeconds;
+  return lastChurnTimestamp + churnIntervalSeconds;
+}
+
+/**
+ * Calculate seconds remaining until next churn
+ *
+ * @param {number} lastChurnTimestamp - Unix timestamp of last churn (seconds)
+ * @param {number} churnIntervalBlocks - Churn interval in blocks
+ * @param {number} [blockTimeSeconds=6] - Seconds per block
+ * @returns {number} Seconds remaining (0 if churn is overdue)
+ *
+ * @example
+ * const secondsRemaining = getSecondsUntilChurn(lastChurn, 43200);
+ * if (secondsRemaining > 0) {
+ *   console.log(`Next churn in ${formatCountdown(secondsRemaining)}`);
+ * } else {
+ *   console.log('Churn is due now!');
+ * }
+ */
+export function getSecondsUntilChurn(lastChurnTimestamp, churnIntervalBlocks, blockTimeSeconds = 6) {
+  const nextChurn = calculateNextChurnTime(lastChurnTimestamp, churnIntervalBlocks, blockTimeSeconds);
+  const now = Date.now() / 1000;
+
+  return Math.max(0, nextChurn - now);
+}
+
+/**
+ * Get comprehensive churn information
+ *
+ * Fetches MIMIR values and calculates all churn-related data.
+ *
+ * @param {number} lastChurnTimestamp - Unix timestamp of last churn
+ * @param {Object} [options={}] - Fetch options
+ * @returns {Promise<Object>} Churn information object
+ *
+ * @example
+ * const churnInfo = await getChurnInfo(lastChurnTimestamp);
+ * console.log(`Next churn: ${new Date(churnInfo.nextChurnTimestamp * 1000)}`);
+ * console.log(`Halted: ${churnInfo.isHalted}`);
+ */
+export async function getChurnInfo(lastChurnTimestamp, options = {}) {
+  // Fetch churn-related MIMIR values
+  const [churnIntervalText, haltChurningText] = await Promise.all([
+    thornode.getMimir('CHURNINTERVAL', options).catch(() => '43200'), // Default ~3 days
+    thornode.getMimir('HALTCHURNING', options).catch(() => '0')
+  ]);
+
+  const churnIntervalBlocks = Number(churnIntervalText);
+  const isHalted = Number(haltChurningText) === 1;
+
+  const nextChurnTimestamp = calculateNextChurnTime(lastChurnTimestamp, churnIntervalBlocks);
+  const secondsRemaining = getSecondsUntilChurn(lastChurnTimestamp, churnIntervalBlocks);
+  const isOverdue = secondsRemaining === 0 && !isHalted;
+
+  return {
+    lastChurnTimestamp,
+    nextChurnTimestamp,
+    churnIntervalBlocks,
+    churnIntervalSeconds: churnIntervalBlocks * 6,
+    secondsRemaining,
+    isHalted,
+    isOverdue
+  };
+}
+
+/**
+ * Calculate time since last churn in various units
+ *
+ * Useful for APY calculations that need to know the reward period.
+ *
+ * @param {number} lastChurnTimestamp - Unix timestamp of last churn (seconds)
+ * @returns {Object} Time breakdown since last churn
+ *
+ * @example
+ * const timeSince = getTimeSinceChurn(lastChurnTimestamp);
+ * console.log(`Days since churn: ${timeSince.days.toFixed(2)}`);
+ * console.log(`Use for APY: ${timeSince.years.toFixed(6)} years`);
+ */
+export function getTimeSinceChurn(lastChurnTimestamp) {
+  const now = Date.now() / 1000;
+  const secondsSince = now - lastChurnTimestamp;
+
+  return {
+    seconds: secondsSince,
+    minutes: secondsSince / 60,
+    hours: secondsSince / 3600,
+    days: secondsSince / 86400,
+    weeks: secondsSince / 604800,
+    years: secondsSince / 31557600 // 365.25 days
+  };
+}

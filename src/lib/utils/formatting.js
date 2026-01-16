@@ -284,3 +284,140 @@ export function formatThorAmount(amount, decimals = 2) {
     maximumFractionDigits: decimals
   }).format(value);
 }
+
+// ============================================
+// Countdown and Duration Formatting
+// ============================================
+
+/**
+ * Format seconds into a human-readable countdown string
+ *
+ * Supports multiple format options:
+ * - 'compact': "5d 12h 30m" (default)
+ * - 'full': "5 days, 12 hours, 30 minutes"
+ * - 'short': "5d" or "12h" or "30m" (largest unit only)
+ *
+ * @param {number} seconds - Total seconds remaining
+ * @param {Object} [options={}] - Formatting options
+ * @param {string} [options.format='compact'] - Output format
+ * @param {boolean} [options.showSeconds=false] - Include seconds in output
+ * @param {string} [options.zeroText='Now!'] - Text to show when countdown reaches zero
+ * @returns {string} Formatted countdown string
+ *
+ * @example
+ * formatCountdown(90061) // => "1d 1h 1m"
+ * formatCountdown(90061, { format: 'full' }) // => "1 day, 1 hour, 1 minute"
+ * formatCountdown(90061, { showSeconds: true }) // => "1d 1h 1m 1s"
+ * formatCountdown(3661) // => "1h 1m"
+ * formatCountdown(61) // => "1m"
+ * formatCountdown(0) // => "Now!"
+ */
+export function formatCountdown(seconds, options = {}) {
+  const { format = 'compact', showSeconds = false, zeroText = 'Now!' } = options;
+
+  if (seconds === null || seconds === undefined || isNaN(seconds) || seconds <= 0) {
+    return zeroText;
+  }
+
+  const totalSeconds = Math.floor(seconds);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+
+  if (format === 'full') {
+    const parts = [];
+    if (days > 0) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+    if (hours > 0) parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+    if (minutes > 0) parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
+    if (showSeconds && secs > 0) parts.push(`${secs} ${secs === 1 ? 'second' : 'seconds'}`);
+
+    return parts.length > 0 ? parts.join(', ') : zeroText;
+  }
+
+  if (format === 'short') {
+    // Return only the largest unit
+    if (days > 0) return `${days}d`;
+    if (hours > 0) return `${hours}h`;
+    if (minutes > 0) return `${minutes}m`;
+    if (showSeconds && secs > 0) return `${secs}s`;
+    return zeroText;
+  }
+
+  // Default: compact format "5d 12h 30m"
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
+  if (showSeconds && secs > 0) parts.push(`${secs}s`);
+
+  return parts.join(' ');
+}
+
+/**
+ * Format a duration in seconds to "X days and Y hours" style
+ *
+ * Commonly used for longer durations like unbonding periods.
+ *
+ * @param {number} seconds - Total seconds
+ * @returns {string} Formatted duration string
+ *
+ * @example
+ * formatDuration(90000) // => "1 day and 1 hour"
+ * formatDuration(172800) // => "2 days"
+ * formatDuration(3600) // => "1 hour"
+ * formatDuration(1800) // => "30 minutes"
+ */
+export function formatDuration(seconds) {
+  if (seconds === null || seconds === undefined || isNaN(seconds) || seconds <= 0) {
+    return '0 seconds';
+  }
+
+  const totalSeconds = Math.floor(seconds);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  const parts = [];
+
+  if (days > 0) {
+    parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+  }
+
+  if (hours > 0) {
+    parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+  }
+
+  if (minutes > 0 && days === 0) {
+    parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
+  }
+
+  if (parts.length === 0) {
+    return `${totalSeconds} ${totalSeconds === 1 ? 'second' : 'seconds'}`;
+  }
+
+  if (parts.length === 1) {
+    return parts[0];
+  }
+
+  return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+}
+
+/**
+ * Format blocks remaining as a countdown string
+ *
+ * Convenience function that combines block-to-time conversion with formatting.
+ *
+ * @param {number} blocks - Number of blocks remaining
+ * @param {number} [blockTimeSeconds=6] - Seconds per block
+ * @param {Object} [options={}] - Formatting options (passed to formatCountdown)
+ * @returns {string} Formatted countdown string
+ *
+ * @example
+ * formatBlocksCountdown(600) // => "1h 0m" (600 blocks * 6 seconds = 3600 seconds)
+ * formatBlocksCountdown(14400) // => "1d 0h 0m" (14400 blocks = 1 day)
+ */
+export function formatBlocksCountdown(blocks, blockTimeSeconds = 6, options = {}) {
+  const seconds = blocks * blockTimeSeconds;
+  return formatCountdown(seconds, options);
+}

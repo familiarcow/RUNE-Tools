@@ -11,9 +11,12 @@
  * import {
  *   formatNumber,
  *   formatUSD,
+ *   formatCountdown,
  *   fromBaseUnit,
+ *   blocksToSeconds,
  *   getWalletBalances,
- *   getLPPosition
+ *   getLPPosition,
+ *   calculateAPY
  * } from '$lib/utils';
  *
  * @example
@@ -46,7 +49,12 @@ export {
 
   // RUNE-specific formatting
   formatRuneAmount,
-  formatThorAmount
+  formatThorAmount,
+
+  // Countdown/duration formatting
+  formatCountdown,
+  formatDuration,
+  formatBlocksCountdown
 } from './formatting.js';
 
 // ============================================
@@ -55,6 +63,8 @@ export {
 export {
   // Constants
   THOR_BASE,
+  BLOCK_TIME_SECONDS,
+  TIME_CONSTANTS,
   CHAINS,
 
   // Unit conversion
@@ -73,7 +83,14 @@ export {
 
   // Address utilities
   normalizeAddress,
-  isEVMChain
+  isEVMChain,
+
+  // Block time utilities
+  blocksToSeconds,
+  secondsToBlocks,
+  blocksToTimeBreakdown,
+  estimateBlockAtTime,
+  estimateTimeAtBlock
 } from './blockchain.js';
 
 // ============================================
@@ -120,7 +137,16 @@ export {
 
   // Position filtering/sorting
   filterPositionsByValue,
-  sortPositionsByValue
+  sortPositionsByValue,
+
+  // Pool price utilities
+  getPoolAssetPriceInRune,
+  getPoolAssetPriceUSD,
+  convertRuneToAsset,
+  convertAssetToRune,
+  getRuneValueInBTC,
+  buildPoolPriceMap,
+  getPoolDepth
 } from './liquidity.js';
 
 // ============================================
@@ -147,5 +173,37 @@ export {
   groupBondsByNode,
 
   // Network statistics
-  getNetworkBondStats
+  getNetworkBondStats,
+
+  // Churn utilities
+  calculateNextChurnTime,
+  getSecondsUntilChurn,
+  getChurnInfo,
+  getTimeSinceChurn
 } from './bonds.js';
+
+// ============================================
+// Financial calculation utilities
+// ============================================
+export {
+  // APR/APY calculations
+  calculateAPR,
+  calculateAPY,
+  calculateAPRFromDays,
+  calculateYields,
+  calculateWeightedAPY,
+
+  // Reward projections
+  projectRewards,
+  calculateRewardsPer,
+
+  // Pool/price ratio calculations
+  calculatePoolPrice,
+  calculateAssetPriceUSD,
+  runeToAsset,
+  assetToRune,
+
+  // Percentage calculations
+  percentageChange,
+  percentageOf
+} from './calculations.js';
