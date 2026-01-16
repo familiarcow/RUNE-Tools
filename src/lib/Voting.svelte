@@ -2,6 +2,11 @@
   import { onMount } from 'svelte';
   import { fetchJSONWithFallback } from '$lib/utils/api';
   import { getAddressSuffix } from '$lib/utils/formatting';
+  import {
+    getActiveNodeAddresses,
+    groupNodesByOperator,
+    calculateConsensusThreshold
+  } from '$lib/utils/nodes';
 
   let mimirData = [];
   let activeKeys = {};
@@ -45,7 +50,7 @@
       fetchNodeData()
     ]);
     filterActiveVotes(); // Add this line
-    votesToPass = Math.ceil((2/3) * activeNodeCount);
+    votesToPass = calculateConsensusThreshold(activeNodeCount);
     dataLoaded = true;
 
     const checkMobile = () => {
@@ -82,19 +87,9 @@
   async function fetchNodeData() {
     try {
       nodeData = await fetchJSONWithFallback('/thorchain/nodes');
-      activeNodeCount = nodeData.filter(node => node.status === 'Active').length;
-      activeNodeAddresses = nodeData
-        .filter(node => node.status === 'Active')
-        .map(node => node.node_address);
-      
-      // Group nodes by operator
-      nodeOperators = nodeData.reduce((acc, node) => {
-        if (!acc[node.node_operator_address]) {
-          acc[node.node_operator_address] = [];
-        }
-        acc[node.node_operator_address].push(node.node_address);
-        return acc;
-      }, {});
+      activeNodeAddresses = getActiveNodeAddresses(nodeData);
+      activeNodeCount = activeNodeAddresses.length;
+      nodeOperators = groupNodesByOperator(nodeData);
 
       console.log('Active node count:', activeNodeCount);
     } catch (error) {

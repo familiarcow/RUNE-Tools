@@ -1,26 +1,22 @@
 /**
- * Node Bond Utilities for THORChain
+ * THORChain Node Utilities
  *
- * Centralized utilities for fetching and processing node bond data
- * from THORChain. Handles bond provider lookups, value calculations,
- * and node status tracking.
+ * Centralized utilities for fetching and processing node data
+ * from THORChain. Handles node lookups, bond provider data,
+ * operator grouping, consensus calculations, and status tracking.
  *
- * @module utils/bonds
+ * @module utils/nodes
+ *
+ * @example
+ * // Get active nodes with metadata
+ * import { fetchNodesWithMetadata } from '$lib/utils/nodes';
+ *
+ * const { nodes, activeCount, operatorGroups } = await fetchNodesWithMetadata();
+ * console.log(`Active nodes: ${activeCount}`);
  *
  * @example
  * // Find bonds for specific addresses
- * import { getBondsForAddresses } from '$lib/utils/bonds';
- *
- * const treasuryAddresses = ['thor1abc...', 'thor1def...'];
- * const bonds = await getBondsForAddresses(treasuryAddresses);
- *
- * bonds.forEach(bond => {
- *   console.log(`Node ${bond.nodeSuffix}: ${bond.amount.toLocaleString()} RUNE`);
- * });
- *
- * @example
- * // Calculate total bond value
- * import { getBondsForAddresses, calculateTotalBondValue } from '$lib/utils/bonds';
+ * import { getBondsForAddresses, calculateTotalBondValue } from '$lib/utils/nodes';
  *
  * const bonds = await getBondsForAddresses(addresses);
  * const totalUSD = calculateTotalBondValue(bonds, runePrice);
@@ -506,5 +502,138 @@ export function getTimeSinceChurn(lastChurnTimestamp) {
     days: secondsSince / 86400,
     weeks: secondsSince / 604800,
     years: secondsSince / 31557600 // 365.25 days
+  };
+}
+
+// ============================================
+// Node Filtering and Grouping
+// ============================================
+
+/**
+ * Filter nodes by status
+ *
+ * @param {Array<Object>} nodes - Array of node objects
+ * @param {string|Array<string>} status - Status or array of statuses to include
+ * @returns {Array<Object>} Filtered nodes
+ *
+ * @example
+ * const activeNodes = filterNodesByStatus(nodes, NODE_STATUS.ACTIVE);
+ * const activeOrStandby = filterNodesByStatus(nodes, [NODE_STATUS.ACTIVE, NODE_STATUS.STANDBY]);
+ */
+export function filterNodesByStatus(nodes, status) {
+  if (!nodes) return [];
+
+  const statuses = Array.isArray(status) ? status : [status];
+  return nodes.filter((n) => statuses.includes(n.status));
+}
+
+/**
+ * Get active nodes from a node array
+ *
+ * @param {Array<Object>} nodes - Array of node objects
+ * @returns {Array<Object>} Active nodes only
+ *
+ * @example
+ * const nodes = await getNodes();
+ * const activeNodes = getActiveNodes(nodes);
+ */
+export function getActiveNodes(nodes) {
+  return filterNodesByStatus(nodes, NODE_STATUS.ACTIVE);
+}
+
+/**
+ * Get active node addresses from a node array
+ *
+ * @param {Array<Object>} nodes - Array of node objects
+ * @returns {Array<string>} Array of active node addresses
+ *
+ * @example
+ * const nodes = await getNodes();
+ * const activeAddresses = getActiveNodeAddresses(nodes);
+ */
+export function getActiveNodeAddresses(nodes) {
+  return getActiveNodes(nodes).map((n) => n.node_address);
+}
+
+/**
+ * Group nodes by their operator address
+ *
+ * @param {Array<Object>} nodes - Array of node objects
+ * @returns {Object} Map of operator address to array of node addresses
+ *
+ * @example
+ * const nodes = await getNodes();
+ * const operatorGroups = groupNodesByOperator(nodes);
+ * // { 'thor1abc...': ['thor1node1...', 'thor1node2...'], ... }
+ */
+export function groupNodesByOperator(nodes) {
+  if (!nodes) return {};
+
+  return nodes.reduce((acc, node) => {
+    const operator = node.node_operator_address;
+    if (!operator) return acc;
+
+    if (!acc[operator]) {
+      acc[operator] = [];
+    }
+    acc[operator].push(node.node_address);
+    return acc;
+  }, {});
+}
+
+/**
+ * Calculate consensus threshold for governance votes
+ *
+ * THORChain requires 2/3 (66.67%) majority for governance changes.
+ *
+ * @param {number} activeCount - Number of active nodes
+ * @param {number} [ratio=2/3] - Consensus ratio required (default: 2/3)
+ * @returns {number} Number of votes needed for consensus
+ *
+ * @example
+ * const votesNeeded = calculateConsensusThreshold(103); // => 69
+ */
+export function calculateConsensusThreshold(activeCount, ratio = 2 / 3) {
+  if (!activeCount || activeCount <= 0) return 0;
+  return Math.ceil(ratio * activeCount);
+}
+
+/**
+ * Fetch nodes with commonly needed metadata
+ *
+ * Convenience function that returns nodes along with pre-computed
+ * active node data, addresses, and operator groupings.
+ *
+ * @param {Object} [options={}] - Fetch options
+ * @returns {Promise<Object>} Node data with metadata
+ *
+ * @example
+ * const {
+ *   nodes,
+ *   activeNodes,
+ *   activeCount,
+ *   activeAddresses,
+ *   operatorGroups,
+ *   consensusThreshold
+ * } = await fetchNodesWithMetadata();
+ */
+export async function fetchNodesWithMetadata(options = {}) {
+  const nodes = await getNodes(options);
+
+  const activeNodes = getActiveNodes(nodes);
+  const activeCount = activeNodes.length;
+  const activeAddresses = activeNodes.map((n) => n.node_address);
+  const operatorGroups = groupNodesByOperator(nodes);
+  const consensusThreshold = calculateConsensusThreshold(activeCount);
+
+  return {
+    nodes,
+    activeNodes,
+    activeCount,
+    activeAddresses,
+    operatorGroups,
+    consensusThreshold,
+    standbyCount: filterNodesByStatus(nodes, NODE_STATUS.STANDBY).length,
+    totalCount: nodes.length
   };
 }

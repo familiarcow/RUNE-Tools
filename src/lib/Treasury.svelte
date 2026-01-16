@@ -6,7 +6,7 @@
     import { getAssetLogo, getChainLogo, getAssetDisplayName, ASSET_LOGOS, CHAIN_LOGOS } from '$lib/constants/assets';
     import { formatUSD, formatUSDWithDecimals, shortenAddress, getAddressSuffix } from '$lib/utils/formatting';
     import { denomToAsset } from '$lib/utils/wallet';
-    import { getBondsForAddresses, calculateTotalBondValue } from '$lib/utils/bonds';
+    import { getBondsForAddresses, calculateTotalBondValue } from '$lib/utils/nodes';
 
 //This app currently does not check free asset value on chains other than THORChain
 
@@ -214,7 +214,7 @@
         }
     }
 
-    // calculateTotalBondValue imported from $lib/utils/bonds
+    // calculateTotalBondValue imported from $lib/utils/nodes
     // Wrapper to pass runePrice
     function getTotalBondValueUSD(bondsList) {
         return calculateTotalBondValue(bondsList, runePrice);

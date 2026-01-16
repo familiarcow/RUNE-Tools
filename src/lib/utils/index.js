@@ -150,7 +150,7 @@ export {
 } from './liquidity.js';
 
 // ============================================
-// Bond utilities
+// Node & Bond utilities
 // ============================================
 export {
   // Constants
@@ -161,13 +161,21 @@ export {
   getBondsForAddresses,
   getBondsForAddress,
   getNodeBondInfo,
+  fetchNodesWithMetadata,
 
   // Value calculations
   calculateTotalBondValue,
   calculateTotalBondAmount,
   getBondSummary,
 
-  // Filtering/sorting
+  // Node filtering/grouping
+  filterNodesByStatus,
+  getActiveNodes,
+  getActiveNodeAddresses,
+  groupNodesByOperator,
+  calculateConsensusThreshold,
+
+  // Bond filtering/sorting
   filterBondsByStatus,
   sortBondsByAmount,
   groupBondsByNode,
@@ -180,7 +188,7 @@ export {
   getSecondsUntilChurn,
   getChurnInfo,
   getTimeSinceChurn
-} from './bonds.js';
+} from './nodes.js';
 
 // ============================================
 // Financial calculation utilities
