@@ -1,5 +1,9 @@
 <script>
   import { onMount } from "svelte";
+  import { thornode } from '$lib/api';
+  import { midgard } from '$lib/api/midgard';
+  import { formatNumber, simplifyNumber } from '$lib/utils/formatting';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
 
   let my_bond_address = "";
   let node_address = ""; // Keep for backwards compatibility
@@ -125,23 +129,9 @@
     }
   };
 
-  const fetchJSON = async (url) => {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to fetch data from ${url}: ${response.statusText}`);
-    return response.json();
-  };
-
-  const fetchText = async (url) => {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to fetch data from ${url}: ${response.statusText}`);
-    return response.text();
-  };
-
   const fetchChurnInterval = async () => {
     try {
-      const CHURNINTERVALText = await fetchText(
-        "https://thornode.ninerealms.com/thorchain/mimir/key/CHURNINTERVAL"
-      );
+      const CHURNINTERVALText = await thornode.getMimir('CHURNINTERVAL');
       const CHURNINTERVAL = Number(CHURNINTERVALText);
       const CHURNINTERVALSECONDS = CHURNINTERVAL * 6;
       nextChurnTime = recentChurnTimestamp + CHURNINTERVALSECONDS;
@@ -166,7 +156,7 @@
 
   const fetchBtcPoolData = async () => {
     try {
-      const btcPoolData = await fetchJSON("https://thornode.ninerealms.com/thorchain/pool/BTC.BTC");
+      const btcPoolData = await thornode.getPool('BTC.BTC');
       const balanceAsset = btcPoolData.balance_asset;
       const balanceRune = btcPoolData.balance_rune;
       const btcruneprice = balanceAsset / balanceRune;
@@ -191,9 +181,9 @@
     try {
       isLoading = true;
       showContent = false;
-      
+
       // Fetch bond data from midgard
-      const bondData = await fetchJSON(`https://midgard.ninerealms.com/v2/bonds/${my_bond_address}`);
+      const bondData = await midgard.fetch(`/v2/bonds/${my_bond_address}`);
       
       // Filter nodes with bond > 1 RUNE (1e8 base units)
       const nodesWithBond = bondData.nodes.filter(node => Number(node.bond) > 1e8);
@@ -227,13 +217,13 @@
     try {
       // Fetch common data first
       const [churns, runePriceData, btcPoolData] = await Promise.all([
-        fetchJSON(`https://midgard.ninerealms.com/v2/churns`),
-        fetchJSON("https://thornode.ninerealms.com/thorchain/network"),
-        fetchJSON("https://thornode.ninerealms.com/thorchain/pool/BTC.BTC")
+        midgard.getChurns(),
+        thornode.getNetwork(),
+        thornode.getPool('BTC.BTC')
       ]);
 
       recentChurnTimestamp = Number(churns[0].date) / 1e9;
-      runePriceUSD = runePriceData.rune_price_in_tor / 1e8;
+      runePriceUSD = fromBaseUnit(runePriceData.rune_price_in_tor);
       
       const balanceAsset = btcPoolData.balance_asset;
       const balanceRune = btcPoolData.balance_rune;
@@ -241,7 +231,7 @@
 
       // Fetch detailed data for each node
       const nodeDataPromises = nodes.map(async (node) => {
-        const nodeData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/node/${node.address}`);
+        const nodeData = await thornode.fetch(`/thorchain/node/${node.address}`);
         const bondProviders = nodeData.bond_providers.providers;
         
         let userBond = 0;
@@ -309,7 +299,7 @@
 
   const fetchData = async () => {
     try {
-      const nodeData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/node/${node_address}`);
+      const nodeData = await thornode.fetch(`/thorchain/node/${node_address}`);
       nodeStatus = nodeData.status;
       const bondProviders = nodeData.bond_providers.providers;
       let total_bond = 0;
@@ -322,7 +312,7 @@
       current_award = Number(nodeData.current_award) * (1 - nodeOperatorFee);
       my_award = my_bond_ownership_percentage * current_award;
 
-      const churns = await fetchJSON(`https://midgard.ninerealms.com/v2/churns`);
+      const churns = await midgard.getChurns();
       recentChurnTimestamp = Number(churns[0].date) / 1e9;
       const currentTime = Date.now() / 1000;
       const timeDiff = currentTime - recentChurnTimestamp;
@@ -330,9 +320,8 @@
       const APR = my_award / my_bond / timeDiffInYears;
       APY = (1 + APR / 365) ** 365 - 1;
 
-      const runePriceData = await fetchJSON("https://thornode.ninerealms.com/thorchain/network");
-      const runePriceInTor = runePriceData.rune_price_in_tor;
-      runePriceUSD = runePriceInTor / 1e8;
+      const runePriceData = await thornode.getNetwork();
+      runePriceUSD = fromBaseUnit(runePriceData.rune_price_in_tor);
 
       fetchBtcPoolData();
       fetchChurnInterval();
@@ -423,9 +412,7 @@
 
   async function pickRandomNode() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/nodes');
-      const nodes = await response.json();
-      
+      const nodes = await thornode.getNodes();
       const activeNodes = nodes.filter(node => node.status === 'Active');
       if (activeNodes.length === 0) {
         throw new Error('No active nodes found');
