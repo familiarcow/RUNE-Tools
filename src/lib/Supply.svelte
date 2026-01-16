@@ -5,7 +5,14 @@
   import FireIcon from '/assets/fire.svg';
   import { fly, fade } from 'svelte/transition';
 
-  // Refresh interval in milliseconds (10 seconds)
+  // Shared utilities
+  import { formatNumber, formatUSD as formatUSDBase } from '$lib/utils';
+  import { fromBaseUnit } from '$lib/utils';
+  import { thornode } from '$lib/api';
+  import { runePrice, subscribeToRunePrice } from '$lib/stores';
+  import { PageHeader } from '$lib/components';
+
+  // Refresh interval in milliseconds (6 seconds)
   const REFRESH_INTERVAL = 6000;
 
   const tweenedBurnedRune = tweened(0, {
@@ -62,15 +69,12 @@
   let showLatestBurn = false;
 
   let maxSupplyInterval;
-  let liquifyFailureCount = 0; // Track failures from liquify endpoint
-  const MAX_LIQUIFY_FAILURES = 3; // Max failures before falling back to ninerealms
 
   let displayBurnedRune = 0;  // For display purposes
   let actualBurnedRune = 0;   // Source of truth from MaxSupply
 
   let showUSD = false;
-  let runePrice = 0;
-  let priceInterval;
+  let unsubscribeRunePrice;
 
   // Add this variable to track previous MaxSupply
   let previousMaxSupply = originalSupply;
@@ -100,82 +104,68 @@
     }, 100); // Update every 100ms for smooth animation
   }
 
+  let dataInterval;
+
   onMount(async () => {
-    // Initial fetch from ninerealms - in correct order
-    await fetchMaxSupplyFromNinerealms();
-    await fetchReserveBalance();  // Get reserve first
-    await fetchSupply();          // Then calculate circulating supply
-    await Promise.all([           // Then fetch remaining data
-        fetchBondedRune(),
-        fetchPooledRune(),
-        fetchRunePrice(),
-        fetchSystemIncomeBurnRate()
+    // Subscribe to shared RUNE price store
+    unsubscribeRunePrice = subscribeToRunePrice();
+
+    // Initial fetch - reserve first for proper circulating supply calculation
+    await fetchReserveBalance();
+    await fetchSupply();
+    await Promise.all([
+      fetchMaxSupply(),
+      fetchBondedRune(),
+      fetchPooledRune(),
+      fetchSystemIncomeBurnRate()
     ]);
     await fetchExchangeBalances();
-    
+
     // Create chart once after initial data load
     walletRune = circulatingSupply - bondedRune - pooledRune;
     createChart();
-    
+
     // Start the timer
     startTimer();
-    
-    // Set up interval using REFRESH_INTERVAL
-    const dataInterval = setInterval(async () => {
-      await fetchReserveBalanceFromLiquify();  // Get reserve first
-      await Promise.all([                      // Then fetch everything else
-        fetchMaxSupplyFromLiquify(),
-        fetchSupplyFromLiquify(),
-        fetchBondedRuneFromLiquify(),
-        fetchPooledRuneFromLiquify(),
-        fetchRunePriceFromLiquify(),
-        fetchSystemIncomeBurnRateFromLiquify()
+
+    // Set up interval - thornode client handles Liquify/NineRealms failover
+    // Note: runePrice is handled by the shared store subscription
+    dataInterval = setInterval(async () => {
+      await fetchReserveBalance();
+      await Promise.all([
+        fetchMaxSupply(),
+        fetchSupply(),
+        fetchBondedRune(),
+        fetchPooledRune(),
+        fetchSystemIncomeBurnRate()
       ]);
-      
+
       // Reset timer when data refreshes
       progress = 0;
       // Update wallet RUNE
       walletRune = circulatingSupply - bondedRune - pooledRune;
     }, REFRESH_INTERVAL);
-
-    // Update cleanup
-    onDestroy(() => {
-      if (dataInterval) clearInterval(dataInterval);
-      if (timerInterval) clearInterval(timerInterval);
-    });
   });
 
-  const fetchMaxSupplyFromNinerealms = async () => {
-    try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/mimir/key/MaxRuneSupply");
-      const data = await response.text();
-      await processMaxSupplyData(data);
-      liquifyFailureCount = 0; // Reset failure count on successful ninerealms fetch
-    } catch (error) {
-      console.error("Error fetching max supply data from ninerealms:", error);
-    }
-  };
+  // Cleanup intervals on component destroy
+  onDestroy(() => {
+    if (dataInterval) clearInterval(dataInterval);
+    if (timerInterval) clearInterval(timerInterval);
+    if (unsubscribeRunePrice) unsubscribeRunePrice();
+  });
 
-  const fetchMaxSupplyFromLiquify = async () => {
+  // Unified fetch using thornode client (handles Liquify/NineRealms failover)
+  const fetchMaxSupply = async () => {
     try {
-      const response = await fetch("https://thornode.thorchain.liquify.com/thorchain/mimir/key/MaxRuneSupply");
-      const data = await response.text();
+      const data = await thornode.getMimir('MaxRuneSupply');
       await processMaxSupplyData(data);
-      liquifyFailureCount = 0; // Reset failure count on success
     } catch (error) {
-      console.error("Error fetching max supply data from liquify:", error);
-      liquifyFailureCount++;
-      
-      // If liquify fails too many times, fall back to ninerealms
-      if (liquifyFailureCount >= MAX_LIQUIFY_FAILURES) {
-        console.log("Falling back to ninerealms endpoint due to liquify failures");
-        await fetchMaxSupplyFromNinerealms();
-      }
+      console.error("Error fetching max supply:", error);
     }
   };
 
   const processMaxSupplyData = async (data) => {
-    const newMaxSupply = Number(data) / 1e8;
+    const newMaxSupply = fromBaseUnit(data);
     
     // Log if MaxSupply is unchanged
     if (previousMaxSupply === newMaxSupply) {
@@ -203,37 +193,18 @@
     isFirstFetch = false;
   };
 
-  const fetchOtherDataFromNinerealms = async () => {
-    try {
-      await Promise.all([
-        fetchSupply(),
-        fetchBondedRune(),
-        fetchPooledRune(),
-        fetchReserveBalance(),
-        fetchRunePrice(),
-        fetchSystemIncomeBurnRate()
-      ]); // Removed fetchExchangeBalances from regular updates
-
-      // Just update walletRune without redrawing chart
-      walletRune = circulatingSupply - bondedRune - pooledRune;
-    } catch (error) {
-      console.error("Error fetching other data:", error);
-    }
-  };
-
   const fetchSupply = async () => {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/cosmos/bank/v1beta1/supply/by_denom?denom=rune");
-      const data = await response.json();
-      const totalSupplyInRune = Number(data.amount.amount) / 1e8;
+      const data = await thornode.fetch('/cosmos/bank/v1beta1/supply/by_denom?denom=rune');
+      const totalSupplyInRune = fromBaseUnit(data.amount.amount);
       tweenedTotalSupply.set(totalSupplyInRune);
       currentSupply = totalSupplyInRune;
-      
+
       // Calculate circulating supply by subtracting reserve
       circulatingSupply = totalSupplyInRune - reserveRune;
       tweenedCirculatingSupply.set(circulatingSupply);
       tweenedReserveRune.set(reserveRune);
-      
+
       // Update calculation to use circulating / (circulating + reserve)
       circulatingPercentage = (circulatingSupply / (circulatingSupply + reserveRune)) * 100;
     } catch (error) {
@@ -241,35 +212,12 @@
     }
   };
 
-  const fetchSupplyFromLiquify = async () => {
-    try {
-      const response = await fetch("https://thornode.thorchain.liquify.com/cosmos/bank/v1beta1/supply/by_denom?denom=rune");
-      const data = await response.json();
-      const totalSupplyInRune = Number(data.amount.amount) / 1e8;
-      tweenedTotalSupply.set(totalSupplyInRune);
-      currentSupply = totalSupplyInRune;
-      
-      // Calculate circulating supply by subtracting reserve
-      circulatingSupply = totalSupplyInRune - reserveRune;
-      tweenedCirculatingSupply.set(circulatingSupply);
-      tweenedReserveRune.set(reserveRune);
-      
-      // Update calculation to use circulating / (circulating + reserve)
-      circulatingPercentage = (circulatingSupply / (circulatingSupply + reserveRune)) * 100;
-    } catch (error) {
-      console.error("Error fetching supply data from liquify:", error);
-      // Fallback to ninerealms if liquify fails
-      await fetchSupply();
-    }
-  };
-
   const fetchReserveBalance = async () => {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances/thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt");
-      const data = await response.json();
+      const data = await thornode.getBalance('thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt');
       const runeBalance = data.balances.find(balance => balance.denom === "rune");
       if (runeBalance) {
-        reserveRune = Number(runeBalance.amount) / 1e8;
+        reserveRune = fromBaseUnit(runeBalance.amount);
         tweenedReserveRune.set(reserveRune);
       }
     } catch (error) {
@@ -279,8 +227,7 @@
 
   const fetchSystemIncomeBurnRate = async () => {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/mimir/key/SystemIncomeBurnRateBPS");
-      const data = await response.text();
+      const data = await thornode.getMimir('SystemIncomeBurnRateBPS');
       systemIncomeBurnRate = Number(data) / 100; // Convert basis points to percentage
     } catch (error) {
       console.error("Error fetching system income burn rate:", error);
@@ -289,11 +236,10 @@
 
   const fetchBondedRune = async () => {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances/thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv");
-      const data = await response.json();
+      const data = await thornode.getBalance('thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv');
       const runeBalance = data.balances.find(balance => balance.denom === "rune");
       if (runeBalance) {
-        const amount = Number(runeBalance.amount) / 1e8;
+        const amount = fromBaseUnit(runeBalance.amount);
         tweenedBondedRune.set(amount);
         bondedRune = amount;
       }
@@ -304,11 +250,10 @@
 
   const fetchPooledRune = async () => {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances/thor1g98cy3n9mmjrpn0sxmn63lztelera37n8n67c0");
-      const data = await response.json();
+      const data = await thornode.getBalance('thor1g98cy3n9mmjrpn0sxmn63lztelera37n8n67c0');
       const runeBalance = data.balances.find(balance => balance.denom === "rune");
       if (runeBalance) {
-        const amount = Number(runeBalance.amount) / 1e8;
+        const amount = fromBaseUnit(runeBalance.amount);
         tweenedPooledRune.set(amount);
         pooledRune = amount;
       }
@@ -329,27 +274,16 @@
       let totalBalance = 0;
       for (const address of addresses) {
         try {
-          const response = await fetch(`https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances/${address}`);
-          const data = await response.json();
+          const data = await thornode.getBalance(address);
           const runeBalance = data.balances.find(balance => balance.denom === "rune");
           if (runeBalance) {
-            totalBalance += Number(runeBalance.amount) / 1e8;
+            totalBalance += fromBaseUnit(runeBalance.amount);
           }
         } catch (error) {
           console.error(`Error fetching ${exchange} balance:`, error);
         }
       }
       exchangeBalances[exchange] = totalBalance;
-    }
-  };
-
-  const fetchRunePrice = async () => {
-    try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/network");
-      const data = await response.json();
-      runePrice = Number(data.rune_price_in_tor) / 1e8;
-    } catch (error) {
-      console.error("Error fetching RUNE price:", error);
     }
   };
 
@@ -427,93 +361,22 @@
     });
   }
 
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(num);
-  };
-
+  // Format percentage from decimal (0.15 -> "15.00%")
   const formatPercentage = (num) => {
     return (num * 100).toFixed(2) + '%';
   };
 
+  // Format RUNE amount as USD using shared store price
   const formatUSD = (runeAmount) => {
-    const usdAmount = runeAmount * runePrice;
-    return usdAmount < 1 
-      ? '$' + usdAmount.toFixed(2)
-      : '$' + Math.round(usdAmount).toLocaleString();
+    const usdAmount = runeAmount * $runePrice;
+    return formatUSDBase(usdAmount);
   };
 
-  // Liquify endpoint versions
-  const fetchBondedRuneFromLiquify = async () => {
-    try {
-      const response = await fetch("https://thornode.thorchain.liquify.com/cosmos/bank/v1beta1/balances/thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv");
-      const data = await response.json();
-      const runeBalance = data.balances.find(balance => balance.denom === "rune");
-      if (runeBalance) {
-        const amount = Number(runeBalance.amount) / 1e8;
-        tweenedBondedRune.set(amount);
-        bondedRune = amount;
-      }
-    } catch (error) {
-      console.error("Error fetching bonded RUNE from liquify:", error);
-    }
-  };
-
-  const fetchPooledRuneFromLiquify = async () => {
-    try {
-      const response = await fetch("https://thornode.thorchain.liquify.com/cosmos/bank/v1beta1/balances/thor1g98cy3n9mmjrpn0sxmn63lztelera37n8n67c0");
-      const data = await response.json();
-      const runeBalance = data.balances.find(balance => balance.denom === "rune");
-      if (runeBalance) {
-        const amount = Number(runeBalance.amount) / 1e8;
-        tweenedPooledRune.set(amount);
-        pooledRune = amount;
-      }
-    } catch (error) {
-      console.error("Error fetching pooled RUNE from liquify:", error);
-    }
-  };
-
-  const fetchReserveBalanceFromLiquify = async () => {
-    try {
-      const response = await fetch("https://thornode.thorchain.liquify.com/cosmos/bank/v1beta1/balances/thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt");
-      const data = await response.json();
-      const runeBalance = data.balances.find(balance => balance.denom === "rune");
-      if (runeBalance) {
-        reserveRune = Number(runeBalance.amount) / 1e8;
-        tweenedReserveRune.set(reserveRune);
-      }
-    } catch (error) {
-      console.error("Error fetching reserve balance from liquify:", error);
-      // Fallback to ninerealms if liquify fails
-      await fetchReserveBalance();
-    }
-  };
-
-  const fetchRunePriceFromLiquify = async () => {
-    try {
-      const response = await fetch("https://thornode.thorchain.liquify.com/thorchain/network");
-      const data = await response.json();
-      runePrice = Number(data.rune_price_in_tor) / 1e8;
-    } catch (error) {
-      console.error("Error fetching RUNE price from liquify:", error);
-    }
-  };
-
-  const fetchSystemIncomeBurnRateFromLiquify = async () => {
-    try {
-      const response = await fetch("https://thornode.thorchain.liquify.com/thorchain/mimir/key/SystemIncomeBurnRateBPS");
-      const data = await response.text();
-      systemIncomeBurnRate = Number(data) / 100;
-    } catch (error) {
-      console.error("Error fetching system income burn rate from liquify:", error);
-    }
-  };
 </script>
 
 <div class="supply-tracker">
-  <div class="header">
-    <h2>RUNE Supply</h2>
-    <div class="controls">
+  <PageHeader title="RUNE Supply">
+    <div slot="actions" class="controls">
       <label class="toggle">
         <input type="checkbox" bind:checked={showUSD}>
         <span class="slider">
@@ -547,7 +410,7 @@
         </span>
       </label>
     </div>
-  </div>
+  </PageHeader>
 
   <div class="container">
     <div class="grid">
@@ -563,10 +426,10 @@
             {/if}
           </div>
           {#if showLatestBurn}
-            <span 
-              class="burn-notification" 
-              data-bubble={showUSD ? 
-                `+$${(latestBurn * runePrice).toFixed(2)}` : 
+            <span
+              class="burn-notification"
+              data-bubble={showUSD ?
+                `+$${(latestBurn * $runePrice).toFixed(2)}` :
                 `+${latestBurn.toFixed(2)}`}
               in:fly={{ y: 10, duration: 400 }}
               out:fly={{ y: -10, duration: 400 }}
@@ -683,52 +546,119 @@
     margin-bottom: 80px;
   }
 
-  .header {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+  /* Integrated toggle with timer */
+  .controls {
+    display: flex;
     align-items: center;
-    margin-bottom: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 12px;
+  }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
     position: relative;
-    overflow: hidden;
   }
 
-  .header h2 {
-    text-align: center;
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    color: #ffffff;
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    grid-column: 2;
+  .toggle input {
+    display: none;
   }
 
-  .header::before {
-    content: '';
+  .slider {
+    position: relative;
+    width: 64px;
+    height: 32px;
+    background-color: #1a1a1a;
+    border-radius: 16px;
+    transition: 0.3s;
+    border: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 5px;
+  }
+
+  .knob {
     position: absolute;
-    top: 0;
-    left: -100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    width: 26px;
+    left: 3px;
+    bottom: 2px;
+    background-color: #4A90E2;
+    border-radius: 50%;
+    transition: 0.3s;
+  }
+
+  .knob-icon {
+    position: absolute;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    animation: shimmer 5s infinite;
   }
 
-  @keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
+  .knob-icon.rune {
+    color: white;
+    font-size: 20px;
+    font-weight: 500;
+    opacity: 1;
   }
 
-  .controls {
-    grid-column: 3; /* Places controls in the last column */
-    justify-self: end;
+  .knob-icon.dollar {
+    color: white;
+    font-size: 20px;
+    font-weight: 600;
+    opacity: 0;
+  }
+
+  input:checked + .slider .knob {
+    transform: translateX(32px);
+  }
+
+  input:checked + .slider .knob-icon.rune {
+    opacity: 0;
+  }
+
+  input:checked + .slider .knob-icon.dollar {
+    opacity: 1;
+  }
+
+  .toggle:hover .slider {
+    border-color: #4A90E2;
+    box-shadow: 0 0 5px rgba(74, 144, 226, 0.2);
+  }
+
+  .timer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateX(26px);
+    transition: transform 0.3s ease;
+  }
+
+  .timer-left {
+    transform: translateX(0px);
+  }
+
+  .progress-ring {
+    transform: rotate(-90deg);
+    transition: stroke-dashoffset 0.3s ease-in-out;
+  }
+
+  .progress-ring__circle-bg {
+    stroke-width: 2;
+  }
+
+  .progress-ring__circle {
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 63;
+    transition: stroke-dashoffset 0.3s ease-in-out;
   }
 
   .grid {
@@ -857,17 +787,6 @@
     }
   }
 
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    border: 0;
-  }
-
   .percentage-link {
     color: #31FD9D;
     text-decoration: none;
@@ -913,16 +832,6 @@
       left: auto;
       right: auto;
     }
-
-    .header {
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-    
-    .header h2 {
-      font-size: 20px;
-      padding: 16px 12px;
-    }
   }
 
   @media (min-width: 601px) and (max-width: 800px) {
@@ -938,157 +847,5 @@
     .main-value {
       font-size: 22px;
     }
-  }
-
-  .controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .toggle {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    position: relative;
-  }
-
-  .toggle input {
-    display: none;
-  }
-
-  .slider {
-    position: relative;
-    width: 64px;
-    height: 32px;
-    background-color: #1a1a1a;
-    border-radius: 16px;
-    transition: 0.3s;
-    border: 1px solid #3a3a3a;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 5px;
-  }
-
-  .knob {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 26px;
-    width: 26px;
-    left: 3px;
-    bottom: 2px;
-    background-color: #4A90E2;
-    border-radius: 50%;
-    transition: 0.3s;
-  }
-
-  .knob-icon {
-    position: absolute;
-    transition: 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-  }
-
-  .knob-icon.rune {
-    color: white;
-    font-size: 20px;
-    font-weight: 500;
-    opacity: 1;
-  }
-
-  .knob-icon.dollar {
-    color: white;
-    font-size: 20px;
-    font-weight: 600;
-    opacity: 0;
-  }
-
-  input:checked + .slider .knob {
-    transform: translateX(32px);
-  }
-
-  input:checked + .slider .knob-icon.rune {
-    opacity: 0;
-  }
-
-  input:checked + .slider .knob-icon.dollar {
-    opacity: 1;
-  }
-
-  .toggle:hover .slider {
-    border-color: #4A90E2;
-    box-shadow: 0 0 5px rgba(74, 144, 226, 0.2);
-  }
-
-  .timer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transform: translateX(26px);
-    transition: transform 0.3s ease;
-  }
-
-  .timer-left {
-    transform: translateX(0px);
-  }
-
-  .progress-ring {
-    transform: rotate(-90deg);
-    transition: stroke-dashoffset 0.3s ease-in-out;
-  }
-
-  .progress-ring__circle-bg {
-    stroke-width: 2;
-  }
-
-  .progress-ring__circle {
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-dasharray: 63;
-    transition: stroke-dashoffset 0.3s ease-in-out;
-  }
-
-  /* Loading bars and animations */
-  .loading-bar {
-    background: linear-gradient(90deg, #3a3a3a 25%, #5a5a5a 50%, #3a3a3a 75%);
-    background-size: 200% 100%;
-    border-radius: 4px;
-    animation: shimmer-loading 1.5s infinite ease-in-out;
-    opacity: 1;
-    transition: opacity 0.2s ease-out;
-  }
-
-  @keyframes shimmer-loading {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-
-  .fade-in-content {
-    opacity: 0;
-    animation: fadeInContent 0.3s ease-out 0.1s forwards;
-  }
-
-  @keyframes fadeInContent {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  /* Loading bar sizes */
-  .main-bar {
-    height: 28px;
-    width: 60%;
-    margin: 0 auto;
-  }
-
-  .sub-bar {
-    height: 12px;
-    width: 80%;
-    margin: 0 auto;
   }
 </style>

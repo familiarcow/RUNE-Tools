@@ -11,8 +11,9 @@
 
   const dispatch = createEventDispatcher();
 
+  // Dispatch change event when checkbox state changes
+  // Note: bind:checked handles the state update, we just dispatch the event
   function handleChange() {
-    showUSD = !showUSD;
     dispatch('change', { showUSD });
   }
 </script>
