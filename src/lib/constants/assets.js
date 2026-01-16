@@ -64,7 +64,7 @@ export const ASSET_LOGOS = {
   'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': '/assets/coins/solana-sol-logo.svg',
 
   // THORChain native
-  'THOR.TCY': '/assets/coins/tcy-logo.svg',
+  'THOR.TCY': '/assets/coins/TCY.svg',
   'THOR.RUJI': '/assets/coins/ruji-logo.svg'
 };
 
@@ -106,16 +106,19 @@ export function getAssetLogo(asset) {
  * Chain logo mappings
  */
 export const CHAIN_LOGOS = {
-  'BTC': '/assets/chains/bitcoin-chain-logo.svg',
-  'ETH': '/assets/chains/ethereum-chain-logo.svg',
-  'BSC': '/assets/chains/binance-chain-logo.svg',
-  'BCH': '/assets/chains/bitcoin-cash-chain-logo.svg',
-  'LTC': '/assets/chains/litecoin-chain-logo.svg',
-  'AVAX': '/assets/chains/avalanche-chain-logo.svg',
-  'GAIA': '/assets/chains/cosmos-chain-logo.svg',
-  'DOGE': '/assets/chains/dogecoin-chain-logo.svg',
-  'THOR': '/assets/chains/thorchain-logo.svg',
-  'BASE': '/assets/chains/base-chain-logo.svg'
+  'BTC': '/assets/chains/BTC.svg',
+  'ETH': '/assets/chains/ETH.svg',
+  'BSC': '/assets/chains/BSC.svg',
+  'BCH': '/assets/chains/BCH.svg',
+  'LTC': '/assets/chains/LTC.svg',
+  'AVAX': '/assets/chains/AVAX.svg',
+  'GAIA': '/assets/chains/GAIA.svg',
+  'DOGE': '/assets/chains/DOGE.svg',
+  'THOR': '/assets/chains/THOR.svg',
+  'BASE': '/assets/chains/BASE.svg',
+  'TRON': '/assets/chains/TRON.svg',
+  'XRP': '/assets/chains/XRP.svg',
+  'SOL': '/assets/chains/SOL.svg'
 };
 
 /**
@@ -185,6 +188,8 @@ export const ASSET_DISPLAY_NAMES = {
   'GAIA.ATOM': 'ATOM',
   'DOGE.DOGE': 'DOGE',
   'THOR.RUNE': 'RUNE',
+  'THOR.TCY': 'TCY',
+  'THOR.RUJI': 'RUJI',
   'BASE.ETH': 'ETH (Base)',
   'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'USDC',
   'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'USDT',
