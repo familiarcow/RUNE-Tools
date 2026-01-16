@@ -3,6 +3,7 @@
   import { fade } from 'svelte/transition';
   import { thornode } from '$lib/api';
   import { PageHeader, LoadingBar } from '$lib/components';
+  import { formatNumber } from '$lib/utils/formatting';
 
   let loading = true;
   let error = null;
@@ -53,13 +54,7 @@
     'ETH.TGT': 'assets/coins/tgt-logo.png'
   };
 
-  // Format number with commas and specified decimal places
-  function formatNumber(number, decimals = 2) {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    }).format(number);
-  }
+  // formatNumber imported from $lib/utils/formatting
 
   // Format asset name to remove contract address
   function formatAssetName(asset) {
