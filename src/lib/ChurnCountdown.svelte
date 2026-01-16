@@ -1,13 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-
-  // Thornode + Midgard endpoints
-  const API = {
-    primary: 'https://thornode.thorchain.liquify.com',
-    fallback: 'https://thornode.ninerealms.com',
-    midgardChurns: 'https://midgard.ninerealms.com/v2/churns'
-  };
+  import { thornode } from '$lib/api';
+  import { midgard } from '$lib/api/midgard';
 
   // State
   let isLoading = true;
@@ -84,42 +79,16 @@
   let sampleTimer;      // polls height every few seconds and updates SPB
   let metadataTimer;    // refreshes churn interval and network hints
 
-  // Fetch helpers with fallback
-  async function fetchJSON(path) {
-    try {
-      const r1 = await fetch(`${API.primary}${path}`, { headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' } });
-      if (!r1.ok) throw new Error(`Primary ${path} ${r1.status}`);
-      return await r1.json();
-    } catch (_) {
-      const r2 = await fetch(`${API.fallback}${path}`, { headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache', 'x-client-id': 'RuneTools' } });
-      if (!r2.ok) throw new Error(`Fallback ${path} ${r2.status}`);
-      return await r2.json();
-    }
-  }
-  async function fetchText(path) {
-    try {
-      const r1 = await fetch(`${API.primary}${path}`);
-      if (!r1.ok) throw new Error(`Primary ${path} ${r1.status}`);
-      return await r1.text();
-    } catch (_) {
-      const r2 = await fetch(`${API.fallback}${path}`, { headers: { 'x-client-id': 'RuneTools' } });
-      if (!r2.ok) throw new Error(`Fallback ${path} ${r2.status}`);
-      return await r2.text();
-    }
-  }
-
   // Data loaders
   async function loadChurnIntervalBlocks() {
-    const txt = await fetchText('/thorchain/mimir/key/CHURNINTERVAL');
+    const txt = await thornode.fetch('/thorchain/mimir/key/CHURNINTERVAL', { parseJson: false, cache: false });
     const n = Number(txt);
     if (!Number.isFinite(n) || n <= 0) throw new Error('Invalid CHURNINTERVAL');
     churnIntervalBlocks = n;
   }
 
   async function loadRecentChurn() {
-    const res = await fetch(API.midgardChurns);
-    if (!res.ok) throw new Error('Failed to load churn history');
-    const churns = await res.json();
+    const churns = await midgard.getChurns({ cache: false });
     if (!Array.isArray(churns) || churns.length === 0) throw new Error('No churns returned');
 
     // Midgard returns latest first; expect fields: date (ns) and height
@@ -139,7 +108,7 @@
   }
 
   async function loadNetworkNextChurnHint() {
-    const data = await fetchJSON('/thorchain/network');
+    const data = await thornode.fetch('/thorchain/network', { cache: false });
     // Try a few common field names used over time
     const candidates = ['next_churn_height', 'churn_height', 'churnHeight', 'nextChurnHeight'];
     for (const key of candidates) {
@@ -160,7 +129,7 @@
   async function loadCurrentHeight() {
     // Try Cosmos latest block height first
     try {
-      const data = await fetchJSON('/cosmos/base/tendermint/v1beta1/blocks/latest');
+      const data = await thornode.fetch('/cosmos/base/tendermint/v1beta1/blocks/latest', { cache: false });
       const hStr = data?.block?.header?.height;
       const h = Number(hStr);
       if (Number.isFinite(h) && h > 0) {
@@ -170,10 +139,10 @@
       throw new Error('Invalid latest height');
     } catch (_) {
       // Fallback: thornode lastblock array (find THOR chain height)
-      const arr = await fetchJSON('/thorchain/lastblock');
+      const arr = await thornode.fetch('/thorchain/lastblock', { cache: false });
       if (Array.isArray(arr)) {
         const thor = arr.find((x) => (x?.chain || '').toUpperCase() === 'THOR');
-        const h = Number(thor?.last_observed_in); // or use thor?.last_signed_out? Prefer observed in
+        const h = Number(thor?.last_observed_in);
         if (Number.isFinite(h) && h > 0) {
           currentHeight = h;
           return;
@@ -188,8 +157,8 @@
     if (!currentHeight || currentHeight <= n + 1) return;
     try {
       const [newest, oldest] = await Promise.all([
-        fetchJSON(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight}`),
-        fetchJSON(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight - n}`)
+        thornode.fetch(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight}`, { cache: false }),
+        thornode.fetch(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight - n}`, { cache: false })
       ]);
       const tNewStr = newest?.block?.header?.time;
       const tOldStr = oldest?.block?.header?.time;
@@ -210,8 +179,8 @@
     if (!currentHeight || currentHeight <= lookback + 1) return; // not enough history
     try {
       const [newest, oldest] = await Promise.all([
-        fetchJSON(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight}`),
-        fetchJSON(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight - lookback}`)
+        thornode.fetch(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight}`, { cache: false }),
+        thornode.fetch(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight - lookback}`, { cache: false })
       ]);
       const tNewStr = newest?.block?.header?.time;
       const tOldStr = oldest?.block?.header?.time;
