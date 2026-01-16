@@ -4,6 +4,8 @@
   import { flip } from 'svelte/animate';
   import { cubicOut } from 'svelte/easing';
   import LinkOutIcon from './LinkOutIcon.svelte';
+  import { formatUSD as formatUSDUtil, shortenAddress as shortenAddressUtil } from '$lib/utils/formatting';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
 
   let transactions = [];
   let transactionQueue = [];
@@ -123,9 +125,9 @@
     if (knownAddresses[address]) {
       return knownAddresses[address];
     }
-    
-    // Otherwise return truncated address
-    return `${address.slice(0, 8)}...${address.slice(-4)}`;
+
+    // Otherwise return truncated address using shared utility
+    return shortenAddressUtil(address, 8, 4);
   }
 
   function formatAmount(amount, decimals = 8) {
@@ -137,7 +139,7 @@
     
     // Special case for RUNE - it's always in 1e8 format
     if (denom.toLowerCase().includes('rune')) {
-      const numericValue = Number(value) / 1e8;
+      const numericValue = fromBaseUnit(value);
       return `${numericValue.toFixed(8).replace(/\.?0+$/, '')} ${denom.toUpperCase()}`;
     }
     
@@ -307,7 +309,7 @@
                     from: observedTx.tx.from_address,
                     to: observedTx.tx.to_address,
                     coins: observedTx.tx.coins.map(coin => {
-                      const amount = Number(coin.amount) / 1e8;
+                      const amount = fromBaseUnit(coin.amount);
                       return {
                         asset: coin.asset,
                         amount: amount,
@@ -437,17 +439,15 @@
     return typeMap[type] || type;
   }
 
-  // Helper function to format USD value
+  // Helper function to format USD value with special handling for small amounts
   function formatUSD(value) {
     if (value === 0) return '$0.00';
     if (value < 0.01) return '< $0.01';
-    
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+
+    return formatUSDUtil(value, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(value);
+    });
   }
 
   // Update the coin display components to show prices
