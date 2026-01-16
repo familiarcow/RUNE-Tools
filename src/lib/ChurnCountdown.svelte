@@ -2,7 +2,8 @@
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { thornode } from '$lib/api';
-  import { midgard } from '$lib/api/midgard';
+  import { getRecentChurns, getChurnInfo } from '$lib/utils/nodes';
+  import { getCurrentBlock } from '$lib/utils/tcy';
 
   // State
   let isLoading = true;
@@ -81,42 +82,26 @@
   let metadataTimer;    // refreshes churn interval and network hints
 
   // Data loaders
-  async function loadChurnIntervalBlocks() {
-    const txt = await thornode.getMimir('CHURNINTERVAL', { cache: false });
-    const n = Number(txt);
-    if (!Number.isFinite(n) || n <= 0) throw new Error('Invalid CHURNINTERVAL');
-    churnIntervalBlocks = n;
-  }
+  async function loadChurnData() {
+    // Fetch recent churns from shared utility
+    const churns = await getRecentChurns(10, { cache: false });
+    if (churns.length === 0) throw new Error('No churns returned');
 
-  async function loadHaltChurningStatus() {
-    try {
-      const txt = await thornode.getMimir('HALTCHURNING', { cache: false });
-      const val = Number(txt);
-      isChurningHalted = val === 1;
-    } catch (e) {
-      // If the key doesn't exist or errors, assume churning is not halted
-      isChurningHalted = false;
-    }
-  }
-
-  async function loadRecentChurn() {
-    const churns = await midgard.getChurns({ cache: false });
-    if (!Array.isArray(churns) || churns.length === 0) throw new Error('No churns returned');
-
-    // Midgard returns latest first; expect fields: date (ns) and height
     const latest = churns[0];
-    if (latest.height) lastChurnHeight = Number(latest.height);
-    lastChurnTimestampSec = Math.floor(Number(latest.date) / 1e9);
+    lastChurnHeight = latest.height;
+    lastChurnTimestampSec = latest.timestampSec;
 
     // Keep a small list of recent churns for expandable view
-    recentChurns = churns.slice(0, 10).map((c, idx, arr) => {
-      const height = Number(c.height);
-      const tsSec = Math.floor(Number(c.date) / 1e9);
-      const next = arr[idx + 1];
-      const prevHeight = next ? Number(next.height) : null;
-      const delta = prevHeight ? height - prevHeight : null;
-      return { height, tsSec, delta };
-    });
+    recentChurns = churns.map((c) => ({
+      height: c.height,
+      tsSec: c.timestampSec,
+      delta: c.deltaBlocks
+    }));
+
+    // Get churn interval and halt status from shared utility
+    const churnInfo = await getChurnInfo(lastChurnTimestampSec, { cache: false });
+    churnIntervalBlocks = churnInfo.churnIntervalBlocks;
+    isChurningHalted = churnInfo.isHalted;
   }
 
   async function loadNetworkNextChurnHint() {
@@ -139,27 +124,11 @@
   }
 
   async function loadCurrentHeight() {
-    // Try Cosmos latest block height first
-    try {
-      const data = await thornode.fetch('/cosmos/base/tendermint/v1beta1/blocks/latest', { cache: false });
-      const hStr = data?.block?.header?.height;
-      const h = Number(hStr);
-      if (Number.isFinite(h) && h > 0) {
-        currentHeight = h;
-        return;
-      }
-      throw new Error('Invalid latest height');
-    } catch (_) {
-      // Fallback: thornode lastblock array (find THOR chain height)
-      const arr = await thornode.fetch('/thorchain/lastblock', { cache: false });
-      if (Array.isArray(arr)) {
-        const thor = arr.find((x) => (x?.chain || '').toUpperCase() === 'THOR');
-        const h = Number(thor?.last_observed_in);
-        if (Number.isFinite(h) && h > 0) {
-          currentHeight = h;
-          return;
-        }
-      }
+    // Use shared utility with fallback endpoints
+    const height = await getCurrentBlock();
+    if (height > 0) {
+      currentHeight = height;
+    } else {
       throw new Error('Could not resolve current block height');
     }
   }
@@ -303,11 +272,8 @@
     isLoading = true;
     errorMessage = '';
     try {
-      await Promise.all([
-        loadChurnIntervalBlocks(),
-        loadRecentChurn(),
-        loadHaltChurningStatus(),
-      ]);
+      // Load churn data (recent churns, interval, halt status) using shared utilities
+      await loadChurnData();
       await loadNetworkNextChurnHint();
       await loadCurrentHeight();
       await updateSpbFromLastN(10);
@@ -331,14 +297,10 @@
         updateComputed(true);
       }, 1000);
 
-      // Refresh interval / network hints periodically (in case of parameter change or churn)
+      // Refresh churn data periodically (in case of parameter change or churn)
       metadataTimer = setInterval(async () => {
         try {
-          await Promise.all([
-            loadChurnIntervalBlocks(),
-            loadRecentChurn(),
-            loadHaltChurningStatus(),
-          ]);
+          await loadChurnData();
           await loadNetworkNextChurnHint();
           updateComputed(false);
         } catch (e) {
