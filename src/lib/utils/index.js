@@ -187,7 +187,9 @@ export {
   calculateNextChurnTime,
   getSecondsUntilChurn,
   getChurnInfo,
-  getTimeSinceChurn
+  getTimeSinceChurn,
+  getRecentChurns,
+  getLastChurn
 } from './nodes.js';
 
 // ============================================
@@ -253,3 +255,57 @@ export {
   getChainIcon,
   chainHasRouter
 } from './network.js';
+
+// ============================================
+// TCY (THORChain Yield) utilities
+// ============================================
+export {
+  // Constants
+  TCY_TOTAL_SUPPLY,
+  TCY_DISTRIBUTION_INTERVAL,
+  TCY_ASSET,
+  TCY_MIMIR_KEYS,
+  TCY_CONSTANT_KEYS,
+
+  // Price fetching
+  getTCYPrice,
+  getRunePrice,
+  getPrices,
+
+  // Pool data
+  getTCYPool,
+  getTCYLiquidity,
+
+  // Staker data
+  getTCYStakers,
+  getTCYStaker,
+  getRandomTCYStaker,
+  getTotalStakedTCY,
+
+  // Mimir & Constants
+  getTCYMimir,
+  getTCYConstants,
+  checkTCYHalts,
+
+  // Distribution data
+  getTCYDistributionHistory,
+  getTCYStakeModuleBalance,
+
+  // Claims data
+  getTCYClaimers,
+  getRemainingClaimAddresses,
+
+  // Market cap & supply
+  getTCYTotalSupply,
+  getTCYMarketCap,
+  getRuneSupplyAndMarketCap,
+
+  // Block & distribution timing
+  getCurrentBlock,
+  getNextDistributionBlock,
+  calculateUserDistributionShare,
+
+  // Historical price data
+  getHistoricalRunePrices,
+  getHistoricalPriceForTimestamp
+} from './tcy.js';

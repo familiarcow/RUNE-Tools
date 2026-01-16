@@ -24,6 +24,7 @@
  */
 
 import { thornode } from '../api/thornode.js';
+import { midgard } from '../api/midgard.js';
 import { fromBaseUnit } from './blockchain.js';
 import { getAddressSuffix } from './formatting.js';
 
@@ -503,6 +504,60 @@ export function getTimeSinceChurn(lastChurnTimestamp) {
     weeks: secondsSince / 604800,
     years: secondsSince / 31557600 // 365.25 days
   };
+}
+
+/**
+ * Fetch recent churns from Midgard
+ *
+ * Returns an array of churn events with height, timestamp, and delta blocks.
+ *
+ * @param {number} [limit=10] - Maximum number of churns to return
+ * @param {Object} [options={}] - Fetch options
+ * @returns {Promise<Array<Object>>} Array of churn objects
+ *
+ * @example
+ * const churns = await getRecentChurns(5);
+ * console.log(`Last churn at block ${churns[0].height}`);
+ */
+export async function getRecentChurns(limit = 10, options = {}) {
+  const churns = await midgard.getChurns(options);
+
+  if (!Array.isArray(churns) || churns.length === 0) {
+    return [];
+  }
+
+  // Midgard returns latest first
+  return churns.slice(0, limit).map((c, idx, arr) => {
+    const height = Number(c.height);
+    const timestampSec = Math.floor(Number(c.date) / 1e9);
+    const next = arr[idx + 1];
+    const prevHeight = next ? Number(next.height) : null;
+    const deltaBlocks = prevHeight ? height - prevHeight : null;
+
+    return {
+      height,
+      timestampSec,
+      timestamp: new Date(timestampSec * 1000),
+      deltaBlocks
+    };
+  });
+}
+
+/**
+ * Get the most recent churn event
+ *
+ * @param {Object} [options={}] - Fetch options
+ * @returns {Promise<Object|null>} Latest churn or null if none found
+ *
+ * @example
+ * const lastChurn = await getLastChurn();
+ * if (lastChurn) {
+ *   console.log(`Last churn: block ${lastChurn.height} at ${lastChurn.timestamp}`);
+ * }
+ */
+export async function getLastChurn(options = {}) {
+  const churns = await getRecentChurns(1, options);
+  return churns[0] || null;
 }
 
 // ============================================
