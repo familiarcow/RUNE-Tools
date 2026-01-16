@@ -3,6 +3,8 @@
   import Chart from "chart.js/auto";
   import { thornode } from '$lib/api';
   import { PageHeader } from '$lib/components';
+  import { formatDuration } from '$lib/utils/formatting';
+  import { blocksToSeconds } from '$lib/utils/blockchain';
 
   let value, currentDeposit, pnl, depositorCount;
   let runeAddress = "";
@@ -373,10 +375,8 @@
   }
 
   function convertBlocksToTime(blocks) {
-    const seconds = blocks * 6;
-    const days = Math.floor(seconds / (24 * 3600));
-    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
-    return `${days} days and ${hours} hours`;
+    const seconds = blocksToSeconds(blocks);
+    return formatDuration(seconds);
   }
 
   function setActiveTab(tab) {

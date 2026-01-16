@@ -4,6 +4,7 @@
   import { cubicOut } from 'svelte/easing';
   import { thornode } from '$lib/api';
   import { PageHeader } from '$lib/components';
+  import { formatNumber, formatUSD, shortenAddress } from '$lib/utils/formatting';
 
   const pools = writable([]);
   const saversPositions = writable([]);
@@ -123,26 +124,20 @@
     fetchAllData();
   });
 
+  // formatAddress replaced by shortenAddress from $lib/utils/formatting
   function formatAddress(address) {
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    return shortenAddress(address, 6, 4);
   }
 
+  // formatNumberUSD uses shared formatUSD
   function formatNumberUSD(number, showDecimals = true) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+    return formatUSD(number, {
       minimumFractionDigits: showDecimals ? 2 : 0,
       maximumFractionDigits: showDecimals ? 2 : 0,
-    }).format(number);
+    });
   }
 
-  function formatNumber(number, decimals = 8) {
-    return new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: decimals,
-    }).format(number);
-  }
+  // formatNumber imported from $lib/utils/formatting
 
   function formatAssetName(asset) {
     if (!asset) return '';
