@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { fade } from "svelte/transition";
   import { thornode } from '$lib/api';
   import { midgard } from '$lib/api/midgard';
   import { formatNumber, simplifyNumber } from '$lib/utils/formatting';
@@ -16,6 +17,7 @@
   let runePriceUSD = 0;
   let nextChurnTime = 0; // This will hold the timestamp of the next churn
   let countdown = ""; // This will hold the formatted countdown string
+  let isChurningHalted = false; // HALTCHURNING mimir flag
   let recentChurnTimestamp = 0;
   let nodeOperatorFee = 0;
   let bondvaluebtc = 0;
@@ -131,8 +133,15 @@
 
   const fetchChurnInterval = async () => {
     try {
-      const CHURNINTERVALText = await thornode.getMimir('CHURNINTERVAL');
+      // Fetch both CHURNINTERVAL and HALTCHURNING in parallel
+      const [CHURNINTERVALText, HALTCHURNINGText] = await Promise.all([
+        thornode.getMimir('CHURNINTERVAL'),
+        thornode.getMimir('HALTCHURNING').catch(() => '0') // Default to 0 if not set
+      ]);
+
       const CHURNINTERVAL = Number(CHURNINTERVALText);
+      isChurningHalted = Number(HALTCHURNINGText) === 1;
+
       const CHURNINTERVALSECONDS = CHURNINTERVAL * 6;
       nextChurnTime = recentChurnTimestamp + CHURNINTERVALSECONDS;
       updateCountdown();
@@ -299,7 +308,14 @@
 
   const fetchData = async () => {
     try {
-      const nodeData = await thornode.fetch(`/thorchain/node/${node_address}`);
+      // Parallelize independent API calls
+      const [nodeData, churns, runePriceData] = await Promise.all([
+        thornode.fetch(`/thorchain/node/${node_address}`),
+        midgard.getChurns(),
+        thornode.getNetwork()
+      ]);
+
+      // Process node data
       nodeStatus = nodeData.status;
       const bondProviders = nodeData.bond_providers.providers;
       let total_bond = 0;
@@ -312,7 +328,7 @@
       current_award = Number(nodeData.current_award) * (1 - nodeOperatorFee);
       my_award = my_bond_ownership_percentage * current_award;
 
-      const churns = await midgard.getChurns();
+      // Process churn data for APY calculation
       recentChurnTimestamp = Number(churns[0].date) / 1e9;
       const currentTime = Date.now() / 1000;
       const timeDiff = currentTime - recentChurnTimestamp;
@@ -320,9 +336,10 @@
       const APR = my_award / my_bond / timeDiffInYears;
       APY = (1 + APR / 365) ** 365 - 1;
 
-      const runePriceData = await thornode.getNetwork();
+      // Process price data
       runePriceUSD = fromBaseUnit(runePriceData.rune_price_in_tor);
 
+      // Fetch additional data (these also run in parallel with each other)
       fetchBtcPoolData();
       fetchChurnInterval();
     } catch (error) {
@@ -572,6 +589,8 @@
                   <span class="link-label">Next Churn</span>
                   {#if isLoading}
                     <div class="loading-bar info-bar"></div>
+                  {:else if isChurningHalted}
+                    <span class="link-value churn-paused {showContent ? 'fade-in-content' : ''}">Paused</span>
                   {:else}
                     <span class="link-value {showContent ? 'fade-in-content' : ''}">{countdown}</span>
                   {/if}
@@ -852,9 +871,7 @@
     width: 24px;
     height: 24px;
     margin-left: 5px;
-    vertical-align: top;
-    position: relative;
-    top: 2px;
+    vertical-align: middle;
   }
 
   .sub-values {
@@ -973,6 +990,12 @@
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     text-align: center;
+  }
+
+  .link-value.churn-paused {
+    color: #ffa94d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .button-container {
