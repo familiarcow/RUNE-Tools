@@ -1,7 +1,30 @@
 <script>
   import { onMount } from "svelte";
-  import { formatCountdown, getAddressSuffix, formatDate as formatDateUtil } from '$lib/utils/formatting';
-  import { blocksToSeconds } from '$lib/utils/blockchain';
+  import {
+    formatCountdown,
+    getAddressSuffix,
+    formatDate as formatDateUtil,
+    formatNumber,
+    formatUSDWithDecimals
+  } from '$lib/utils/formatting';
+  import { blocksToSeconds, fromBaseUnit } from '$lib/utils/blockchain';
+  import { fetchJSONWithFallback, THORNODE_ENDPOINTS, MIDGARD_ENDPOINTS } from '$lib/utils/api';
+  import {
+    getTCYPrice,
+    getRunePrice,
+    getTCYMimir,
+    getTCYConstants,
+    getTCYStaker,
+    getTCYDistributionHistory,
+    getTCYStakeModuleBalance,
+    getCurrentBlock,
+    getNextDistributionBlock,
+    calculateUserDistributionShare,
+    getHistoricalRunePrices,
+    getHistoricalPriceForTimestamp,
+    getRandomTCYStaker,
+    TCY_TOTAL_SUPPLY
+  } from '$lib/utils/tcy';
 
   let address = "";
   let showData = false;
@@ -13,7 +36,6 @@
   let isMobile = false;
   let showAllDistributions = false;
   let runePriceUSD = 0;
-  let runePriceInTor = 0;
   let tcyPriceUSD = 0;
   let nextDistributionTime = null;
   let nextDistributionAmount = null;
@@ -29,7 +51,7 @@
   let nextDistributionBlock = null;
   let blocksRemaining = null;
 
-  // New state variables for TCY mimir and constants
+  // State variables for TCY mimir and constants
   let tcyMimir = {
     TCYCLAIMINGHALT: null,
     TCYCLAIMINGSWAPHALT: null,
@@ -44,14 +66,8 @@
     TCYStakeSystemIncomeBps: null
   };
 
-  // New variable to store historical RUNE prices
+  // Variable to store historical RUNE prices
   let historicalRunePrices = [];
-
-  const fetchJSON = async (url) => {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to fetch data from ${url}: ${response.statusText}`);
-    return response.json();
-  };
 
   const updateAddressFromURL = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -63,58 +79,37 @@
     }
   };
 
-  const fetchTCYPrice = async () => {
+  const fetchTCYPriceData = async () => {
     try {
-      const poolsData = await fetchJSON("https://thornode.ninerealms.com/thorchain/pools");
-      const tcyPool = poolsData.find(pool => pool.asset === "THOR.TCY");
-      if (tcyPool) {
-        tcyPriceUSD = Number(tcyPool.asset_tor_price) / 1e8;
-        console.log('TCY Price Debug:', {
-          rawPrice: tcyPool.asset_tor_price,
-          convertedPrice: tcyPriceUSD
-        });
-      }
+      tcyPriceUSD = await getTCYPrice();
+      console.log('TCY Price:', tcyPriceUSD);
     } catch (error) {
       console.error("Error fetching TCY price:", error);
     }
   };
 
-  const fetchTCYMimir = async () => {
+  const fetchTCYMimirData = async () => {
     try {
-      const mimirData = await fetchJSON("https://thornode.ninerealms.com/thorchain/mimir");
-      tcyMimir = {
-        TCYCLAIMINGHALT: mimirData.TCYCLAIMINGHALT,
-        TCYCLAIMINGSWAPHALT: mimirData.TCYCLAIMINGSWAPHALT,
-        TCYSTAKEDISTRIBUTIONHALT: mimirData.TCYSTAKEDISTRIBUTIONHALT,
-        TCYSTAKINGHALT: mimirData.TCYSTAKINGHALT,
-        TCYUNSTAKINGHALT: mimirData.TCYUNSTAKINGHALT,
-        HALTTCYTRADING: mimirData.HALTTCYTRADING
-      };
+      tcyMimir = await getTCYMimir();
       console.log('TCY Mimir Status:', tcyMimir);
     } catch (error) {
       console.error("Error fetching TCY mimir:", error);
     }
   };
 
-  const fetchTCYConstants = async () => {
+  const fetchTCYConstantsData = async () => {
     try {
-      const constantsData = await fetchJSON("https://thornode.ninerealms.com/thorchain/constants");
-      tcyConstants = {
-        MinRuneForTCYStakeDistribution: Number(constantsData.int_64_values.MinRuneForTCYStakeDistribution) / 1e8,
-        MinTCYForTCYStakeDistribution: Number(constantsData.int_64_values.MinTCYForTCYStakeDistribution) / 1e8,
-        TCYStakeSystemIncomeBps: Number(constantsData.int_64_values.TCYStakeSystemIncomeBps)
-      };
+      tcyConstants = await getTCYConstants();
       console.log('TCY Constants:', tcyConstants);
     } catch (error) {
       console.error("Error fetching TCY constants:", error);
     }
   };
 
-  const fetchHistoricalRunePrices = async (distributionCount) => {
+  const fetchHistoricalRunePricesData = async (distributionCount) => {
     try {
-      const count = distributionCount + 10; // Add 10 extra as requested
-      const historicalData = await fetchJSON(`https://midgard.ninerealms.com/v2/history/rune?interval=day&count=${count}`);
-      historicalRunePrices = historicalData.intervals || [];
+      const count = distributionCount + 10; // Add 10 extra as buffer
+      historicalRunePrices = await getHistoricalRunePrices(count);
       console.log('Historical RUNE prices fetched:', historicalRunePrices.length, 'intervals');
     } catch (error) {
       console.error("Error fetching historical RUNE prices:", error);
@@ -123,58 +118,44 @@
   };
 
   const getHistoricalRunePrice = (timestamp) => {
-    // Find the price interval that contains this timestamp
-    const interval = historicalRunePrices.find(interval => {
-      const startTime = Number(interval.startTime);
-      const endTime = Number(interval.endTime);
-      return timestamp >= startTime && timestamp <= endTime;
-    });
-    
-    if (interval) {
-      return Number(interval.runePriceUSD);
-    }
-    
-    // Fallback to current price if no historical data found
-    console.warn('No historical price found for timestamp:', timestamp, 'using current price');
-    return runePriceUSD;
+    return getHistoricalPriceForTimestamp(historicalRunePrices, timestamp, runePriceUSD);
   };
 
   const fetchData = async () => {
     try {
       // Fetch RUNE and TCY prices first
-      const networkData = await fetchJSON("https://thornode.ninerealms.com/thorchain/network");
-      runePriceInTor = Number(networkData.rune_price_in_tor);
-      runePriceUSD = runePriceInTor / 1e8;
-      console.log('RUNE Price Debug:', {
-        rawPrice: networkData.rune_price_in_tor,
-        convertedPrice: runePriceUSD
-      });
-      await fetchTCYPrice();
-      await fetchTCYMimir();
-      await fetchTCYConstants();
+      runePriceUSD = await getRunePrice();
+      console.log('RUNE Price:', runePriceUSD);
 
-      // Fetch distribution history
+      await fetchTCYPriceData();
+      await fetchTCYMimirData();
+      await fetchTCYConstantsData();
+
+      // Fetch distribution history using shared utility
       try {
-        const distributionData = await fetchJSON(`https://midgard.ninerealms.com/v2/tcy/distribution/${address}`);
-        distributions = distributionData.distributions.sort((a, b) => Number(b.date) - Number(a.date));
-        totalDistributed = Number(distributionData.total) / 1e8;
-        
+        const history = await getTCYDistributionHistory(address);
+        distributions = history.distributions.map(d => ({
+          date: d.date,
+          amount: d.amount * 1e8  // Keep in base units for display compatibility
+        }));
+        totalDistributed = history.total;
+
         // Fetch historical RUNE prices for the distributions
         if (distributions.length > 0) {
-          await fetchHistoricalRunePrices(distributions.length);
+          await fetchHistoricalRunePricesData(distributions.length);
         }
       } catch (error) {
         distributions = [];
         totalDistributed = 0;
       }
 
-      // Fetch staked balance
+      // Fetch staked balance using shared utility
       try {
-        const stakedData = await fetchJSON(`https://thornode.ninerealms.com/thorchain/tcy_staker/${address}`);
-        console.log('Staked Balance API Response:', stakedData);
-        stakedBalance = Number(stakedData.amount) / 1e8;
+        const stakerData = await getTCYStaker(address);
+        console.log('Staked Balance:', stakerData);
+        stakedBalance = stakerData?.amount || 0;
         console.log('Processed Staked Balance:', stakedBalance);
-        
+
         // Calculate next distribution after we have the staked balance
         await calculateNextDistribution();
       } catch (error) {
@@ -182,13 +163,13 @@
         stakedBalance = 0;
       }
 
-      // Fetch unstaked balances (always attempt this, even if staked fetch fails)
+      // Fetch unstaked balances using shared utility with fallback
       try {
-        const unstakedData = await fetchJSON(`https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances/${address}`);
+        const unstakedData = await fetchJSONWithFallback(`/cosmos/bank/v1beta1/balances/${address}`);
         const tcyBalance = unstakedData.balances.find(b => b.denom === "tcy");
         const runeBalance = unstakedData.balances.find(b => b.denom === "rune");
-        unstakedBalance = tcyBalance ? Number(tcyBalance.amount) / 1e8 : 0;
-        unstakedRuneBalance = runeBalance ? Number(runeBalance.amount) / 1e8 : 0;
+        unstakedBalance = tcyBalance ? fromBaseUnit(tcyBalance.amount) : 0;
+        unstakedRuneBalance = runeBalance ? fromBaseUnit(runeBalance.amount) : 0;
       } catch (error) {
         unstakedBalance = 'ERROR';
         unstakedRuneBalance = 'ERROR';
@@ -213,11 +194,9 @@
 
   const handleRandom = async () => {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/tcy_stakers");
-      const data = await response.json();
-      if (data.tcy_stakers && data.tcy_stakers.length > 0) {
-        const randomIndex = Math.floor(Math.random() * data.tcy_stakers.length);
-        address = data.tcy_stakers[randomIndex].address;
+      const randomAddress = await getRandomTCYStaker();
+      if (randomAddress) {
+        address = randomAddress;
         showData = true;
         updateURL();
         fetchData();
@@ -246,16 +225,11 @@
     return formatDateUtil(timestamp * 1000);
   };
 
-  const numFormat = (x) => Intl.NumberFormat().format(x);
+  // Use shared formatNumber utility with locale formatting
+  const numFormat = (x) => formatNumber(x, { maximumFractionDigits: 1 });
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-  };
+  // Use shared formatUSDWithDecimals utility
+  const formatCurrency = (value) => formatUSDWithDecimals(value, 2);
 
   const getRecentDistributions = () => {
     const sevenDaysAgo = Date.now() / 1000 - (7 * 24 * 60 * 60);
@@ -350,28 +324,26 @@
 
   const calculateNextDistribution = async () => {
     try {
-      // Get current block height
-      const statusResponse = await fetchJSON("https://rpc-v2.ninerealms.com/status");
-      const currentBlock = Number(statusResponse.result.sync_info.latest_block_height);
+      // Get current block height using shared utility
+      const currentBlock = await getCurrentBlock();
       console.log('Current block:', currentBlock);
-      
-      // Calculate next distribution block
-      const nextBlock = 14400 * Math.ceil(currentBlock / 14400);
-      nextDistributionBlock = nextBlock;
-      const blocksRem = nextBlock - currentBlock;
-      blocksRemaining = blocksRem;
-      console.log('Next block:', nextBlock, 'Blocks remaining:', blocksRemaining);
-      
+
+      // Calculate next distribution block using shared utility
+      const distInfo = getNextDistributionBlock(currentBlock);
+      nextDistributionBlock = distInfo.nextBlock;
+      blocksRemaining = distInfo.blocksRemaining;
+      console.log('Next block:', nextDistributionBlock, 'Blocks remaining:', blocksRemaining);
+
       // Calculate time remaining using shared block time utility
       const secondsRemaining = blocksToSeconds(blocksRemaining);
       nextDistributionTime = formatCountdown(secondsRemaining);
       console.log('Time remaining:', nextDistributionTime);
 
-      // Get current accrued RUNE amount
-      const moduleBalance = await fetchJSON("https://thornode.ninerealms.com/thorchain/balance/module/tcy_stake");
-      console.log('Module balance response:', moduleBalance);
-      
-      const currentAccruedRune = Number(moduleBalance.coins.find(c => c.denom === "rune")?.amount || 0) / 1e8;
+      // Get current accrued RUNE amount using shared utility
+      const moduleBalance = await getTCYStakeModuleBalance();
+      console.log('Module balance:', moduleBalance);
+
+      const currentAccruedRune = moduleBalance.rune;
       console.log('Current accrued RUNE:', currentAccruedRune);
 
       // Calculate blocks since last distribution
@@ -380,7 +352,7 @@
       console.log('Last distribution block:', lastDistributionBlock, 'Blocks since last:', blocksSinceLastDistribution);
 
       // Calculate RUNE per block rate
-      const runePerBlock = currentAccruedRune / blocksSinceLastDistribution;
+      const runePerBlock = blocksSinceLastDistribution > 0 ? currentAccruedRune / blocksSinceLastDistribution : 0;
       console.log('RUNE per block:', runePerBlock);
 
       // Calculate total estimated RUNE by next distribution
@@ -393,14 +365,9 @@
       const actualDistributionAmount = distributionMultiplier * minRuneForDistribution;
       console.log('Actual distribution amount:', actualDistributionAmount);
 
-      // Calculate user's share based on their TCY stake
-      const totalTCYSupply = 210000000; // 210 million TCY
+      // Calculate user's estimated distribution amount using shared utility
       console.log('User staked balance:', stakedBalance);
-      const userShare = stakedBalance / totalTCYSupply;
-      console.log('User share:', userShare);
-
-      // Calculate user's estimated distribution amount
-      nextDistributionAmount = actualDistributionAmount * userShare;
+      nextDistributionAmount = calculateUserDistributionShare(stakedBalance, actualDistributionAmount);
       console.log('Final estimated amount:', nextDistributionAmount);
 
     } catch (error) {

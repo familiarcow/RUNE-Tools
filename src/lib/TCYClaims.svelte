@@ -2,6 +2,20 @@
   import { onMount } from 'svelte';
   import { writable, derived } from 'svelte/store';
   import { cubicOut } from 'svelte/easing';
+  import { formatNumber as sharedFormatNumber } from '$lib/utils/formatting';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import {
+    getTCYPrice,
+    getRunePrice,
+    getPrices,
+    getTCYPool,
+    getTCYLiquidity,
+    getTotalStakedTCY,
+    getTCYMarketCap,
+    getRuneSupplyAndMarketCap,
+    getTCYClaimers,
+    getRemainingClaimAddresses
+  } from '$lib/utils/tcy';
 
   const claims = writable([]);
   const remainingClaims = writable(new Set());
@@ -24,67 +38,47 @@
     }
   );
 
-  const fetchTCYPrice = async () => {
+  const fetchTCYPriceData = async () => {
     try {
-      const poolsData = await fetch("https://thornode.ninerealms.com/thorchain/pools").then(res => res.json());
-      const tcyPool = poolsData.find(pool => pool.asset === "THOR.TCY");
-      if (tcyPool) {
-        tcyPriceUSD = Number(tcyPool.asset_tor_price) / 1e8;
-        
-        // Calculate RUNE price using TCY pool data
-        const balanceRune = Number(tcyPool.balance_rune) / 1e8;
-        const balanceAsset = Number(tcyPool.balance_asset) / 1e8;
-        runePriceUSD = (balanceAsset * tcyPriceUSD) / balanceRune;
-      }
+      const prices = await getPrices();
+      tcyPriceUSD = prices.tcyPriceUSD;
+      runePriceUSD = prices.runePriceUSD;
     } catch (error) {
       console.error("Error fetching TCY price:", error);
     }
   };
 
-  const fetchStakedTCY = async () => {
+  const fetchStakedTCYData = async () => {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/tcy_stakers");
-      const data = await response.json();
-      const totalStaked = data.tcy_stakers.reduce((sum, staker) => sum + Number(staker.amount), 0) / 1e8;
+      const totalStaked = await getTotalStakedTCY();
       stakedTCY.set(totalStaked);
     } catch (error) {
       console.error("Error fetching staked TCY:", error);
     }
   };
 
-  const fetchTCYLiquidity = async () => {
+  const fetchTCYLiquidityData = async () => {
     try {
-      const poolsData = await fetch("https://thornode.ninerealms.com/thorchain/pools").then(res => res.json());
-      const tcyPool = poolsData.find(pool => pool.asset === "THOR.TCY");
-      if (tcyPool) {
-        const balanceAsset = Number(tcyPool.balance_asset) / 1e8;
-        const assetPrice = Number(tcyPool.asset_tor_price) / 1e8;
-        const liquidity = balanceAsset * assetPrice * 2; // Multiply by 2 for total pool depth
-        tcyLiquidity.set(liquidity);
-      }
+      const liquidity = await getTCYLiquidity();
+      tcyLiquidity.set(liquidity);
     } catch (error) {
       console.error("Error fetching TCY liquidity:", error);
     }
   };
 
-  const fetchTCYMarketCap = async () => {
+  const fetchTCYMarketCapData = async () => {
     try {
-      const response = await fetch("https://api.ninerealms.com/thorchain/supply/cmc?asset=tcy&type=total");
-      const totalSupply = await response.json();
-      const marketCap = totalSupply * tcyPriceUSD;
+      const marketCap = await getTCYMarketCap();
       tcyMarketCap.set(marketCap);
     } catch (error) {
       console.error("Error fetching TCY market cap:", error);
     }
   };
 
-  const fetchRuneMarketCap = async () => {
+  const fetchRuneMarketCapData = async () => {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/cosmos/bank/v1beta1/supply/by_denom?denom=rune");
-      const data = await response.json();
-      const totalSupplyInRune = Number(data.amount.amount) / 1e8;
-      const marketCap = totalSupplyInRune * runePriceUSD;
-      runeMarketCap.set(marketCap);
+      const runeData = await getRuneSupplyAndMarketCap();
+      runeMarketCap.set(runeData.marketCap);
     } catch (error) {
       console.error("Error fetching RUNE market cap:", error);
     }
@@ -184,46 +178,40 @@
 
   onMount(async () => {
     try {
-      // Fetch TCY price and calculate RUNE price
-      await fetchTCYPrice();
+      // Fetch TCY price and calculate RUNE price using shared utility
+      await fetchTCYPriceData();
 
-      // Fetch all metrics
+      // Fetch all metrics using shared utilities
       await Promise.all([
-        fetchStakedTCY(),
-        fetchTCYLiquidity(),
-        fetchTCYMarketCap(),
-        fetchRuneMarketCap()
+        fetchStakedTCYData(),
+        fetchTCYLiquidityData(),
+        fetchTCYMarketCapData(),
+        fetchRuneMarketCapData()
       ]);
 
       // Fetch initial claims data
       const response = await fetch('/tcy_claims.json');
       const data = await response.json();
-      
+
       // Process the data to use THOR address if present, otherwise L1Address
       const processedClaims = data.map(claim => ({
         address: claim.thor_address || claim.L1Address,
-        amount: Number(claim.tcyClaim) / 1e8
+        amount: fromBaseUnit(claim.tcyClaim)
       })).sort((a, b) => b.amount - a.amount); // Sort by amount descending
-      
+
       claims.set(processedClaims);
 
-      // Fetch remaining claims data
-      const claimersResponse = await fetch('https://thornode.ninerealms.com/thorchain/tcy_claimers');
-      const claimersData = await claimersResponse.json();
-      
-      // Create a set of addresses that still have claims remaining
-      const remainingSet = new Set(claimersData.tcy_claimers.map(claimer => claimer.l1_address));
+      // Fetch remaining claims data using shared utility
+      const remainingSet = await getRemainingClaimAddresses();
       remainingClaims.set(remainingSet);
     } catch (error) {
       console.error('Failed to fetch TCY claims:', error);
     }
   });
 
+  // Use shared formatNumber utility
   function formatNumber(number) {
-    return new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(number);
+    return sharedFormatNumber(number, { maximumFractionDigits: 0 });
   }
 
   function flipScroll(node, { duration = 400, delay = 0 }) {
