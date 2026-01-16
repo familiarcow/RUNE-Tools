@@ -1,7 +1,13 @@
 <script>
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
-  import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
+  import { copyToClipboard as copyToClipboardUtil, shortenAddress } from '$lib/utils/formatting';
+  import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import {
+    CHAIN_EXPLORERS,
+    formatOutboundFeeWithUSD
+  } from '$lib/utils/network';
 
   let inboundAddresses = [];
   let loading = true;
@@ -9,38 +15,6 @@
   let toastMessage = '';
   let showToast = false;
   let assetPrices = new Map();
-
-  const chainIcons = {
-    BTC: 'bitcoin-btc-logo.svg',
-    ETH: 'ethereum-eth-logo.svg',
-    BCH: 'bitcoin-cash-bch-logo.svg',
-    LTC: 'litecoin-ltc-logo.svg',
-    DOGE: 'dogecoin-doge-logo.svg',
-    AVAX: 'avalanche-avax-logo.svg',
-    GAIA: 'cosmos-atom-logo.svg',
-    BSC: 'binance-coin-bnb-logo.svg',
-    THOR: 'Thorchain_icon.svg',
-  };
-
-  const chainToToken = {
-    THOR: 'RUNE',
-    BSC: 'BNB',
-    GAIA: 'ATOM',
-    BASE: 'ETH'
-  };
-
-  const chainExplorers = {
-    THOR: 'https://runescan.io/address/',
-    BTC: 'https://mempool.space/address/',
-    ETH: 'https://etherscan.io/address/',
-    BCH: 'https://blockchair.com/bitcoin-cash/address/',
-    LTC: 'https://blockchair.com/litecoin/address/',
-    DOGE: 'https://blockchair.com/dogecoin/address/',
-    AVAX: 'https://snowtrace.io/address/',
-    GAIA: 'https://www.mintscan.io/cosmos/address/',
-    BSC: 'https://bscscan.com/address/',
-    BASE: 'https://basescan.org/address/'
-  };
 
   const clipboardIcon = `
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -59,27 +33,17 @@
 
   onMount(async () => {
     try {
-      const [inboundResponse, poolsResponse, networkResponse] = await Promise.all([
-        fetch('https://thornode.ninerealms.com/thorchain/inbound_addresses'),
-        fetch('https://thornode.ninerealms.com/thorchain/pools'),
-        fetch('https://thornode.ninerealms.com/thorchain/network')
-      ]);
-
-      if (!inboundResponse.ok || !poolsResponse.ok || !networkResponse.ok) {
-        throw new Error('Failed to fetch data');
-      }
-
       const [inboundData, poolsData, networkData] = await Promise.all([
-        inboundResponse.json(),
-        poolsResponse.json(),
-        networkResponse.json()
+        fetchJSONWithFallback('/thorchain/inbound_addresses'),
+        fetchJSONWithFallback('/thorchain/pools'),
+        fetchJSONWithFallback('/thorchain/network')
       ]);
 
-      const runePrice = Number(networkData.rune_price_in_tor) / 1e8;
+      const runePrice = fromBaseUnit(networkData.rune_price_in_tor);
       assetPrices.set('THOR.RUNE', runePrice);
 
       poolsData.forEach(pool => {
-        const priceInUsd = Number(pool.asset_tor_price) / 1e8;
+        const priceInUsd = fromBaseUnit(pool.asset_tor_price);
         assetPrices.set(pool.asset, priceInUsd);
       });
 
@@ -102,35 +66,8 @@
     }
   }
 
-  function formatOutboundFee(fee, chain) {
-    const feeValue = parseInt(fee) / 1e8;
-    let formattedFee;
-    
-    if (feeValue >= 0.001) {
-      formattedFee = feeValue.toFixed(3);
-    } else {
-      const decimalPlaces = Math.abs(Math.floor(Math.log10(feeValue))) + 1;
-      formattedFee = feeValue.toFixed(Math.max(decimalPlaces, 8));
-    }
-    
-    formattedFee = formattedFee.replace(/\.?0+$/, '');
-    const tokenName = chainToToken[chain] || chain;
-    
-    const assetKey = `${chain}.${tokenName}`;
-    const priceInUsd = assetPrices.get(assetKey);
-    const feeInUsd = priceInUsd ? feeValue * priceInUsd : null;
-    
-    return {
-      base: `${formattedFee} ${tokenName}`,
-      usd: feeInUsd ? `$${feeInUsd.toFixed(2)}` : null
-    };
-  }
-
-  function formatAddress(address) {
-    if (!address || address.length <= 16) return address;
-    const start = address.slice(0, 8);
-    const end = address.slice(-8);
-    return `${start}...${end}`;
+  function getFormattedFee(fee, chain) {
+    return formatOutboundFeeWithUSD(fee, chain, assetPrices);
   }
 </script>
 
@@ -154,13 +91,13 @@
               <div class="info-row">
                 <strong>Inbound Address:</strong>
                 <div class="address-container">
-                  <span class="address" title={address.address}>{formatAddress(address.address)}</span>
+                  <span class="address" title={address.address}>{shortenAddress(address.address, 8, 8)}</span>
                   <div class="button-group">
                     <button class="icon-button" on:click={() => copyToClipboard(address.address, `${address.chain} inbound address`)}>
                       {@html clipboardIcon}
                     </button>
                     <a 
-                      href={chainExplorers[address.chain] + address.address} 
+                      href={CHAIN_EXPLORERS[address.chain] + address.address} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       class="icon-button"
@@ -175,13 +112,13 @@
                 <div class="info-row">
                   <strong>Router Address:</strong>
                   <div class="address-container">
-                    <span class="address" title={address.router}>{formatAddress(address.router)}</span>
+                    <span class="address" title={address.router}>{shortenAddress(address.router, 8, 8)}</span>
                     <div class="button-group">
                       <button class="icon-button" on:click={() => copyToClipboard(address.router, `${address.chain} router address`)}>
                         {@html clipboardIcon}
                       </button>
                       <a 
-                        href={chainExplorers[address.chain] + address.router} 
+                        href={CHAIN_EXPLORERS[address.chain] + address.router} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         class="icon-button"
@@ -202,9 +139,9 @@
               <div class="info-row">
                 <strong>Outbound Fee:</strong>
                 <span>
-                  {formatOutboundFee(address.outbound_fee, address.chain).base}
-                  {#if formatOutboundFee(address.outbound_fee, address.chain).usd}
-                    <span class="usd-amount">({formatOutboundFee(address.outbound_fee, address.chain).usd})</span>
+                  {getFormattedFee(address.outbound_fee, address.chain).display}
+                  {#if getFormattedFee(address.outbound_fee, address.chain).usdDisplay}
+                    <span class="usd-amount">({getFormattedFee(address.outbound_fee, address.chain).usdDisplay})</span>
                   {/if}
                 </span>
               </div>

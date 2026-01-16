@@ -3,6 +3,7 @@
   import { fade } from 'svelte/transition';
   import { slide } from 'svelte/transition';
   import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
+  import { CHAIN_ICONS, CHAIN_EXPLORERS } from '$lib/utils/network';
 
   let vaults = [];
   let prices = {};
@@ -15,34 +16,16 @@
   let networkData = null;
   let showAssetBalances = false;
 
-  const chainIcons = {
-    BTC: '/assets/chains/BTC.svg',
-    ETH: '/assets/chains/ETH.svg',
-    BCH: '/assets/chains/BCH.svg',
-    LTC: '/assets/chains/LTC.svg',
-    DOGE: '/assets/chains/DOGE.svg',
-    AVAX: '/assets/chains/AVAX.svg',
-    BSC: '/assets/chains/BSC.svg',
-    GAIA: '/assets/chains/GAIA.svg',
-    THOR: '/assets/chains/THOR.svg',
-    BASE: '/assets/chains/BASE.svg',
-    XRP: '/assets/chains/XRP.svg',
-    TRON: '/assets/chains/TRON.svg'
-  };
+  // Use shared chain icons directly
+  const chainIcons = CHAIN_ICONS;
 
+  // Extend shared chain explorers with app-specific URL overrides
+  // BTC: prefers blockstream over mempool, GAIA: uses /account/ path, THOR: uses thorchain.net
   const chainExplorers = {
+    ...CHAIN_EXPLORERS,
     'BTC': 'https://blockstream.info/address/',
-    'ETH': 'https://etherscan.io/address/',
-    'BCH': 'https://blockchair.com/bitcoin-cash/address/',
-    'LTC': 'https://blockchair.com/litecoin/address/',
-    'DOGE': 'https://blockchair.com/dogecoin/address/',
-    'AVAX': 'https://snowtrace.io/address/',
-    'BSC': 'https://bscscan.com/address/',
     'GAIA': 'https://www.mintscan.io/cosmos/account/',
-    'THOR': 'https://thorchain.net/address/',
-    'BASE': 'https://basescan.org/address/',
-    'XRP': 'https://xrpscan.com/account/',
-    'TRON': 'https://tronscan.org/#/address/'
+    'THOR': 'https://thorchain.net/address/'
   };
 
   const assetLogos = {

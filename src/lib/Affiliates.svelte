@@ -1,6 +1,8 @@
 <script lang="ts">
   import { writable } from 'svelte/store';
   import { onMount } from 'svelte';
+  import { getInboundAddresses, getExplorerUrl } from '$lib/utils/network';
+  import { fetchJSONWithFallback } from '$lib/utils/api';
 
   interface ThorNameResponse {
     name: string;
@@ -99,11 +101,8 @@
 
   async function queryInboundAddresses() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/inbound_addresses');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: InboundAddress[] = await response.json();
+      // Use shared utility with caching and fallback support
+      const data: InboundAddress[] = await getInboundAddresses();
       inboundAddresses.set(data);
       console.log('Inbound addresses:', data);
     } catch (error) {
@@ -129,11 +128,8 @@
 
   async function queryOutboundFee(asset: string) {
     try {
-      const response = await fetch(`https://thornode.ninerealms.com/thorchain/outbound_fee/${asset}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: OutboundFee[] = await response.json();
+      // Use shared utility with fallback support
+      const data: OutboundFee[] = await fetchJSONWithFallback(`/thorchain/outbound_fee/${asset}`);
       outboundFeeInfo.set(data[0]);
       console.log('Outbound fee info:', data[0]);
     } catch (error) {
@@ -226,18 +222,8 @@
   }
 
   function getBlockExplorerUrl(chain: string, address: string): string {
-    switch (chain) {
-      case 'ETH':
-        return `https://etherscan.io/address/${address}`;
-      case 'BTC':
-        return `https://www.blockchain.com/btc/address/${address}`;
-      case 'BSC':
-        return `https://bscscan.com/address/${address}`;
-      case 'AVAX':
-        return `https://snowtrace.io/address/${address}`;
-      default:
-        return '';
-    }
+    // Use shared utility for explorer URLs
+    return getExplorerUrl(chain, address) || '';
   }
 
   $: blockExplorerUrl = $thorNameInfo 

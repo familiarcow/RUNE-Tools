@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { fetchJSONWithFallback } from '$lib/utils/api';
 
   let outboundFees = [];
   let prices = {};
@@ -51,41 +52,6 @@
     'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'assets/coins/coinbase-wrapped-btc-logo.svg'
   };
 
-
-  const API_ENDPOINTS = {
-    primary: 'https://thornode.ninerealms.com',
-    fallback: 'https://thornode.thorchain.liquify.com'
-  };
-
-  // Fetch data from API with automatic fallback
-  const fetchWithFallback = async (endpoint, options = {}) => {
-    const primaryUrl = `${API_ENDPOINTS.primary}${endpoint}`;
-    const fallbackUrl = `${API_ENDPOINTS.fallback}${endpoint}`;
-    
-    try {
-      // Try primary endpoint first
-      const response = await fetch(primaryUrl, options);
-      if (response.ok) {
-        return response;
-      }
-      throw new Error(`Primary endpoint failed: ${response.status}`);
-    } catch (error) {
-      console.warn(`Primary endpoint failed, trying fallback: ${error.message}`);
-      
-      try {
-        // Try fallback endpoint
-        const fallbackResponse = await fetch(fallbackUrl, options);
-        if (fallbackResponse.ok) {
-          console.log(`Using fallback endpoint for: ${endpoint}`);
-          return fallbackResponse;
-        }
-        throw new Error(`Fallback endpoint failed: ${fallbackResponse.status}`);
-      } catch (fallbackError) {
-        console.error(`Both endpoints failed for ${endpoint}:`, fallbackError);
-        throw fallbackError;
-      }
-    }
-  };
 
   // Format number with commas
   const formatNumber = (num) => {
@@ -253,24 +219,20 @@
     try {
       isLoading = true;
       error = null;
-      
-      // Fetch outbound fees, pools, and mimir data in parallel
-      const [feesResponse, poolsResponse, mimirResponse] = await Promise.all([
-        fetchWithFallback('/thorchain/outbound_fees'),
-        fetchWithFallback('/thorchain/pools'),
-        fetchWithFallback('/thorchain/mimir')
+
+      // Fetch outbound fees, pools, and mimir data in parallel using shared utility
+      const [feesData, poolsData, mimirDataResponse] = await Promise.all([
+        fetchJSONWithFallback('/thorchain/outbound_fees'),
+        fetchJSONWithFallback('/thorchain/pools'),
+        fetchJSONWithFallback('/thorchain/mimir')
       ]);
-      
-      const feesData = await feesResponse.json();
-      const poolsData = await poolsResponse.json();
-      const mimirDataResponse = await mimirResponse.json();
-      
+
       // Create price mapping from pools data
       const priceMap = {};
       poolsData.forEach(pool => {
         priceMap[pool.asset] = pool.asset_tor_price;
       });
-      
+
       prices = priceMap;
       mimirData = mimirDataResponse;
       outboundFees = sortData(feesData, sortField, sortDirection);

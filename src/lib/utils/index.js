@@ -215,3 +215,41 @@ export {
   percentageChange,
   percentageOf
 } from './calculations.js';
+
+// ============================================
+// Network infrastructure utilities
+// ============================================
+export {
+  // Constants
+  CHAIN_EXPLORERS,
+  CHAIN_NATIVE_TOKENS,
+  CHAIN_ICONS,
+
+  // Inbound address fetching
+  getInboundAddresses,
+  getInboundAddress,
+  getVaultAddress,
+  getRouterAddress,
+  getGasRate,
+  isChainHalted,
+  getActiveChains,
+  clearInboundCache,
+
+  // Outbound fee fetching
+  getOutboundFees,
+  getOutboundFee,
+  getChainOutboundFee,
+
+  // Fee formatting
+  formatOutboundFee,
+  formatOutboundFeeWithUSD,
+
+  // Explorer URL helpers
+  getExplorerUrl,
+  getExplorerTxUrl,
+
+  // Chain utilities
+  getNativeToken,
+  getChainIcon,
+  chainHasRouter
+} from './network.js';
