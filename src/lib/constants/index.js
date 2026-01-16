@@ -15,3 +15,23 @@ export {
   ASSET_DISPLAY_NAMES,
   getAssetDisplayName
 } from './assets.js';
+
+export {
+  KNOWN_ADDRESSES,
+  THORCHAIN_MODULES,
+  EXCHANGE_ADDRESSES,
+  PROTOCOL_ADDRESSES,
+  getAddressLabel,
+  isKnownAddress,
+  isModuleAddress,
+  isExchangeAddress,
+  formatAddressWithLabel
+} from './addresses.js';
+
+export {
+  AFFILIATE_INFO,
+  getAffiliateInfo,
+  getAffiliateName,
+  getAffiliateLogo,
+  isKnownAffiliate
+} from './affiliates.js';

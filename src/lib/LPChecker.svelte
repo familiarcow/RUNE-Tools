@@ -4,6 +4,10 @@
   import LPDetail from './LPDetail.svelte';
   import { writable } from 'svelte/store';
   import { sleep } from './utils';
+  import { shortenAddress as shortenAddressUtil, copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
+  import { fromBaseUnit, getAssetShortName } from '$lib/utils/blockchain';
+  import { getLPType, calculateLPValue } from '$lib/utils/liquidity';
+  import { getAddressLabel } from '$lib/constants/addresses';
 
   let pools = [];
   let selectedPool = null;
@@ -74,9 +78,9 @@
       ]);
 
       pools = poolsResponse.data;
-      runePrice = parseFloat(networkResponse.data.rune_price_in_tor) / 1e8;
+      runePrice = fromBaseUnit(networkResponse.data.rune_price_in_tor);
       pools.forEach(pool => {
-        assetPrices[pool.asset] = parseFloat(pool.asset_tor_price) / 1e8;
+        assetPrices[pool.asset] = fromBaseUnit(pool.asset_tor_price);
       });
 
       initialLoadComplete = true;
@@ -133,15 +137,14 @@
     try {
       const response = await axios.get(`${API_DOMAIN}/thorchain/pool/${selectedPool}/liquidity_providers`);
       liquidityProviders = response.data.map(lp => {
-        const type = lp.rune_address && lp.asset_address ? 'Sym' : lp.rune_address ? 'RUNE Asym' : 'Asset Asym';
         return {
           ...lp,
-          type,
-          units: parseFloat((parseFloat(lp.units) / 1e8).toFixed(8)),
-          pending_rune: parseFloat((parseFloat(lp.pending_rune) / 1e8).toFixed(8)),
-          pending_asset: parseFloat((parseFloat(lp.pending_asset) / 1e8).toFixed(8)),
-          rune_deposit_value: parseFloat((parseFloat(lp.rune_deposit_value) / 1e8).toFixed(8)),
-          asset_deposit_value: parseFloat((parseFloat(lp.asset_deposit_value) / 1e8).toFixed(8))
+          type: getLPType(lp.rune_address, lp.asset_address),
+          units: parseFloat(fromBaseUnit(lp.units).toFixed(8)),
+          pending_rune: parseFloat(fromBaseUnit(lp.pending_rune).toFixed(8)),
+          pending_asset: parseFloat(fromBaseUnit(lp.pending_asset).toFixed(8)),
+          rune_deposit_value: parseFloat(fromBaseUnit(lp.rune_deposit_value).toFixed(8)),
+          asset_deposit_value: parseFloat(fromBaseUnit(lp.asset_deposit_value).toFixed(8))
         };
       });
       sortLiquidityProviders(); // Call this after mapping the data
@@ -153,17 +156,20 @@
     }
   }
 
+  // Wrapper for shortenAddress with known address labels from shared constants
   function shortenAddress(address) {
     if (!address) return '-';
-    if (address === "thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt") return "RUNEPool";
-    return `${address.slice(0, 6)}...${address.slice(-6)}`;
+    const label = getAddressLabel(address);
+    if (label) return label;
+    return shortenAddressUtil(address, 6, 6);
   }
 
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
+  async function copyToClipboard(text) {
+    const success = await copyToClipboardUtil(text);
+    if (success) {
       toastMessage = `Copied: ${text}`;
       setTimeout(() => toastMessage = '', 3000);
-    });
+    }
   }
 
   function togglePendingValues() {
@@ -282,25 +288,20 @@
       try {
         const response = await axios.get(`${API_DOMAIN}/thorchain/pool/${selectedPool}/liquidity_provider/${address}`);
         const lpData = response.data;
-        
-        // Calculate PnL % (copied from LPDetail.svelte)
-        const runeDeposit = parseFloat(lpData.rune_deposit_value) / 1e8;
-        const runeRedeem = parseFloat(lpData.rune_redeem_value) / 1e8;
-        const assetDeposit = parseFloat(lpData.asset_deposit_value) / 1e8;
-        const assetRedeem = parseFloat(lpData.asset_redeem_value) / 1e8;
-        const runeDepositUSD = runeDeposit * runePrice;
-        const runeRedeemUSD = runeRedeem * runePrice;
-        const assetDepositUSD = assetDeposit * assetPrices[selectedPool];
-        const assetRedeemUSD = assetRedeem * assetPrices[selectedPool];
-        const totalDepositUSD = runeDepositUSD + assetDepositUSD;
-        const totalRedeemUSD = runeRedeemUSD + assetRedeemUSD;
-        const profitUSD = totalRedeemUSD - totalDepositUSD;
-        const profitPercentage = (profitUSD / totalDepositUSD) * 100;
+
+        // Use shared calculateLPValue for PnL calculation
+        const position = {
+          runeDepositValue: fromBaseUnit(lpData.rune_deposit_value),
+          runeRedeemValue: fromBaseUnit(lpData.rune_redeem_value),
+          assetDepositValue: fromBaseUnit(lpData.asset_deposit_value),
+          assetRedeemValue: fromBaseUnit(lpData.asset_redeem_value)
+        };
+        const lpValue = calculateLPValue(position, runePrice, assetPrices[selectedPool]);
 
         // Update the LP data with the PnL %
         liquidityProviders[i] = {
           ...lp,
-          pnlPercentage: profitPercentage
+          pnlPercentage: lpValue.profitPercentage
         };
       } catch (err) {
         console.error(`Error analyzing LP ${address}:`, err);
@@ -319,18 +320,9 @@
     return `${pnl.toFixed(2)}%`;
   }
 
+  // Use shared utility for pool names
   function getShortPoolName(fullName) {
-    if (fullName === 'BTC.BTC') return 'BTC';
-    if (fullName === 'GAIA.ATOM') return 'ATOM';
-    if (fullName === 'BASE.ETH') return 'ETH (Base)';
-    
-    const parts = fullName.split('-');
-    if (parts.length > 1) {
-      const [chain, asset] = parts[0].split('.');
-      return `${asset} (${chain})`;
-    }
-    
-    return fullName.split('.')[1] || fullName;
+    return getAssetShortName(fullName);
   }
 
   $: {

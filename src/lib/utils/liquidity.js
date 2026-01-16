@@ -579,3 +579,87 @@ export function getPoolDepth(pool) {
     totalDepthRune: runeDepth * 2 // Symmetric pools have equal value on both sides
   };
 }
+
+// ============================================
+// LP Type Utilities
+// ============================================
+
+/**
+ * LP position types
+ */
+export const LP_TYPES = {
+  SYMMETRIC: 'Sym',
+  RUNE_ASYMMETRIC: 'RUNE Asym',
+  ASSET_ASYMMETRIC: 'Asset Asym'
+};
+
+/**
+ * Determine the type of LP position based on addresses
+ *
+ * @param {string|null} runeAddress - RUNE side address (thor1...)
+ * @param {string|null} assetAddress - Asset side address (chain-specific)
+ * @returns {string} LP type: 'Sym', 'RUNE Asym', or 'Asset Asym'
+ *
+ * @example
+ * // Symmetric LP (both sides deposited)
+ * getLPType('thor1abc...', 'bc1xyz...');
+ * // => 'Sym'
+ *
+ * // RUNE-only asymmetric
+ * getLPType('thor1abc...', null);
+ * // => 'RUNE Asym'
+ *
+ * // Asset-only asymmetric
+ * getLPType(null, 'bc1xyz...');
+ * // => 'Asset Asym'
+ */
+export function getLPType(runeAddress, assetAddress) {
+  if (runeAddress && assetAddress) {
+    return LP_TYPES.SYMMETRIC;
+  }
+  if (runeAddress) {
+    return LP_TYPES.RUNE_ASYMMETRIC;
+  }
+  return LP_TYPES.ASSET_ASYMMETRIC;
+}
+
+/**
+ * Determine LP type from a position object
+ *
+ * @param {Object} position - LP position object (from API or getLPPosition)
+ * @returns {string} LP type: 'Sym', 'RUNE Asym', or 'Asset Asym'
+ *
+ * @example
+ * const position = await getLPPosition('BTC.BTC', 'thor1abc...');
+ * const type = getLPTypeFromPosition(position);
+ * // => 'RUNE Asym' or 'Sym' depending on position
+ */
+export function getLPTypeFromPosition(position) {
+  if (!position) return LP_TYPES.ASSET_ASYMMETRIC;
+
+  // Handle both raw API response and processed position
+  const runeAddress = position.runeAddress || position.rune_address;
+  const assetAddress = position.assetAddress || position.asset_address;
+
+  return getLPType(runeAddress, assetAddress);
+}
+
+/**
+ * Check if LP position is symmetric (both RUNE and asset deposited)
+ *
+ * @param {Object} position - LP position object
+ * @returns {boolean} True if symmetric position
+ */
+export function isSymmetricLP(position) {
+  return getLPTypeFromPosition(position) === LP_TYPES.SYMMETRIC;
+}
+
+/**
+ * Check if LP position is asymmetric
+ *
+ * @param {Object} position - LP position object
+ * @returns {boolean} True if asymmetric position (either RUNE-only or asset-only)
+ */
+export function isAsymmetricLP(position) {
+  return getLPTypeFromPosition(position) !== LP_TYPES.SYMMETRIC;
+}
