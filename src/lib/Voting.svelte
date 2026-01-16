@@ -1,5 +1,7 @@
 <script>
   import { onMount } from 'svelte';
+  import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { getAddressSuffix } from '$lib/utils/formatting';
 
   let mimirData = [];
   let activeKeys = {};
@@ -61,8 +63,7 @@
 
   async function fetchMimirData() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/mimir/nodes_all');
-      const data = await response.json();
+      const data = await fetchJSONWithFallback('/thorchain/mimir/nodes_all');
       mimirData = data.mimirs;
       processData();
     } catch (error) {
@@ -72,8 +73,7 @@
 
   async function fetchCurrentMimirValues() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/mimir');
-      currentMimirValues = await response.json();
+      currentMimirValues = await fetchJSONWithFallback('/thorchain/mimir');
     } catch (error) {
       console.error('Error fetching current mimir values:', error);
     }
@@ -81,8 +81,7 @@
 
   async function fetchNodeData() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/nodes');
-      nodeData = await response.json();
+      nodeData = await fetchJSONWithFallback('/thorchain/nodes');
       activeNodeCount = nodeData.filter(node => node.status === 'Active').length;
       activeNodeAddresses = nodeData
         .filter(node => node.status === 'Active')
@@ -128,7 +127,7 @@
     const groupedValues = Object.entries(values).map(([value, signers]) => ({
       value: value === 'undefined' || value === '' ? 'No Vote' : value,
       count: signers.length,
-      signers: signers.map(signer => signer.slice(-4)),
+      signers: signers.map(signer => getAddressSuffix(signer, 4)),
       isPassed: currentMimirValues[key] === parseInt(value),
       totalVotes,
     }));
@@ -145,7 +144,7 @@
       const combinedNoVote = {
         value: 'Not Voted',
         count: (noVoteEntry ? noVoteEntry.count : 0) + noVoteSigners.length,
-        signers: [...(noVoteEntry ? noVoteEntry.signers : []), ...noVoteSigners.map(signer => signer.slice(-4))],
+        signers: [...(noVoteEntry ? noVoteEntry.signers : []), ...noVoteSigners.map(signer => getAddressSuffix(signer, 4))],
         isPassed: false,
         totalVotes: totalVotes + noVoteSigners.length,
       };
@@ -190,9 +189,9 @@
   function getOperatorsForValue(key, value, signers) {
     const groupedOperators = {};
     for (const [operator, nodes] of Object.entries(nodeOperators)) {
-      const matchingNodes = nodes.filter(node => signers.includes(node.slice(-4)));
+      const matchingNodes = nodes.filter(node => signers.includes(getAddressSuffix(node, 4)));
       if (matchingNodes.length > 0) {
-        groupedOperators[operator] = matchingNodes.map(node => node.slice(-4));
+        groupedOperators[operator] = matchingNodes.map(node => getAddressSuffix(node, 4));
       }
     }
     return groupedOperators;
@@ -443,7 +442,7 @@
                               {#each Object.entries(getOperatorsForValue(key, value, signers))
                                 .slice(0, calculateVisibleBubbles(signersContainerWidth, signers, signers.length > 3)) as [operator, nodes]}
                                 <span class="operator-bubble" title="Operating {nodes.length} node{nodes.length > 1 ? 's' : ''}">
-                                  {operator.slice(-4)} ({nodes.length})
+                                  {getAddressSuffix(operator, 4)} ({nodes.length})
                                 </span>
                               {/each}
                             {:else}
@@ -485,7 +484,7 @@
                               {#if showOperators[key]?.[value]}
                                 {#each Object.entries(getOperatorsForValue(key, value, signers)) as [operator, nodes]}
                                   <span class="operator-bubble" title="Operating {nodes.length} node{nodes.length > 1 ? 's' : ''}">
-                                    {operator.slice(-4)} ({nodes.length})
+                                    {getAddressSuffix(operator, 4)} ({nodes.length})
                                   </span>
                                 {/each}
                               {:else}
@@ -567,7 +566,7 @@
                           {#each Object.entries(getOperatorsForValue(key, value, signers))
                             .slice(0, calculateVisibleBubbles(signersContainerWidth, signers, signers.length > 3)) as [operator, nodes]}
                             <span class="mobile-operator-bubble" title="Operating {nodes.length} node{nodes.length > 1 ? 's' : ''}">
-                              {operator.slice(-4)} ({nodes.length})
+                              {getAddressSuffix(operator, 4)} ({nodes.length})
                             </span>
                           {/each}
                         {:else}
@@ -609,7 +608,7 @@
                           {#if showOperators[key]?.[value]}
                             {#each Object.entries(getOperatorsForValue(key, value, signers)) as [operator, nodes]}
                               <span class="mobile-operator-bubble" title="Operating {nodes.length} node{nodes.length > 1 ? 's' : ''}">
-                                {operator.slice(-4)} ({nodes.length})
+                                {getAddressSuffix(operator, 4)} ({nodes.length})
                               </span>
                             {/each}
                           {:else}
