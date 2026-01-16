@@ -416,3 +416,166 @@ export function sortPositionsByValue(positions, runePrice, assetPrices) {
     return valueB - valueA;
   });
 }
+
+// ============================================
+// Pool Price Utilities
+// ============================================
+
+/**
+ * Get the RUNE/Asset price ratio from a pool
+ *
+ * @param {Object} pool - Pool object from THORNode
+ * @returns {number} Asset price in RUNE (how many RUNE per 1 asset)
+ *
+ * @example
+ * const pool = await thornode.getPool('BTC.BTC');
+ * const btcPriceInRune = getPoolAssetPriceInRune(pool);
+ * // => 100000 (1 BTC = 100,000 RUNE)
+ */
+export function getPoolAssetPriceInRune(pool) {
+  if (!pool || !pool.balance_rune || !pool.balance_asset) return 0;
+
+  const runeDepth = fromBaseUnit(pool.balance_rune);
+  const assetDepth = fromBaseUnit(pool.balance_asset);
+
+  if (assetDepth === 0) return 0;
+
+  return runeDepth / assetDepth;
+}
+
+/**
+ * Get asset price in USD from a pool using RUNE price
+ *
+ * @param {Object} pool - Pool object from THORNode
+ * @param {number} runePriceUSD - Current RUNE price in USD
+ * @returns {number} Asset price in USD
+ *
+ * @example
+ * const pool = await thornode.getPool('BTC.BTC');
+ * const btcPriceUSD = getPoolAssetPriceUSD(pool, 0.67);
+ * // => 67000 (BTC price in USD)
+ */
+export function getPoolAssetPriceUSD(pool, runePriceUSD) {
+  const priceInRune = getPoolAssetPriceInRune(pool);
+  return priceInRune * runePriceUSD;
+}
+
+/**
+ * Convert RUNE amount to equivalent asset amount using pool ratio
+ *
+ * @param {number} runeAmount - Amount of RUNE
+ * @param {Object} pool - Pool object from THORNode
+ * @returns {number} Equivalent asset amount
+ *
+ * @example
+ * const btcAmount = convertRuneToAsset(10000, btcPool);
+ * // => 0.1 BTC (if 1 BTC = 100,000 RUNE)
+ */
+export function convertRuneToAsset(runeAmount, pool) {
+  if (!runeAmount || !pool) return 0;
+
+  const runeDepth = fromBaseUnit(pool.balance_rune);
+  const assetDepth = fromBaseUnit(pool.balance_asset);
+
+  if (runeDepth === 0) return 0;
+
+  return (runeAmount / runeDepth) * assetDepth;
+}
+
+/**
+ * Convert asset amount to equivalent RUNE amount using pool ratio
+ *
+ * @param {number} assetAmount - Amount of asset
+ * @param {Object} pool - Pool object from THORNode
+ * @returns {number} Equivalent RUNE amount
+ *
+ * @example
+ * const runeAmount = convertAssetToRune(0.1, btcPool);
+ * // => 10000 RUNE (if 1 BTC = 100,000 RUNE)
+ */
+export function convertAssetToRune(assetAmount, pool) {
+  if (!assetAmount || !pool) return 0;
+
+  const runeDepth = fromBaseUnit(pool.balance_rune);
+  const assetDepth = fromBaseUnit(pool.balance_asset);
+
+  if (assetDepth === 0) return 0;
+
+  return (assetAmount / assetDepth) * runeDepth;
+}
+
+/**
+ * Get BTC value for a RUNE amount
+ *
+ * Common pattern used in BondTracker and other components.
+ *
+ * @param {number} runeAmount - Amount of RUNE
+ * @param {Object} [options={}] - Fetch options
+ * @returns {Promise<number>} Equivalent BTC amount
+ *
+ * @example
+ * const btcValue = await getRuneValueInBTC(10000);
+ * console.log(`10,000 RUNE = ${btcValue.toFixed(8)} BTC`);
+ */
+export async function getRuneValueInBTC(runeAmount, options = {}) {
+  const pool = await thornode.getPool('BTC.BTC', options);
+  return convertRuneToAsset(runeAmount, pool);
+}
+
+/**
+ * Build a price map for multiple pools
+ *
+ * Fetches all pools and builds a map of asset to USD price.
+ * Useful for calculating total portfolio value.
+ *
+ * @param {number} runePriceUSD - Current RUNE price in USD
+ * @param {Object} [options={}] - Fetch options
+ * @returns {Promise<Object>} Map of pool asset identifier to USD price
+ *
+ * @example
+ * const prices = await buildPoolPriceMap(0.67);
+ * // => {
+ * //   'BTC.BTC': 67000,
+ * //   'ETH.ETH': 3200,
+ * //   'DOGE.DOGE': 0.35,
+ * //   ...
+ * // }
+ */
+export async function buildPoolPriceMap(runePriceUSD, options = {}) {
+  const pools = await thornode.getPools(options);
+  const priceMap = {};
+
+  for (const pool of pools) {
+    if (pool.status === 'Available') {
+      priceMap[pool.asset] = getPoolAssetPriceUSD(pool, runePriceUSD);
+    }
+  }
+
+  return priceMap;
+}
+
+/**
+ * Get pool depth information
+ *
+ * @param {Object} pool - Pool object from THORNode
+ * @returns {Object} Depth information
+ *
+ * @example
+ * const depth = getPoolDepth(btcPool);
+ * console.log(`RUNE depth: ${depth.runeDepth.toLocaleString()}`);
+ * console.log(`Asset depth: ${depth.assetDepth.toFixed(8)}`);
+ */
+export function getPoolDepth(pool) {
+  if (!pool) {
+    return { runeDepth: 0, assetDepth: 0, totalDepthRune: 0 };
+  }
+
+  const runeDepth = fromBaseUnit(pool.balance_rune);
+  const assetDepth = fromBaseUnit(pool.balance_asset);
+
+  return {
+    runeDepth,
+    assetDepth,
+    totalDepthRune: runeDepth * 2 // Symmetric pools have equal value on both sides
+  };
+}
