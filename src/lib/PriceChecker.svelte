@@ -72,47 +72,9 @@
     'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'thorstarter'
   };
 
-  const assetLogos = {
-    'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
-    'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BSC.BNB': 'assets/coins/binance-coin-bnb-logo.svg',
-    'BCH.BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
-    'LTC.LTC': 'assets/coins/litecoin-ltc-logo.svg',
-    'AVAX.AVAX': 'assets/coins/avalanche-avax-logo.svg',
-    'GAIA.ATOM': 'assets/coins/cosmos-atom-logo.svg',
-    'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
-    'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
-    'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'assets/coins/usd-coin-usdc-logo.svg',
-    'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'assets/coins/tether-usdt-logo.svg',
-    'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': 'assets/coins/wrapped-bitcoin-wbtc-logo.svg',
-    'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': 'assets/coins/usd-coin-usdc-logo.svg',
-    'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg',
-    'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'assets/coins/tether-usdt-logo.svg',
-    'BSC.TWT-0X4B0F1812E5DF2A09796481FF14017E6005508003': 'assets/coins/twt-logo.png',
-    'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': 'assets/coins/multi-collateral-dai-dai-logo.svg',
-    'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': 'assets/coins/gemini-dollar-gusd-logo.svg',
-    'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': 'assets/coins/liquity-usd-logo.svg',
-    'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': 'assets/coins/paxos-standard-usdp-logo.svg',
-    'ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9': 'assets/coins/aave-aave-logo.svg',
-    'ETH.LINK-0X514910771AF9CA656AF840DFF83E8264ECF986CA': 'assets/coins/chainlink-link-logo.svg',
-    'ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F': 'assets/coins/synthetix-snx-logo.svg',
-    'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'assets/coins/fox-token-fox-logo.svg',
-    'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'assets/coins/solana-sol-logo.svg',
-    'BASE.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'assets/coins/coinbase-wrapped-btc-logo.svg',
-    'ETH.DPI-0X1494CA1F11D487C2BBE4543E90080AEBA4BA3C2B': 'assets/coins/dpi-logo.png',
-    'ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044': 'assets/coins/thorswap-logo.png',
-    'ETH.VTHOR-0X815C23ECA83261B6EC689B60CC4A58B54BC24D8D': 'assets/coins/thorswap-logo.png',
-    'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'assets/coins/xrune-logo.png',
-    'ETH.TGT-0X108A850856DB3F85D0269A2693D896B394C80325': 'assets/coins/tgt-logo.png'
-  };
-
   async function getTradeAssets() {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/trade/units");
-      const data = await response.json();
+      const data = await thornode.fetch('/thorchain/trade/units');
       return data.reduce((acc, item) => {
         const formattedAsset = item.asset.replace('~', '.');
         acc[formattedAsset] = Number(item.depth);
@@ -127,13 +89,12 @@
   async function getPools() {
     try {
       const tradeAssets = await getTradeAssets();
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/pools");
-      const data = await response.json();
+      const data = await thornode.fetch('/thorchain/pools');
       return data
         .filter(pool => pool.status === "Available")
         .map(pool => ({
           asset: pool.asset,
-          usd_price: Number(pool.asset_tor_price) / 1e8,
+          usd_price: fromBaseUnit(pool.asset_tor_price),
           rune_depth: Number(pool.rune_depth),
           asset_depth: Number(pool.asset_depth),
           trade_asset_depth: Number(tradeAssets[pool.asset] || 0),
@@ -219,20 +180,9 @@
     }
   }
 
+  // Use shared formatUSD with 2 decimal places
   function formatNumberUSD(number) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(number);
-  }
-
-  function formatNumber(number, decimals = 8) {
-    return new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: decimals,
-    }).format(number);
+    return formatUSD(number, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function filterAssets(pools, assetList) {
@@ -280,11 +230,12 @@
 
 <main>
   <div class="container">
-    <div class="app-header">
-      <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo">
-      <h2>THORChain Price Checker</h2>
-      <div class="info-icon" on:click={() => alert('Compare THORChain pool prices with external market prices from CoinGecko')}>ⓘ</div>
-    </div>
+    <PageHeader title="THORChain Price Checker">
+      <div slot="actions" class="header-actions">
+        <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo" class="header-logo">
+        <div class="info-icon" on:click={() => alert('Compare THORChain pool prices with external market prices from CoinGecko')}>ⓘ</div>
+      </div>
+    </PageHeader>
 
     <div class="settings-bar">
       <button class="settings-button" on:click={() => showPoolInfo.update(v => !v)}>
@@ -339,9 +290,9 @@
                     <tr>
                       <td class="asset-cell">
                         <div class="logo-container">
-                          {#if assetLogos[pool.asset]}
+                          {#if getAssetLogo(pool.asset)}
                             <img 
-                              src={assetLogos[pool.asset]} 
+                              src={getAssetLogo(pool.asset)} 
                               alt={formatCryptoName(pool.asset)}
                               class="asset-icon"
                             />
@@ -361,9 +312,9 @@
                       <td class="difference-cell" style="color: {difference.color}">{difference.text}</td>
                       {#if $showPoolInfo}
                         <td class="balance-cell">
-                          {$showTradeBalanceInUSD 
-                            ? formatNumberUSD((pool.trade_asset_depth / 1e8) * pool.usd_price)
-                            : formatNumber(pool.trade_asset_depth / 1e8)}
+                          {$showTradeBalanceInUSD
+                            ? formatNumberUSD(fromBaseUnit(pool.trade_asset_depth) * pool.usd_price)
+                            : formatNumber(fromBaseUnit(pool.trade_asset_depth), { maximumFractionDigits: 8 })}
                         </td>
                         <td class="price-cell">{formatNumberUSD(pool.totalPoolDepthUSD)}</td>
                         <td class="ratio-cell">{pool.tradePoolRatio.toFixed(2)}%</td>
@@ -396,9 +347,9 @@
                     <tr>
                       <td class="asset-cell">
                         <div class="logo-container">
-                          {#if assetLogos[pool.asset]}
+                          {#if getAssetLogo(pool.asset)}
                             <img 
-                              src={assetLogos[pool.asset]} 
+                              src={getAssetLogo(pool.asset)} 
                               alt={formatCryptoName(pool.asset)}
                               class="asset-icon"
                             />
@@ -441,9 +392,9 @@
                     <tr>
                       <td class="asset-cell">
                         <div class="logo-container">
-                          {#if assetLogos[pool.asset]}
+                          {#if getAssetLogo(pool.asset)}
                             <img 
-                              src={assetLogos[pool.asset]} 
+                              src={getAssetLogo(pool.asset)} 
                               alt={formatCryptoName(pool.asset)}
                               class="asset-icon"
                             />
@@ -492,68 +443,28 @@
     color: #FFFFFF;
   }
 
-  .app-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 30px;
-    position: relative;
-    overflow: hidden;
+  .header-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 15px;
+    gap: 12px;
   }
 
-  .app-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    animation: shimmer 5s infinite;
-  }
-
-  @keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
-  }
-
-  .app-header img {
-    width: 40px;
-    height: 40px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .app-header h2 {
-    margin: 0;
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    color: #FFFFFF;
-    background: transparent;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    position: relative;
-    z-index: 1;
+  .header-logo {
+    width: 32px;
+    height: 32px;
   }
 
   .info-icon {
-    position: absolute;
-    right: 0;
     background: none;
     border: none;
-    color: #4A90E2;
+    color: rgba(255, 255, 255, 0.8);
     cursor: pointer;
     font-size: 18px;
-    opacity: 0.7;
     transition: opacity 0.2s;
   }
 
   .info-icon:hover {
-    opacity: 1;
+    color: #ffffff;
   }
 
   .settings-bar {
@@ -786,14 +697,6 @@
       padding: 16px;
     }
 
-    .app-header {
-      padding: 16px;
-    }
-
-    .app-header h2 {
-      font-size: 24px;
-    }
-
     .settings-bar {
       flex-direction: column;
       gap: 8px;
@@ -801,11 +704,6 @@
 
     .settings-button {
       width: 100%;
-    }
-
-    .info-icon {
-      position: static;
-      margin-top: 10px;
     }
 
     .tabs {
@@ -833,14 +731,6 @@
   @media (max-width: 400px) {
     .container {
       padding: 12px;
-    }
-
-    .app-header {
-      padding: 12px;
-    }
-
-    .app-header h2 {
-      font-size: 22px;
     }
 
     h3 {
