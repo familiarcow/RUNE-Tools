@@ -194,3 +194,93 @@ export function formatDateTime(date) {
     minute: '2-digit'
   });
 }
+
+// ============================================
+// Address formatting utilities
+// ============================================
+
+/**
+ * Shorten an address for display
+ * @param {string} address - Full address
+ * @param {number} startChars - Characters to show at start (default: 8)
+ * @param {number} endChars - Characters to show at end (default: 8)
+ * @returns {string} Shortened address (e.g., "thor1abc...wxyz")
+ *
+ * @example
+ * shortenAddress('thor1abc123def456ghi789jkl012mno345pqr678stu')
+ * // => 'thor1abc...678stu'
+ */
+export function shortenAddress(address, startChars = 8, endChars = 6) {
+  if (!address) return '';
+  if (address.length <= startChars + endChars + 3) return address;
+  return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
+}
+
+/**
+ * Get last N characters of an address (useful for node identifiers)
+ * @param {string} address - Full address
+ * @param {number} chars - Number of characters (default: 4)
+ * @returns {string} Last N characters
+ *
+ * @example
+ * getAddressSuffix('thor1abc123def456ghi789jkl012mno345pqr678stu')
+ * // => 'stu'
+ */
+export function getAddressSuffix(address, chars = 4) {
+  if (!address) return '';
+  return address.slice(-chars);
+}
+
+// ============================================
+// RUNE-specific formatting utilities
+// ============================================
+
+/**
+ * Format a RUNE amount with smart decimals based on size
+ * - Large amounts (>=1000): No decimals
+ * - Medium amounts (>=1): 2 decimals
+ * - Small amounts (>=0.01): 4 decimals
+ * - Tiny amounts: 8 decimals
+ * @param {number} amount - Amount in human-readable units
+ * @returns {string} Formatted RUNE amount
+ *
+ * @example
+ * formatRuneAmount(1234567.89) // => '1,234,568'
+ * formatRuneAmount(123.456789) // => '123.46'
+ * formatRuneAmount(0.12345678) // => '0.1235'
+ * formatRuneAmount(0.00012345) // => '0.00012345'
+ */
+export function formatRuneAmount(amount) {
+  if (amount === null || amount === undefined || isNaN(amount)) return '0';
+
+  const absAmount = Math.abs(amount);
+
+  if (absAmount >= 1000) {
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  } else if (absAmount >= 1) {
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } else if (absAmount >= 0.01) {
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  }
+  return amount.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 });
+}
+
+/**
+ * Format a THORChain amount from base units (1e8) to display string
+ * @param {number|string} amount - Amount in base units
+ * @param {number} decimals - Decimal places (default: 2)
+ * @returns {string} Formatted amount string
+ *
+ * @example
+ * formatThorAmount('12345678900') // => '123.46'
+ * formatThorAmount('12345678900', 4) // => '123.4568'
+ */
+export function formatThorAmount(amount, decimals = 2) {
+  if (amount === null || amount === undefined) return '0';
+
+  const value = Number(amount) / 1e8;
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(value);
+}
