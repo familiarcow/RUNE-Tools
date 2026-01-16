@@ -107,7 +107,7 @@
     return formattedValue.replace(/^\D+/, currencySymbols[currency]);
   };
 
-  const numFormat = (x) => Intl.NumberFormat().format(x); //formats large numbers with commas
+  // Using shared formatNumber from $lib/utils/formatting
 
   const updateAddressesFromURL = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -172,17 +172,6 @@
       bondvaluebtc = (my_bond * btcruneprice) / 1e8;
     } catch (error) {
       console.error("Error fetching BTC pool data:", error);
-    }
-  };
-
-  const formatBondAmount = (bondAmount) => {
-    const runeAmount = bondAmount / 1e8;
-    if (runeAmount >= 1000000) {
-      return Math.round(runeAmount / 1000000) + "M";
-    } else if (runeAmount >= 1000) {
-      return Math.round(runeAmount / 1000) + "k";
-    } else {
-      return Math.round(runeAmount);
     }
   };
 
@@ -273,7 +262,7 @@
           award: userAward,
           apy: nodeAPY,
           fee: nodeOperatorFee,
-          bondFormatted: formatBondAmount(userBond),
+          bondFormatted: simplifyNumber(fromBaseUnit(userBond)),
           bondFullAmount: Math.round(userBond / 1e8),
           btcValue: (userBond * btcruneprice) / 1e8
         };
@@ -355,13 +344,6 @@
       updateURLBondOnly();
       fetchBondData();
     }
-  };
-
-  const updateURL = () => {
-    const url = new URL(window.location);
-    url.searchParams.set("bond_address", my_bond_address);
-    url.searchParams.set("node_address", node_address);
-    window.history.pushState({}, '', url);
   };
 
   const updateURLBondOnly = () => {
@@ -490,7 +472,7 @@
                 <div class="loading-bar main-bar"></div>
               {:else if showContent}
                 <div class="fade-in-content">
-                  {numFormat((my_bond / 1e8).toFixed(1))}
+                  {formatNumber(my_bond / 1e8, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                   <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
                 </div>
               {/if}
@@ -515,7 +497,7 @@
                   <div class="loading-bar main-bar"></div>
                 {:else if showContent}
                   <div class="fade-in-content">
-                    {numFormat((my_award / 1e8).toFixed(1))}
+                    {formatNumber(my_award / 1e8, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                     <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
                   </div>
                 {/if}
@@ -566,7 +548,7 @@
                   {:else}
                     <span class="usd-value {showContent ? 'fade-in-content' : ''}">{formattedAPY}/yr</span>
                     <span class="rune-value {showContent ? 'fade-in-content' : ''}">
-                      {numFormat(((APY * my_bond) / 1e8).toFixed(0))}
+                      {formatNumber((APY * my_bond) / 1e8, { maximumFractionDigits: 0 })}
                       <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="rune-icon" />
                       /yr
                     </span>
@@ -650,7 +632,7 @@
                       </div>
                       <div class="node-details">
                         <span class="node-bond">
-                          {numFormat(node.bondFullAmount)}
+                          {formatNumber(node.bondFullAmount)}
                           <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" class="node-rune-icon" />
                         </span>
                         <span class="node-fee">Fee: {(node.fee * 100).toFixed(1)}%</span>
