@@ -183,7 +183,7 @@
       showContent = false;
 
       // Fetch bond data from midgard
-      const bondData = await midgard.fetch(`/v2/bonds/${my_bond_address}`);
+      const bondData = await midgard.fetch(`/bonds/${my_bond_address}`);
       
       // Filter nodes with bond > 1 RUNE (1e8 base units)
       const nodesWithBond = bondData.nodes.filter(node => Number(node.bond) > 1e8);
