@@ -1,7 +1,8 @@
 <script>
   import { onMount } from 'svelte';
-  import axios from 'axios';
   import { fade } from 'svelte/transition';
+  import { thornode } from '$lib/api';
+  import { PageHeader, LoadingBar } from '$lib/components';
 
   let constants = null;
   let mimir = null;
@@ -13,13 +14,13 @@
 
   onMount(async () => {
     try {
-      const [constantsResponse, mimirResponse] = await Promise.all([
-        axios.get('https://thornode.ninerealms.com/thorchain/constants'),
-        axios.get('https://thornode.ninerealms.com/thorchain/mimir')
+      const [constantsData, mimirData] = await Promise.all([
+        thornode.fetch('/thorchain/constants'),
+        thornode.fetch('/thorchain/mimir')
       ]);
 
-      constants = constantsResponse.data;
-      mimir = mimirResponse.data;
+      constants = constantsData;
+      mimir = mimirData;
       loading = false;
     } catch (err) {
       error = 'Failed to fetch data. Please try again later.';
@@ -89,15 +90,16 @@
 </script>
 
 <div class="container">
-  <div class="app-header">
-    <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo">
-    <h2>THORChain Constants</h2>
-    <div class="info-icon" on:click={() => showToast('Constants are the core parameters that govern the THORChain protocol.')}>ⓘ</div>
-  </div>
+  <PageHeader title="THORChain Constants">
+    <div slot="actions" class="header-actions">
+      <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo" class="header-logo">
+      <div class="info-icon" on:click={() => showToast('Constants are the core parameters that govern the THORChain protocol.')}>ⓘ</div>
+    </div>
+  </PageHeader>
 
   <div class="search-container">
-    <input 
-      type="text" 
+    <input
+      type="text"
       bind:value={searchTerm}
       placeholder="Search constants..."
       class="search-input"
@@ -105,7 +107,10 @@
   </div>
 
   {#if loading}
-    <div class="loading">Loading data...</div>
+    <div class="loading-container">
+      <LoadingBar width="200px" height="20px" />
+      <p class="loading-text">Loading constants...</p>
+    </div>
   {:else if error}
     <div class="error">{error}</div>
   {:else}
@@ -164,68 +169,43 @@
     min-height: 100vh;
   }
 
-  .app-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 30px;
-    position: relative;
-    overflow: hidden;
+  .header-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 15px;
+    gap: 12px;
   }
 
-  .app-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    animation: shimmer 5s infinite;
-  }
-
-  @keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
-  }
-
-  .app-header img {
-    width: 40px;
-    height: 40px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .app-header h2 {
-    margin: 0;
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    color: #FFFFFF;
-    background: transparent;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    position: relative;
-    z-index: 1;
+  .header-logo {
+    width: 32px;
+    height: 32px;
   }
 
   .info-icon {
-    position: absolute;
-    right: 0;
     background: none;
     border: none;
-    color: #4A90E2;
+    color: rgba(255, 255, 255, 0.8);
     cursor: pointer;
     font-size: 18px;
-    opacity: 0.7;
     transition: opacity 0.2s;
   }
 
   .info-icon:hover {
-    opacity: 1;
+    color: #ffffff;
+  }
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+  }
+
+  .loading-text {
+    color: #a0a0a0;
+    font-size: 14px;
+    margin: 0;
   }
 
   .search-container {
@@ -400,14 +380,6 @@
     z-index: 1000;
   }
 
-  .loading {
-    text-align: center;
-    color: #a0a0a0;
-    font-size: 18px;
-    font-weight: 600;
-    padding: 40px;
-  }
-
   .error {
     text-align: center;
     color: #dc3545;
@@ -423,14 +395,6 @@
     .container {
       padding: 16px;
       max-width: 100%;
-    }
-
-    .app-header {
-      padding: 16px;
-    }
-
-    .app-header h2 {
-      font-size: 24px;
     }
 
     table {
@@ -453,14 +417,6 @@
   }
 
   @media (max-width: 400px) {
-    .app-header {
-      padding: 12px;
-    }
-
-    .app-header h2 {
-      font-size: 22px;
-    }
-
     .key-column {
       width: 40%;
     }
