@@ -740,18 +740,14 @@
     width: 24px;
     height: 24px;
     margin-left: 5px;
-    vertical-align: top;
-    position: relative;
-    top: 2px;
+    vertical-align: middle;
   }
 
   .rune-icon {
     width: 24px;
     height: 24px;
     margin-left: 5px;
-    vertical-align: top;
-    position: relative;
-    top: 2px;
+    vertical-align: middle;
   }
 
   .burn-notification {
