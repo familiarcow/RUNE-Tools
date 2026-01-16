@@ -1,6 +1,8 @@
 <script>
   import { onMount } from "svelte";
   import Chart from "chart.js/auto";
+  import { thornode } from '$lib/api';
+  import { PageHeader } from '$lib/components';
 
   let value, currentDeposit, pnl, depositorCount;
   let runeAddress = "";
@@ -53,8 +55,7 @@
   });
 
   async function fetchRunepoolData() {
-    const response = await fetch("https://thornode.ninerealms.com/thorchain/runepool");
-    const data = await response.json();
+    const data = await thornode.fetch('/thorchain/runepool');
     const providers = data.providers;
 
     value = formatRuneAmount(providers.value / 1e8);
@@ -65,27 +66,25 @@
   }
 
   async function fetchDepositorCount() {
-    const response = await fetch("https://thornode.ninerealms.com/thorchain/rune_providers");
-    const data = await response.json();
+    const data = await thornode.fetch('/thorchain/rune_providers');
     depositorCount = data.length;
   }
 
   async function fetchUserPosition(address) {
     if (!address) return;
 
-    const response = await fetch(`https://thornode.ninerealms.com/thorchain/rune_provider/${address}`);
-    const data = await response.json();
+    // Fetch user position, mimir, and last block in parallel
+    const [data, mimirData, blockData] = await Promise.all([
+      thornode.fetch(`/thorchain/rune_provider/${address}`),
+      thornode.fetch('/thorchain/mimir'),
+      thornode.fetch('/thorchain/lastblock')
+    ]);
 
     userValue = formatRuneAmount(data.value / 1e8);
     userDeposit = formatRuneAmount(data.deposit_amount / 1e8);
     userPnL = formatRuneAmount(data.pnl / 1e8);
 
-    const constantsResponse = await fetch("https://thornode-v1.ninerealms.com/thorchain/mimir");
-    const constantsData = await constantsResponse.json();
-    const maturityBlocks = constantsData.RUNEPOOLDEPOSITMATURITYBLOCKS;
-
-    const blockResponse = await fetch("https://thornode.ninerealms.com/thorchain/lastblock");
-    const blockData = await blockResponse.json();
+    const maturityBlocks = mimirData.RUNEPOOLDEPOSITMATURITYBLOCKS;
     const currentBlock = blockData.find((block) => block.chain === "AVAX").thorchain;
 
     const lastDepositHeight = data.last_deposit_height;
@@ -94,8 +93,7 @@
   }
 
   async function fetchAllPositions() {
-    const response = await fetch("https://thornode.ninerealms.com/thorchain/rune_providers");
-    const data = await response.json();
+    const data = await thornode.fetch('/thorchain/rune_providers');
 
     allPositions = data.map((position) => {
       const depositValue = position.deposit_amount / 1e8;
@@ -116,10 +114,12 @@
 
   async function fetchPoolBreakdown() {
     try {
-        // First get all pools data
-        const poolsResponse = await fetch("https://thornode.ninerealms.com/thorchain/pools");
-        const poolsData = await poolsResponse.json();
-        
+        // First get all pools data and mimir in parallel
+        const [poolsData, mimirData] = await Promise.all([
+          thornode.fetch('/thorchain/pools'),
+          thornode.fetch('/thorchain/mimir')
+        ]);
+
         // Create a map of pool balances
         const poolBalances = poolsData.reduce((acc, pool) => {
             const poolName = pool.asset;
@@ -128,9 +128,6 @@
         }, {});
 
         // Get POL-enabled pools from Mimir
-        const mimirResponse = await fetch("https://thornode.thorchain.liquify.com/thorchain/mimir");
-        const mimirData = await mimirResponse.json();
-        
         const polPools = Object.entries(mimirData)
             .filter(([key, value]) => key.startsWith('POL-') && value === 1)
             .map(([key]) => {
@@ -143,9 +140,8 @@
             try {
                 const [chain, ...rest] = asset.split('-');
                 const poolName = `${chain}.${rest.join('-')}`;
-                
-                const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/pool/${poolName}/liquidity_provider/thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt`);
-                const data = await response.json();
+
+                const data = await thornode.fetch(`/thorchain/pool/${poolName}/liquidity_provider/thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt`);
                 const runeValue = Number(data.rune_redeem_value) / 1e8;
                 
                 // Calculate ownership percentage
@@ -485,11 +481,7 @@
 </script>
 
 <div class="container">
-  <div class="app-header">
-    
-    <h2>Rune Pool</h2>
-    <div class="info-icon" on:click={() => alert('View and manage THORChain Rune Pool positions')}>ⓘ</div>
-  </div>
+  <PageHeader title="RUNEPool" />
 
   <div class="tabs">
     <button 
@@ -667,43 +659,6 @@
     margin: 0 auto;
     padding: 20px;
     font-family: 'Exo 2', sans-serif;
-  }
-
-  .app-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 40px;
-    gap: 15px;
-    position: relative;
-  }
-
-  .app-header img {
-    width: 40px;
-    height: 40px;
-  }
-
-  .app-header h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-    color: #f8f8f8;
-  }
-
-  .info-icon {
-    position: absolute;
-    right: 0;
-    background: none;
-    border: none;
-    color: #4A90E2;
-    cursor: pointer;
-    font-size: 18px;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-  }
-
-  .info-icon:hover {
-    opacity: 1;
   }
 
   .tabs {
