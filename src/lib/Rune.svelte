@@ -3,6 +3,8 @@
   import { tweened } from 'svelte/motion';
   import { fly, fade } from 'svelte/transition';
   import Chart from 'chart.js/auto';
+  import { thornode } from '$lib/api';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
 
   let runePrice = null;
   let isLoading = true;
@@ -45,74 +47,12 @@
   let lastRankFetch = 0;
   const RANK_FETCH_INTERVAL = 120000; // 2 minutes in milliseconds
 
-  // Add fallback endpoints
-  const API_ENDPOINTS = {
-    primary: 'https://thornode.thorchain.liquify.com',
-    fallback: 'https://thornode.ninerealms.com'
-  };
-
-  async function fetchWithFallback(endpoint, path) {
-    const errors = [];
-    
-    // Try primary endpoint first (Liquify)
-    try {
-      console.log(`Attempting primary endpoint: ${API_ENDPOINTS.primary}${path}`);
-      const response = await fetch(`${API_ENDPOINTS.primary}${path}`, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        timeout: 5000
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (primaryErr) {
-      console.error('Primary endpoint failed:', {
-        error: primaryErr.message,
-        type: primaryErr.name
-      });
-      errors.push(`Primary: ${primaryErr.message}`);
-      
-      // If primary fails, try fallback (Nine Realms)
-      try {
-        console.log(`Attempting fallback endpoint: ${API_ENDPOINTS.fallback}${path}`);
-        const response = await fetch(`${API_ENDPOINTS.fallback}${path}`, {
-          mode: 'cors',
-          headers: {
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache',
-            'x-client-id': 'RuneTools'  // Only include x-client-id for Nine Realms
-          },
-          timeout: 5000
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Server responded with ${response.status}`);
-        }
-        
-        return await response.json();
-      } catch (fallbackErr) {
-        console.error('Fallback endpoint failed:', {
-          error: fallbackErr.message,
-          type: fallbackErr.name
-        });
-        errors.push(`Fallback: ${fallbackErr.message}`);
-        throw new Error(`All endpoints failed: ${errors.join(', ')}`);
-      }
-    }
-  }
-
   async function fetchRunePrice() {
     try {
       console.log('Fetching RUNE price...');
-      const data = await fetchWithFallback('', '/thorchain/network');
-      
-      const newPrice = Number(data.rune_price_in_tor) / 1e8;
+      const data = await thornode.fetch('/thorchain/network');
+
+      const newPrice = fromBaseUnit(data.rune_price_in_tor);
       console.log('RUNE price fetch successful:', { price: newPrice });
       
       // Calculate price change if we have a previous price
@@ -320,12 +260,12 @@
   async function fetchPoolsData() {
     try {
       console.log('Fetching pools data...');
-      const data = await fetchWithFallback('', '/thorchain/pools');
+      const data = await thornode.fetch('/thorchain/pools');
       poolsData = data;
-      
+
       const btcPool = data.find(pool => pool.asset === 'BTC.BTC');
       if (btcPool) {
-        const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
+        const btcPrice = fromBaseUnit(btcPool.asset_tor_price);
         
         // Calculate price change if we have a previous price
         if (lastBtcPrice !== null) {
@@ -592,7 +532,7 @@
       
       const btcPool = poolsData.find(pool => pool.asset === 'BTC.BTC');
       if (btcPool) {
-        const btcPrice = Number(btcPool.asset_tor_price) / 1e8;
+        const btcPrice = fromBaseUnit(btcPool.asset_tor_price);
         btcPriceHistory = [
           { price: btcPrice, timestamp: twelveSecondsAgo },
           { price: btcPrice, timestamp: sixSecondsAgo },
