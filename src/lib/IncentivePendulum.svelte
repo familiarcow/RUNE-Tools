@@ -1,5 +1,9 @@
 <script>
   import { onMount } from "svelte";
+  import { thornode } from '$lib/api';
+  import { PageHeader, LoadingBar } from '$lib/components';
+  import { formatNumber, simplifyNumber } from '$lib/utils/formatting';
+  import { getAssetShortName, fromBaseUnit } from '$lib/utils/blockchain';
 
   let securedAssets = [];
   let totalSecuredValue = 0;
@@ -28,19 +32,14 @@
 
   const fetchData = async () => {
     try {
-      const [vaultsResponse, poolsResponse, nodesResponse, mimirResponse, pendulumUseVaultAssetsResponse, pendulumUseEffectiveSecurityResponse] = await Promise.all([
-        fetch("https://thornode.ninerealms.com/thorchain/vaults/asgard"),
-        fetch("https://thornode.ninerealms.com/thorchain/pools"),
-        fetch("https://thornode.ninerealms.com/thorchain/nodes"),
-        fetch("https://thornode.ninerealms.com/thorchain/mimir/key/PendulumAssetBasisPoints"),
-        fetch("https://thornode.ninerealms.com/thorchain/mimir/key/PendulumUseVaultAssets"),
-        fetch("https://thornode.ninerealms.com/thorchain/mimir/key/PendulumUseEffectiveSecurity")
+      const [vaultsData, poolsData, nodesData, mimirData, pendulumUseVaultAssetsData, pendulumUseEffectiveSecurityData] = await Promise.all([
+        thornode.fetch('/thorchain/vaults/asgard'),
+        thornode.fetch('/thorchain/pools'),
+        thornode.fetch('/thorchain/nodes'),
+        thornode.fetch('/thorchain/mimir/key/PendulumAssetBasisPoints'),
+        thornode.fetch('/thorchain/mimir/key/PendulumUseVaultAssets'),
+        thornode.fetch('/thorchain/mimir/key/PendulumUseEffectiveSecurity')
       ]);
-
-      const vaultsData = await vaultsResponse.json();
-      const poolsData = await poolsResponse.json();
-      const nodesData = await nodesResponse.json();
-      const mimirData = await mimirResponse.json();
 
       const assetTotals = {};
       const poolPrices = {};
@@ -49,8 +48,7 @@
       vaultsData.forEach(vault => {
         vault.coins.forEach(coin => {
           const { asset, amount } = coin;
-          const divisor = 1e8;
-          assetTotals[asset] = (assetTotals[asset] || 0) + Number(amount) / divisor;
+          assetTotals[asset] = (assetTotals[asset] || 0) + fromBaseUnit(amount);
         });
       });
 
@@ -60,8 +58,8 @@
         poolPrices[pool.asset] = assetPrice;
       });
 
-      pendulumUseVaultAssets = Number(await pendulumUseVaultAssetsResponse.json());
-      pendulumUseEffectiveSecurity = Number(await pendulumUseEffectiveSecurityResponse.json());
+      pendulumUseVaultAssets = Number(pendulumUseVaultAssetsData);
+      pendulumUseEffectiveSecurity = Number(pendulumUseEffectiveSecurityData);
 
       // Calculate totalSecuredValue based on PendulumUseVaultAssets
       if (pendulumUseVaultAssets === 1) {
@@ -76,35 +74,35 @@
         securedAssets.sort((a, b) => b.runeValue - a.runeValue);
       } else {
         // Use Pool Assets
-        totalSecuredValue = poolsData.reduce((sum, pool) => sum + Number(pool.balance_rune) / 1e8, 0);
+        totalSecuredValue = poolsData.reduce((sum, pool) => sum + fromBaseUnit(pool.balance_rune), 0);
         securedAssets = poolsData.map(pool => ({
           asset: pool.asset,
           shortName: getAssetShortName(pool.asset),
-          amount: Number(pool.balance_asset) / 1e8,
-          runeValue: Number(pool.balance_rune) / 1e8
+          amount: fromBaseUnit(pool.balance_asset),
+          runeValue: fromBaseUnit(pool.balance_rune)
         }));
         securedAssets.sort((a, b) => b.runeValue - a.runeValue);
       }
 
       // Calculate total active bond
       const activeNodes = nodesData.filter(node => node.status === "Active");
-      
+
       if (pendulumUseEffectiveSecurity === 1) {
         usingAllNodesBond = false;
         // Sort nodes by bond amount in descending order
         activeNodes.sort((a, b) => Number(b.total_bond) - Number(a.total_bond));
-        
+
         // Calculate cutoff index for bottom 2/3 of nodes (cutting off top 1/3)
         const cutoffIndex = Math.floor(activeNodes.length / 3);
-        
+
         // Sum the bonds of the bottom 2/3 of nodes
-        totalActiveBond = activeNodes.reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
+        totalActiveBond = activeNodes.reduce((sum, node) => sum + fromBaseUnit(node.total_bond), 0);
         adjustedBond = activeNodes
           .slice(cutoffIndex)
-          .reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
+          .reduce((sum, node) => sum + fromBaseUnit(node.total_bond), 0);
       } else {
         usingAllNodesBond = true;
-        totalActiveBond = activeNodes.reduce((sum, node) => sum + Number(node.total_bond) / 1e8, 0);
+        totalActiveBond = activeNodes.reduce((sum, node) => sum + fromBaseUnit(node.total_bond), 0);
         adjustedBond = totalActiveBond;
       }
 
@@ -129,16 +127,9 @@
     });
   });
 
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(num);
-  };
-
+  // Local formatPercentage - takes percentage value directly (e.g., 67.5 -> "67.50%")
   const formatPercentage = (num) => {
     return num.toFixed(2) + '%';
-  };
-
-  const getAssetShortName = (asset) => {
-    return asset.split('-')[0];
   };
 
   const toggleShowAllAssets = () => {
@@ -236,28 +227,18 @@
     calculateDependentValues();
   }
 
-  $: formattedTotalActiveBond = isLoading ? "Loading..." : formatNumber(totalActiveBond);
-  $: formattedTotalSecuredValue = isLoading ? "Loading..." : formatNumber(totalSecuredValue);
+  $: formattedTotalActiveBond = isLoading ? "Loading..." : formatNumber(totalActiveBond, { maximumFractionDigits: 0 });
+  $: formattedTotalSecuredValue = isLoading ? "Loading..." : formatNumber(totalSecuredValue, { maximumFractionDigits: 0 });
   $: formattedNodeShare = isLoading ? "Loading..." : formatPercentage(nodeShare);
   $: formattedPoolShare = isLoading ? "Loading..." : formatPercentage(poolShare);
   $: formattedPendulumModifier = isLoading ? "Loading..." : formatNumber(pendulumAssetBasisPoints / 10000);
-  $: formattedTotalAdjustedSecuredValue = isLoading ? "Loading..." : formatNumber(totalAdjustedSecuredValue);
-  $: formattedAdjustedBond = isLoading ? "Loading..." : formatNumber(adjustedBond);
-
-  // Add this helper function to simplify large numbers
-  function simplifyNumber(num) {
-    if (num >= 1000000) {
-      return Math.round(num / 1000000) + 'M';
-    } else if (num >= 1000) {
-      return Math.round(num / 1000) + 'K';
-    }
-    return Math.round(num);
-  }
+  $: formattedTotalAdjustedSecuredValue = isLoading ? "Loading..." : formatNumber(totalAdjustedSecuredValue, { maximumFractionDigits: 0 });
+  $: formattedAdjustedBond = isLoading ? "Loading..." : formatNumber(adjustedBond, { maximumFractionDigits: 0 });
 </script>
 
 <div class="incentive-pendulum">
   <div class="container">
-    <h2>THORChain Incentive Pendulum</h2>
+    <PageHeader title="THORChain Incentive Pendulum" />
     <div class="network-state">
       <div class="balance-scale">
         <div class="scale-beam" style="transform: translateX(-50%) rotate({scalePosition}deg)">
@@ -419,7 +400,7 @@
           {#each securedAssets as asset}
             <tr>
               <td>{asset.shortName}</td>
-              <td>{formatNumber(asset.runeValue)}</td>
+              <td>{formatNumber(asset.runeValue, { maximumFractionDigits: 0 })}</td>
             </tr>
           {/each}
         </tbody>
@@ -445,36 +426,6 @@
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     overflow: hidden;
-  }
-
-  h2 {
-    text-align: center;
-    margin: 0;
-    padding: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #FFFFFF;
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    position: relative;
-    overflow: hidden;
-  }
-
-  h2::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    animation: shimmer 5s infinite;
-  }
-
-  @keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
   }
 
   .grid {
@@ -536,9 +487,7 @@
     width: 24px;
     height: 24px;
     margin-left: 6px;
-    vertical-align: top;
-    position: relative;
-    top: 2px;
+    vertical-align: middle;
   }
 
   .toggle-button {
@@ -618,11 +567,6 @@
   @media (max-width: 600px) {
     .incentive-pendulum {
       padding: 16px;
-    }
-
-    h2 {
-      padding: 16px;
-      font-size: 24px;
     }
 
     .grid {
@@ -782,9 +726,7 @@
     width: 20px;
     height: 20px;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
-    vertical-align: top;
-    position: relative;
-    top: 1px;
+    vertical-align: middle;
   }
 
   .state-label {
@@ -1062,11 +1004,6 @@
   @media (max-width: 400px) {
     .incentive-pendulum {
       padding: 12px;
-    }
-
-    h2 {
-      padding: 12px;
-      font-size: 22px;
     }
 
     .card {
