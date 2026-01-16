@@ -6,6 +6,7 @@
     import { getAssetLogo, getChainLogo, getAssetDisplayName, ASSET_LOGOS, CHAIN_LOGOS } from '$lib/constants/assets';
     import { formatUSD, formatUSDWithDecimals, shortenAddress, getAddressSuffix } from '$lib/utils/formatting';
     import { denomToAsset } from '$lib/utils/wallet';
+    import { getBondsForAddresses, calculateTotalBondValue } from '$lib/utils/bonds';
 
 //This app currently does not check free asset value on chains other than THORChain
 
@@ -184,17 +185,17 @@
             }
         }
 
-        // Add up bond values
+        // Add up bond values (amount is already in human-readable units from shared utility)
         for (const bond of bonds) {
-            total += (Number(bond.amount) / 1e8) * runePrice;
+            total += bond.amount * runePrice;
         }
 
         return total;
     }
 
-    // Helper function to format RUNE amount
+    // Helper function to format RUNE amount (expects human-readable units)
     function formatRune(amount) {
-        return (amount / 1e8).toLocaleString(undefined, {
+        return amount.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
@@ -202,41 +203,21 @@
 
     // getAddressSuffix imported from $lib/utils/formatting (replaces getLastFour)
 
-    // Fetch and process bonds from nodes
+    // Fetch bonds using shared utility
     async function fetchBonds() {
         try {
-            const nodes = await thornode.fetch('/thorchain/nodes');
-
-            // Process each node to find bonds from our addresses
-            const allBonds = [];
-
-            nodes.forEach(node => {
-                if (node.bond_providers?.providers) {
-                    node.bond_providers.providers.forEach(provider => {
-                        // Check if the provider is one of our tracked addresses
-                        const matchingAddress = THOR_ADDRESSES.find(addr => addr.address === provider.bond_address);
-                        if (matchingAddress) {
-                            allBonds.push({
-                                nodeAddress: node.node_address,
-                                amount: Number(provider.bond),
-                                bondAddress: provider.bond_address
-                            });
-                        }
-                    });
-                }
-            });
-
-            bonds = allBonds;
+            const addresses = THOR_ADDRESSES.map(a => a.address);
+            bonds = await getBondsForAddresses(addresses);
         } catch (e) {
             console.error('Failed to fetch bonds:', e);
             bonds = [];
         }
     }
 
-    function calculateTotalBondValue(bondsList) {
-        return bondsList.reduce((total, bond) => {
-            return total + ((Number(bond.amount) / 1e8) * runePrice);
-        }, 0);
+    // calculateTotalBondValue imported from $lib/utils/bonds
+    // Wrapper to pass runePrice
+    function getTotalBondValueUSD(bondsList) {
+        return calculateTotalBondValue(bondsList, runePrice);
     }
 
     function calculateLockedLPValue(balancesData) {
@@ -314,7 +295,7 @@
             <div class="stats-container">
                 <div class="stat-box">
                     <span class="stat-label">Bonded Value</span>
-                    <span class="stat-value">{formatUSD(calculateTotalBondValue(bonds))}</span>
+                    <span class="stat-value">{formatUSD(getTotalBondValueUSD(bonds))}</span>
                 </div>
                 <div class="stat-box">
                     <span class="stat-label">Locked LP Value</span>
@@ -534,7 +515,7 @@
                                                 </div>
                                                 {#if runePrice}
                                                     <span class="usd-value">
-                                                        {formatUSD((bond.amount / 1e8) * runePrice)}
+                                                        {formatUSD(bond.amount * runePrice)}
                                                     </span>
                                                 {/if}
                                             </div>
