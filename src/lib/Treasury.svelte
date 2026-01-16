@@ -4,6 +4,8 @@
     import { thornode } from '$lib/api';
     import { PageHeader } from '$lib/components';
     import { getAssetLogo, getChainLogo, getAssetDisplayName, ASSET_LOGOS, CHAIN_LOGOS } from '$lib/constants/assets';
+    import { formatUSD, formatUSDWithDecimals, shortenAddress, getAddressSuffix } from '$lib/utils/formatting';
+    import { denomToAsset } from '$lib/utils/wallet';
 
 //This app currently does not check free asset value on chains other than THORChain
 
@@ -20,28 +22,6 @@
     const assetLogos = ASSET_LOGOS;
     const chainIcons = CHAIN_LOGOS;
 
-    /**
-     * Convert THORChain denom to full asset identifier
-     * e.g., 'rune' -> 'THOR.RUNE', 'tcy' -> 'THOR.TCY'
-     */
-    function denomToAsset(denom) {
-        if (!denom) return '';
-
-        const lowerDenom = denom.toLowerCase();
-
-        // Native RUNE
-        if (lowerDenom === 'rune') return 'THOR.RUNE';
-
-        // TCY token
-        if (lowerDenom === 'tcy') return 'THOR.TCY';
-
-        // RUJI token
-        if (lowerDenom === 'ruji') return 'THOR.RUJI';
-
-        // Default: try uppercase with THOR chain prefix
-        return `THOR.${denom.toUpperCase()}`;
-    }
-    
     let balances = [];
     let lpPositions = {};  // Store LP positions by address
     let loading = true;
@@ -57,23 +37,7 @@
         }).format(Number(amount) / 1e8);
     }
 
-    function formatUSD(amount) {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(amount);
-    }
-
-    function formatUSDWithDecimals(amount) {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(amount);
-    }
+    // formatUSD and formatUSDWithDecimals imported from $lib/utils/formatting
 
     function formatAssetName(denom) {
         if (denom === 'rune') return 'RUNE';
@@ -198,10 +162,7 @@
         return amount * assetPrices[asset];
     }
 
-    function shortenAddress(address) {
-        if (!address) return '';
-        return `${address.slice(0, 8)}...${address.slice(-8)}`;
-    }
+    // shortenAddress imported from $lib/utils/formatting
 
     function calculateTotalValue(balancesData) {
         let total = 0;
@@ -239,10 +200,7 @@
         });
     }
 
-    // Helper function to get last 4 chars of address
-    function getLastFour(address) {
-        return address.slice(-4);
-    }
+    // getAddressSuffix imported from $lib/utils/formatting (replaces getLastFour)
 
     // Fetch and process bonds from nodes
     async function fetchBonds() {
@@ -550,7 +508,7 @@
                                     <div class="balances-container">
                                         {#each bonds.filter(b => b.bondAddress === address) as bond}
                                             <div class="amount-row">
-                                                <span class="node-address">{getLastFour(bond.nodeAddress)}</span>
+                                                <span class="node-address">{getAddressSuffix(bond.nodeAddress, 4)}</span>
                                                 <span class="amount">{formatRune(bond.amount)}</span>
                                                 <div class="logo-container small">
                                                     <img 
