@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
   import { cubicOut } from 'svelte/easing';
+  import { thornode } from '$lib/api';
+  import { PageHeader } from '$lib/components';
 
   const pools = writable([]);
   const saversPositions = writable([]);
@@ -53,8 +55,7 @@
 
   async function fetchPools() {
     try {
-      const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/pools?height=${BLOCK_HEIGHT}`);
-      const data = await response.json();
+      const data = await thornode.fetch('/thorchain/pools', { blockHeight: BLOCK_HEIGHT });
       const prices = {};
       data.forEach(pool => {
         prices[pool.asset] = Number(pool.asset_tor_price) / 1e8;
@@ -70,8 +71,7 @@
 
   async function fetchSaversForAsset(asset) {
     try {
-      const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/pool/${asset}/savers?height=${BLOCK_HEIGHT}`);
-      const data = await response.json();
+      const data = await thornode.fetch(`/thorchain/pool/${asset}/savers`, { blockHeight: BLOCK_HEIGHT });
       return data.map(position => ({
         ...position,
         asset,
@@ -85,8 +85,7 @@
 
   async function fetchBorrowersForAsset(asset) {
     try {
-      const response = await fetch(`https://thornode.thorchain.liquify.com/thorchain/pool/${asset}/borrowers?height=${BLOCK_HEIGHT}`);
-      const data = await response.json();
+      const data = await thornode.fetch(`/thorchain/pool/${asset}/borrowers`, { blockHeight: BLOCK_HEIGHT });
       return data.map(position => ({
         ...position,
         asset,
@@ -237,11 +236,7 @@
 
 <main>
   <div class="container">
-    <div class="app-header">
-      <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo">
-      <h2>THORChain Debt Dashboard</h2>
-      <div class="info-icon" on:click={() => alert('View THORChain Savers and Lending positions dollarized at the THORFi halt height.')}>ⓘ</div>
-    </div>
+    <PageHeader title="THORFi Debt Dashboard" />
 
     <div class="tabs">
       <button
@@ -448,43 +443,6 @@
     margin: 0 auto;
     padding: 20px;
     font-family: 'Exo 2', sans-serif;
-  }
-
-  .app-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 40px;
-    gap: 15px;
-    position: relative;
-  }
-
-  .app-header img {
-    width: 40px;
-    height: 40px;
-  }
-
-  .app-header h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-    color: #f8f8f8;
-  }
-
-  .info-icon {
-    position: absolute;
-    right: 0;
-    background: none;
-    border: none;
-    color: #4A90E2;
-    cursor: pointer;
-    font-size: 18px;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-  }
-
-  .info-icon:hover {
-    opacity: 1;
   }
 
   .tabs {
