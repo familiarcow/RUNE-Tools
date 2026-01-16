@@ -1,5 +1,7 @@
 <script>
   import { onMount } from "svelte";
+  import { formatCountdown, getAddressSuffix, formatDate as formatDateUtil } from '$lib/utils/formatting';
+  import { blocksToSeconds } from '$lib/utils/blockchain';
 
   let address = "";
   let showData = false;
@@ -241,7 +243,7 @@
   };
 
   const formatDate = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleDateString();
+    return formatDateUtil(timestamp * 1000);
   };
 
   const numFormat = (x) => Intl.NumberFormat().format(x);
@@ -282,7 +284,7 @@
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `tcy-distributions-${address.slice(-4)}.csv`);
+    link.setAttribute('download', `tcy-distributions-${getAddressSuffix(address, 4)}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -360,12 +362,9 @@
       blocksRemaining = blocksRem;
       console.log('Next block:', nextBlock, 'Blocks remaining:', blocksRemaining);
       
-      // Calculate time remaining (assuming 6 seconds per block)
-      const secondsRemaining = blocksRemaining * 6;
-      const hours = Math.floor(secondsRemaining / 3600);
-      const minutes = Math.floor((secondsRemaining % 3600) / 60);
-      
-      nextDistributionTime = `${hours}h ${minutes}m`;
+      // Calculate time remaining using shared block time utility
+      const secondsRemaining = blocksToSeconds(blocksRemaining);
+      nextDistributionTime = formatCountdown(secondsRemaining);
       console.log('Time remaining:', nextDistributionTime);
 
       // Get current accrued RUNE amount
@@ -454,7 +453,7 @@
     {:else}
       <div class="container">
         <div class="tracker-title-box">
-          <h2>TCY Staking - {address.slice(-4)}</h2>
+          <h2>TCY Staking - {getAddressSuffix(address, 4)}</h2>
         </div>
 
         {#if tcyMimir.TCYCLAIMINGHALT === 1 || tcyMimir.TCYCLAIMINGSWAPHALT === 1 || 
