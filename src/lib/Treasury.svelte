@@ -1,6 +1,9 @@
 <script>
     import { onMount } from 'svelte';
     import { fade } from 'svelte/transition';
+    import { thornode } from '$lib/api';
+    import { PageHeader } from '$lib/components';
+    import { getAssetLogo, getChainLogo, getAssetDisplayName, ASSET_LOGOS, CHAIN_LOGOS } from '$lib/constants/assets';
 
 //This app currently does not check free asset value on chains other than THORChain
 
@@ -13,60 +16,31 @@
 
     let LP_ASSETS = []; // Will be populated from pools API
 
-    const THOR_API = 'https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances';
-    const MIDGARD_API = 'https://midgard.ninerealms.com/v2/member';
-    const TREASURY_LP_API = 'https://thornode.ninerealms.com/thorchain/balance/module/treasury';
-    const POOLS_API = 'https://thornode.ninerealms.com/thorchain/pools';
-    
-    const chainIcons = {
-        BTC: '/assets/chains/BTC.svg',
-        ETH: '/assets/chains/ETH.svg',
-        BCH: '/assets/chains/BCH.svg',
-        LTC: '/assets/chains/LTC.svg',
-        DOGE: '/assets/chains/DOGE.svg',
-        AVAX: '/assets/chains/AVAX.svg',
-        BSC: '/assets/chains/BSC.svg',
-        GAIA: '/assets/chains/GAIA.svg',
-        THOR: '/assets/chains/THOR.svg',
-        BASE: '/assets/chains/BASE.svg'
-    };
-    
-    const assetLogos = {
-        'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
-        'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
-        'BSC.BNB': 'assets/coins/binance-coin-bnb-logo.svg',
-        'BCH.BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
-        'LTC.LTC': 'assets/coins/litecoin-ltc-logo.svg',
-        'AVAX.AVAX': 'assets/coins/avalanche-avax-logo.svg',
-        'GAIA.ATOM': 'assets/coins/cosmos-atom-logo.svg',
-        'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
-        'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
-        'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'assets/coins/usd-coin-usdc-logo.svg',
-        'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'assets/coins/tether-usdt-logo.svg',
-        'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': 'assets/coins/wrapped-bitcoin-wbtc-logo.svg',
-        'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': 'assets/coins/usd-coin-usdc-logo.svg',
-        'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg',
-        'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'assets/coins/usd-coin-usdc-logo.svg',
-        'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'assets/coins/tether-usdt-logo.svg',
-        'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': 'assets/coins/multi-collateral-dai-dai-logo.svg',
-        'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': 'assets/coins/gemini-dollar-gusd-logo.svg',
-        'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': 'assets/coins/liquity-usd-logo.svg',
-        'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': 'assets/coins/paxos-standard-usdp-logo.svg',
-        'ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9': 'assets/coins/aave-aave-logo.svg',
-        'ETH.DPI-0X1494CA1F11D487C2BBE4543E90080AEBA4BA3C2B': 'assets/coins/dpi-logo.png',
-        'ETH.LINK-0X514910771AF9CA656AF840DFF83E8264ECF986CA': 'assets/coins/chainlink-link-logo.svg',
-        'ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F': 'assets/coins/synthetix-snx-logo.svg',
-        'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'assets/coins/fox-token-fox-logo.svg',
-        'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'assets/coins/solana-sol-logo.svg',
-        'BASE.ETH': 'assets/coins/ethereum-eth-logo.svg',
-        'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913': 'assets/coins/usd-coin-usdc-logo.svg',
-        'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'assets/coins/coinbase-wrapped-btc-logo.svg',
-        'BSC.TWT-0X4B0F1812E5DF2A09796481FF14017E6005508003': 'assets/coins/twt-logo.png',
-        'ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044': 'assets/coins/thorswap-logo.png',
-        'ETH.VTHOR-0X815C23ECA83261B6EC689B60CC4A58B54BC24D8D': 'assets/coins/thorswap-logo.png',
-        'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'assets/coins/xrune-logo.png',
-        'ETH.TGT-0X108A850856DB3F85D0269A2693D896B394C80325': 'assets/coins/tgt-logo.png'
-    };
+    // Use shared constants for icons
+    const assetLogos = ASSET_LOGOS;
+    const chainIcons = CHAIN_LOGOS;
+
+    /**
+     * Convert THORChain denom to full asset identifier
+     * e.g., 'rune' -> 'THOR.RUNE', 'tcy' -> 'THOR.TCY'
+     */
+    function denomToAsset(denom) {
+        if (!denom) return '';
+
+        const lowerDenom = denom.toLowerCase();
+
+        // Native RUNE
+        if (lowerDenom === 'rune') return 'THOR.RUNE';
+
+        // TCY token
+        if (lowerDenom === 'tcy') return 'THOR.TCY';
+
+        // RUJI token
+        if (lowerDenom === 'ruji') return 'THOR.RUJI';
+
+        // Default: try uppercase with THOR chain prefix
+        return `THOR.${denom.toUpperCase()}`;
+    }
     
     let balances = [];
     let lpPositions = {};  // Store LP positions by address
@@ -113,8 +87,7 @@
 
     async function fetchRunePrice() {
         try {
-            const response = await fetch('https://thornode.ninerealms.com/thorchain/network');
-            const data = await response.json();
+            const data = await thornode.fetch('/thorchain/network');
             runePrice = Number(data.rune_price_in_tor) / 1e8;
         } catch (e) {
             console.error('Error fetching RUNE price:', e);
@@ -123,15 +96,14 @@
 
     async function fetchAssetPrices() {
         try {
-            const response = await fetch('https://thornode.ninerealms.com/thorchain/pools');
-            const pools = await response.json();
-            
+            const pools = await thornode.fetch('/thorchain/pools');
+
             // Create a price map for all assets
             const priceMap = pools.reduce((acc, pool) => {
                 acc[pool.asset] = Number(pool.asset_tor_price) / 1e8;
                 return acc;
             }, {});
-            
+
             assetPrices = priceMap;
 
             // Log USD prices for each asset
@@ -148,20 +120,12 @@
     async function fetchLPPositions(address) {
         try {
             const lpPositions = [];
-            
+
             // Check each asset individually
             for (const asset of LP_ASSETS) {
-                const encodedAsset = encodeURIComponent(asset);
-                const url = `https://thornode.ninerealms.com/thorchain/pool/${encodedAsset}/liquidity_provider/${address}`;
-                
                 try {
-                    const response = await fetch(url);
-                    
-                    // If response is not ok (404 etc), skip this asset
-                    if (!response.ok) continue;
-                    
-                    const data = await response.json();
-                    
+                    const data = await thornode.fetch(`/thorchain/pool/${encodeURIComponent(asset)}/liquidity_provider/${address}`);
+
                     // Only add if there are actual LP positions (units > 0)
                     if (data.units && Number(data.units) > 0) {
                         lpPositions.push({
@@ -173,12 +137,11 @@
                         });
                     }
                 } catch (e) {
-                    console.error(`Error fetching LP position for ${asset}:`, e);
-                    // Continue with next asset even if one fails
+                    // Continue with next asset even if one fails (404 etc)
                     continue;
                 }
             }
-            
+
             return lpPositions;
         } catch (e) {
             console.error(`Error in fetchLPPositions for ${address}:`, e);
@@ -189,10 +152,9 @@
     async function fetchThorBalances() {
         try {
             // Fetch treasury address first
-            const treasuryResponse = await fetch(TREASURY_LP_API);
-            const treasuryData = await treasuryResponse.json();
+            const treasuryData = await thornode.fetch('/thorchain/balance/module/treasury');
             const treasuryAddress = treasuryData.address;
-            
+
             // Add treasury address to the list if not already present
             const addresses = [...THOR_ADDRESSES];
             if (!addresses.find(a => a.address === treasuryAddress)) {
@@ -206,14 +168,13 @@
                 fetchRunePrice(),
                 fetchAssetPrices()
             ]);
-            
+
             // Use the updated addresses array
             const results = await Promise.all(
                 addresses.map(async ({address, label}) => {
-                    const balanceResponse = await fetch(`${THOR_API}/${address}`);
-                    const balanceData = await balanceResponse.json();
+                    const balanceData = await thornode.fetch(`/cosmos/bank/v1beta1/balances/${address}`);
                     const lpPositionsData = await fetchLPPositions(address);
-                    
+
                     return {
                         address,
                         label,
@@ -283,18 +244,14 @@
         return address.slice(-4);
     }
 
-    // Add the nodes API endpoint
-    const NODES_API = 'https://thornode.ninerealms.com/thorchain/nodes';
-
-    // Add function to fetch and process bonds
+    // Fetch and process bonds from nodes
     async function fetchBonds() {
         try {
-            const response = await fetch(NODES_API);
-            const nodes = await response.json();
-            
+            const nodes = await thornode.fetch('/thorchain/nodes');
+
             // Process each node to find bonds from our addresses
             const allBonds = [];
-            
+
             nodes.forEach(node => {
                 if (node.bond_providers?.providers) {
                     node.bond_providers.providers.forEach(provider => {
@@ -310,7 +267,7 @@
                     });
                 }
             });
-            
+
             bonds = allBonds;
         } catch (e) {
             console.error('Failed to fetch bonds:', e);
@@ -359,14 +316,13 @@
 
     async function fetchPools() {
         try {
-            const response = await fetch(POOLS_API);
-            const pools = await response.json();
-            
+            const pools = await thornode.fetch('/thorchain/pools');
+
             // Filter for Available pools only
             LP_ASSETS = pools
                 .filter(pool => pool.status === 'Available')
                 .map(pool => pool.asset);
-                
+
             console.log('Fetched pool assets:', LP_ASSETS);
         } catch (e) {
             console.error('Error fetching pools:', e);
@@ -389,8 +345,8 @@
 
 <main>
     <div class="container">
-        <h1>Treasury Positions</h1>
-        
+        <PageHeader title="Treasury Positions" />
+
         {#if !loading && !error}
             <div class="total-treasury">
                 <span class="total-label">Total Treasury Value</span>
@@ -431,16 +387,19 @@
                         </div>
 
                         <div class="card-content">
-                            {#if balances.length > 0 && balances.some(b => b.denom === 'rune' && Number(b.amount) > 100000000)}
+                            {#if balances.length > 0 && balances.some(b => Number(b.amount) > 1000000)}
                                 <div class="section-container">
                                     <h3>Balances</h3>
                                     <div class="balances-container">
-                                        {#each balances as balance}
+                                        {#each balances.filter(b => Number(b.amount) > 1000000) as balance}
+                                            {@const fullAsset = denomToAsset(balance.denom)}
+                                            {@const chain = fullAsset.split('.')[0]}
+                                            {@const assetPrice = balance.denom.toLowerCase() === 'rune' ? runePrice : assetPrices[fullAsset]}
                                             <div class="amount-row">
                                                 <div class="logo-container small">
-                                                    <img 
-                                                        src={assetLogos['THOR.RUNE']} 
-                                                        alt="THOR"
+                                                    <img
+                                                        src={getAssetLogo(fullAsset) || '/assets/coins/fallback-logo.svg'}
+                                                        alt={getAssetDisplayName(fullAsset)}
                                                         class="asset-icon"
                                                         on:error={(e) => {
                                                             e.target.onerror = null;
@@ -448,9 +407,9 @@
                                                         }}
                                                     />
                                                     <div class="chain-logo-container">
-                                                        <img 
-                                                            src={chainIcons['THOR']} 
-                                                            alt="THOR"
+                                                        <img
+                                                            src={getChainLogo(chain) || '/assets/chains/fallback-logo.svg'}
+                                                            alt={chain}
                                                             class="chain-icon"
                                                             on:error={(e) => {
                                                                 e.target.onerror = null;
@@ -459,10 +418,11 @@
                                                         />
                                                     </div>
                                                 </div>
+                                                <span class="asset-label">{getAssetDisplayName(fullAsset)}</span>
                                                 <span class="amount">{formatAmount(balance.amount)}</span>
-                                                {#if balance.denom === 'rune' && runePrice}
+                                                {#if assetPrice}
                                                     <span class="usd-value">
-                                                        {formatUSD((Number(balance.amount) / 1e8) * runePrice)}
+                                                        {formatUSD((Number(balance.amount) / 1e8) * assetPrice)}
                                                     </span>
                                                 {/if}
                                             </div>
@@ -471,17 +431,23 @@
                                 </div>
                             {/if}
 
-                            {#if lpPositions.length > 0}
+                            {#if lpPositions.length > 0 && lpPositions.some(p => {
+                                const totalValue = (p.runeAmount * runePrice) + (getAssetUSDValue(p.assetAmount, p.fullPool) || 0);
+                                return totalValue > 1;
+                            })}
                                 <div class="section-container">
                                     <h3>LP Positions</h3>
-                                    {#each lpPositions as position}
+                                    {#each lpPositions.filter(p => {
+                                        const totalValue = (p.runeAmount * runePrice) + (getAssetUSDValue(p.assetAmount, p.fullPool) || 0);
+                                        return totalValue > 1;
+                                    }) as position}
                                         <div class="lp-container">
                                             <div class="lp-row">
                                                 <div class="pool-header">
                                                     <div class="asset-info">
                                                         <div class="logo-container">
                                                             <img 
-                                                                src={assetLogos[position.fullPool] || `/assets/coins/fallback-logo.svg`}
+                                                                src={getAssetLogo(position.fullPool) || '/assets/coins/fallback-logo.svg'}
                                                                 alt={position.pool}
                                                                 class="asset-icon"
                                                                 on:error={(e) => {
@@ -491,7 +457,7 @@
                                                             />
                                                             <div class="chain-logo-container">
                                                                 <img 
-                                                                    src={chainIcons[position.pool.split('.')[0]]} 
+                                                                    src={getChainLogo(position.pool.split('.')[0]) || '/assets/chains/fallback-logo.svg'} 
                                                                     alt={position.pool.split('.')[0]}
                                                                     class="chain-icon"
                                                                     on:error={(e) => {
@@ -517,7 +483,7 @@
                                                         <span class="amount">{formatAmount(position.assetAmount * 1e8)}</span>
                                                         <div class="logo-container small">
                                                             <img 
-                                                                src={assetLogos[position.fullPool] || `/assets/coins/fallback-logo.svg`}
+                                                                src={getAssetLogo(position.fullPool) || '/assets/coins/fallback-logo.svg'}
                                                                 alt={position.pool}
                                                                 class="asset-icon"
                                                                 on:error={(e) => {
@@ -527,7 +493,7 @@
                                                             />
                                                             <div class="chain-logo-container">
                                                                 <img 
-                                                                    src={chainIcons[position.pool.split('.')[0]]} 
+                                                                    src={getChainLogo(position.pool.split('.')[0]) || '/assets/chains/fallback-logo.svg'} 
                                                                     alt={position.pool.split('.')[0]}
                                                                     class="chain-icon"
                                                                     on:error={(e) => {
@@ -547,7 +513,7 @@
                                                         <span class="amount">{formatAmount(position.runeAmount * 1e8)}</span>
                                                         <div class="logo-container small">
                                                             <img 
-                                                                src={assetLogos['THOR.RUNE']} 
+                                                                src={getAssetLogo('THOR.RUNE') || '/assets/coins/fallback-logo.svg'} 
                                                                 alt="RUNE"
                                                                 class="asset-icon"
                                                                 on:error={(e) => {
@@ -557,7 +523,7 @@
                                                             />
                                                             <div class="chain-logo-container">
                                                                 <img 
-                                                                    src={chainIcons['THOR']} 
+                                                                    src={getChainLogo('THOR') || '/assets/chains/fallback-logo.svg'} 
                                                                     alt="THOR"
                                                                     class="chain-icon"
                                                                     on:error={(e) => {
@@ -588,7 +554,7 @@
                                                 <span class="amount">{formatRune(bond.amount)}</span>
                                                 <div class="logo-container small">
                                                     <img 
-                                                        src={assetLogos['THOR.RUNE']} 
+                                                        src={getAssetLogo('THOR.RUNE') || '/assets/coins/fallback-logo.svg'} 
                                                         alt="RUNE"
                                                         class="asset-icon"
                                                         on:error={(e) => {
@@ -598,7 +564,7 @@
                                                     />
                                                     <div class="chain-logo-container">
                                                         <img 
-                                                            src={chainIcons['THOR']} 
+                                                            src={getChainLogo('THOR') || '/assets/chains/fallback-logo.svg'} 
                                                             alt="THOR"
                                                             class="chain-icon"
                                                             on:error={(e) => {
@@ -636,13 +602,6 @@
         max-width: 1400px;
         margin: 0 auto;
         padding: 0 2rem;
-    }
-
-    h1 {
-        text-align: center;
-        margin-bottom: 2rem;
-        font-size: 1.5rem;
-        color: var(--text-color);
     }
 
     .treasury-container {
@@ -809,6 +768,13 @@
         text-align: right;
     }
 
+    .asset-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #a0a0a0;
+        min-width: 50px;
+    }
+
     .total-value {
         font-weight: 500;
         color: var(--text-color);
@@ -937,10 +903,6 @@
     @media (max-width: 600px) {
         .container {
             padding: 0 1rem;
-        }
-
-        h1 {
-            font-size: 1.2rem;
         }
 
         .treasury-container {
