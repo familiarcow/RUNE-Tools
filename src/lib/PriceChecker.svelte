@@ -2,6 +2,11 @@
   import { onMount } from 'svelte';
   import { writable, derived } from 'svelte/store';
   import { cubicOut } from 'svelte/easing';
+  import { thornode } from '$lib/api';
+  import { PageHeader, LoadingBar } from '$lib/components';
+  import { formatNumber, formatUSD } from '$lib/utils/formatting';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { ASSET_LOGOS, getAssetLogo } from '$lib/constants/assets';
 
   const pools = writable([]);
   const currentTab = writable('prices');
