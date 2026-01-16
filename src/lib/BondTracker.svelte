@@ -5,7 +5,16 @@
   import { midgard } from '$lib/api/midgard';
   import { formatNumber, simplifyNumber } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
-  import { LoadingBar, StatusIndicator } from '$lib/components';
+  import { LoadingBar, StatusIndicator, ActionButton } from '$lib/components';
+  import {
+    currentCurrency,
+    exchangeRates,
+    currencySymbols,
+    initCurrency,
+    switchCurrency,
+    formatCurrency,
+    formatCurrencyWithDecimals
+  } from '$lib/stores/currency';
 
   let my_bond_address = "";
   let node_address = ""; // Keep for backwards compatibility
@@ -36,97 +45,24 @@
   let isLoading = false;
   let showContent = true; // Show content by default
 
-  let currentCurrency = 'USD';
-  const currencies = ['USD', 'EUR', 'GBP', 'JPY'];
-  let exchangeRates = {};
-
-  // Make these reactive
-  $: formattedRunePrice = formatCurrencyWithDecimals(runePriceUSD, currentCurrency);
-  $: formattedBondValue = formatCurrency((my_bond / 1e8) * runePriceUSD, currentCurrency);
-  $: formattedNextAward = formatCurrency((my_award / 1e8) * runePriceUSD, currentCurrency);
-  $: formattedAPY = formatCurrency(((APY * my_bond) / 1e8) * runePriceUSD, currentCurrency);
+  // Make these reactive (using currency store)
+  $: formattedRunePrice = formatCurrencyWithDecimals($exchangeRates, runePriceUSD, $currentCurrency);
+  $: formattedBondValue = formatCurrency($exchangeRates, (my_bond / 1e8) * runePriceUSD, $currentCurrency);
+  $: formattedNextAward = formatCurrency($exchangeRates, (my_award / 1e8) * runePriceUSD, $currentCurrency);
+  $: formattedAPY = formatCurrency($exchangeRates, ((APY * my_bond) / 1e8) * runePriceUSD, $currentCurrency);
   $: nextAwardBtcValue = (my_award * bondvaluebtc) / my_bond;
-
-  const fetchExchangeRates = async () => {
-    try {
-      const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=thorchain&vs_currencies=usd,eur,gbp,jpy`);
-      const data = await response.json();
-      exchangeRates = {
-        USD: data.thorchain.usd,
-        EUR: data.thorchain.eur,
-        GBP: data.thorchain.gbp,
-        JPY: data.thorchain.jpy
-      };
-      runePriceUSD = exchangeRates.USD;
-    } catch (error) {
-      console.error("Error fetching exchange rates:", error);
-    }
-  };
-
-  const switchCurrency = () => {
-    const currentIndex = currencies.indexOf(currentCurrency);
-    currentCurrency = currencies[(currentIndex + 1) % currencies.length];
-    updateCurrencyURL();
-  };
-
-  const updateCurrencyURL = () => {
-    const url = new URL(window.location);
-    if (currentCurrency !== 'USD') {
-      url.searchParams.set("currency", currentCurrency);
-    } else {
-      url.searchParams.delete("currency");
-    }
-    window.history.pushState({}, '', url);
-  };
-
-
-  const formatCurrency = (value, currency) => {
-    if (!exchangeRates[currency]) return '';
-    const formattedValue = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value * (exchangeRates[currency] / exchangeRates.USD));
-
-    // Replace the currency symbol with the appropriate one
-    const currencySymbols = { USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
-    return formattedValue.replace(/^\D+/, currencySymbols[currency]);
-  };
-
-  const formatCurrencyWithDecimals = (value, currency) => {
-    if (!exchangeRates[currency]) return '';
-    const formattedValue = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value * (exchangeRates[currency] / exchangeRates.USD));
-
-    // Replace the currency symbol with the appropriate one
-    const currencySymbols = { USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
-    return formattedValue.replace(/^\D+/, currencySymbols[currency]);
-  };
 
   // Using shared formatNumber from $lib/utils/formatting
 
   const updateAddressesFromURL = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlBondAddress = urlParams.get("bond_address");
-    const urlCurrency = urlParams.get("currency");
-    
-    // Set currency from URL parameter, default to USD if not specified or invalid
-    if (urlCurrency && currencies.includes(urlCurrency.toUpperCase())) {
-      currentCurrency = urlCurrency.toUpperCase();
-    } else {
-      currentCurrency = 'USD';
-    }
-    
+
     if (urlBondAddress) {
       my_bond_address = urlBondAddress;
       bondAddressSuffix = urlBondAddress.slice(-4);
       showData = true;
-      
+
       // Always use new multi-node mode, ignore node_address parameter
       fetchBondData();
     }
@@ -444,10 +380,10 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    await initCurrency(); // Initialize currency from URL and fetch exchange rates
     updateAddressesFromURL();
-    fetchExchangeRates();
   });
 </script>
 
@@ -647,41 +583,33 @@
         </div>
       </div>
       <div class="button-container">
-        <button class="action-button refresh-button" on:click={fetchBondData} title="Refresh Data">
+        <ActionButton variant="refresh" title="Refresh Data" on:click={fetchBondData}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"></polyline>
             <polyline points="1 20 1 14 7 14"></polyline>
             <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
           </svg>
-        </button>
-        <button class="action-button bookmark-button" on:click={addBookmark} title={isMobile ? "Add to Home Screen" : "Bookmark"}>
+        </ActionButton>
+        <ActionButton variant="bookmark" title={isMobile ? "Add to Home Screen" : "Bookmark"} on:click={addBookmark}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
           </svg>
-        </button>
-        <button class="action-button copy-link" on:click={copyLink} title="Copy Link">
+        </ActionButton>
+        <ActionButton variant="copy" title="Copy Link" on:click={copyLink}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
           </svg>
-        </button>
-        <button class="action-button runescan-button" on:click={openRuneScan} title="Open in RuneScan">
+        </ActionButton>
+        <ActionButton variant="external" title="Open in RuneScan" on:click={openRuneScan}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
           </svg>
-        </button>
-        <button class="action-button currency-switch" on:click={switchCurrency} title="Switch Currency">
-          {#if currentCurrency === 'USD'}
-            $
-          {:else if currentCurrency === 'EUR'}
-            €
-          {:else if currentCurrency === 'GBP'}
-            £
-          {:else if currentCurrency === 'JPY'}
-            ¥
-          {/if}
-        </button>
+        </ActionButton>
+        <ActionButton variant="currency" title="Switch Currency" on:click={switchCurrency}>
+          {currencySymbols[$currentCurrency]}
+        </ActionButton>
       </div>
     {/if}
   </div>
@@ -994,84 +922,6 @@
     gap: 10px;
   }
 
-  .action-button {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: none;
-    padding: 0;
-    backdrop-filter: blur(10px);
-  }
-
-  .action-button:hover {
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
-  }
-
-  .action-button svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .action-button img {
-    width: 24px;
-    height: 24px;
-  }
-
-  .refresh-button {
-    background-color: #6366f1;
-    color: white;
-  }
-
-  .refresh-button:hover {
-    background-color: #4f46e5;
-  }
-
-  .bookmark-button {
-    background-color: #28a745;
-    color: white;
-  }
-
-  .bookmark-button:hover {
-    background-color: #218838;
-  }
-
-  .copy-link {
-    background-color: #4A90E2;
-    color: white;
-  }
-
-  .copy-link:hover {
-    background-color: #3A7BC8;
-  }
-
-  .runescan-button {
-    background-color: #6c757d;
-    color: #ffffff;
-  }
-
-  .runescan-button:hover {
-    background-color: #5a6268;
-  }
-
-  .currency-switch {
-    background-color: #ffc107;
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: bold;
-  }
-
-  .currency-switch:hover {
-    background-color: #e0a800;
-  }
-
-
   .random-node {
     background-color: #6c757d;
   }
@@ -1259,15 +1109,6 @@
     .button-container {
       bottom: 10px;
       right: 10px;
-    }
-
-    .action-button {
-      padding: 8px;
-    }
-
-    .action-button svg {
-      width: 14px;
-      height: 14px;
     }
 
     .toast {

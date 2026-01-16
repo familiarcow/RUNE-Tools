@@ -41,3 +41,16 @@ export {
   getAssetPrice,
   isPoolsActive
 } from './pools.js';
+
+// Currency store (multi-currency support)
+export {
+  currencies,
+  currencySymbols,
+  currentCurrency,
+  exchangeRates,
+  fetchExchangeRates,
+  switchCurrency,
+  initCurrency,
+  formatCurrency,
+  formatCurrencyWithDecimals
+} from './currency.js';
