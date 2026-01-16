@@ -253,7 +253,16 @@ export {
   // Chain utilities
   getNativeToken,
   getChainIcon,
-  chainHasRouter
+  chainHasRouter,
+
+  // Vault utilities
+  VAULT_STATUS,
+  getAsgardVaults,
+  sortVaultsByStatus,
+  formatVaultName,
+  calculateVaultBond,
+  calculateVaultAssetValue,
+  getVaultSummary
 } from './network.js';
 
 // ============================================

@@ -2,8 +2,19 @@
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { slide } from 'svelte/transition';
-  import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
-  import { CHAIN_ICONS, CHAIN_EXPLORERS } from '$lib/utils/network';
+  import { copyToClipboard as copyToClipboardUtil, shortenAddress as shortenAddressUtil } from '$lib/utils/formatting';
+  import {
+    CHAIN_ICONS,
+    CHAIN_EXPLORERS,
+    getAsgardVaults,
+    sortVaultsByStatus,
+    formatVaultName,
+    calculateVaultBond,
+    calculateVaultAssetValue
+  } from '$lib/utils/network';
+  import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { getNodes } from '$lib/utils/nodes';
 
   let vaults = [];
   let prices = {};
@@ -67,16 +78,15 @@
 
   async function fetchPrices() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/pools');
-      const pools = await response.json();
-      
+      const pools = await fetchJSONWithFallback('/thorchain/pools');
+
       const priceMap = pools.reduce((acc, pool) => {
-        const assetExistsInVaults = vaults.some(vault => 
+        const assetExistsInVaults = vaults.some(vault =>
           vault.coins.some(coin => coin.asset === pool.asset)
         );
-        
+
         if (assetExistsInVaults) {
-          acc[pool.asset] = Number(pool.asset_tor_price) / 1e8;
+          acc[pool.asset] = fromBaseUnit(pool.asset_tor_price);
         }
         return acc;
       }, {});
@@ -92,7 +102,7 @@
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(Number(amount) / 1e8);
+    }).format(fromBaseUnit(amount));
   }
 
   function formatPrice(amount) {
@@ -115,49 +125,27 @@
     return `${baseToken} (${chain})`;
   }
 
-  async function fetchNodes() {
+  async function fetchNodesData() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/nodes');
-      nodesData = await response.json();
+      nodesData = await getNodes();
     } catch (e) {
       console.error('Error fetching nodes:', e);
     }
   }
 
-  function calculateVaultBond(vault) {
-    if (!vault || !vault.membership || !nodesData.length) return 0;
-    
-    const totalBond = vault.membership.reduce((sum, pubkey) => {
-      const node = nodesData.find(n => n.pub_key_set?.secp256k1 === pubkey);
-      if (node) {
-        return sum + Number(node.total_bond);
-      }
-      return sum;
-    }, 0);
-    
-    return totalBond / 1e8;
-  }
+  // calculateVaultBond is now imported from network.js
 
   function calculateVaultBondUSD(bondInRune) {
     if (!networkData) return 0;
-    const runePrice = Number(networkData.rune_price_in_tor) / 1e8;
+    const runePrice = fromBaseUnit(networkData.rune_price_in_tor);
     return bondInRune * runePrice;
   }
 
-  function calculateTotalAssetValue(coins) {
-    return coins.reduce((sum, coin) => {
-      if (prices[coin.asset]) {
-        const amount = Number(coin.amount) / 1e8;
-        return sum + (amount * prices[coin.asset]);
-      }
-      return sum;
-    }, 0);
-  }
+  // calculateVaultAssetValue is now imported from network.js
 
   async function fetchNetwork() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/network');
-      networkData = await response.json();
+      networkData = await fetchJSONWithFallback('/thorchain/network');
     } catch (e) {
       console.error('Error fetching network data:', e);
     }
@@ -165,20 +153,15 @@
 
   async function fetchVaults() {
     try {
-      const [vaultsResponse] = await Promise.all([
-        fetch('https://thornode.ninerealms.com/thorchain/vaults/asgard'),
-        fetchNodes(),
+      const [data] = await Promise.all([
+        getAsgardVaults(),
+        fetchNodesData(),
         fetchNetwork()
       ]);
-      
-      const data = await vaultsResponse.json();
-      
-      // Sort vaults - Active first, then Retiring
-      vaults = data.sort((a, b) => {
-        if (a.status === b.status) return 0;
-        return a.status === 'ActiveVault' ? -1 : 1;
-      });
-      
+
+      // Sort vaults using shared utility - Active first, then Retiring
+      vaults = sortVaultsByStatus(data);
+
       const priceData = await fetchPrices();
       prices = priceData.prices;
       pools = priceData.pools;
@@ -193,12 +176,10 @@
     fetchVaults();
   });
 
-  function formatVaultName(pubKey) {
-    return pubKey.slice(-4).toUpperCase();
-  }
+  // formatVaultName is now imported from network.js
 
   function formatUSDValue(amount, price = 1) {
-    const value = price === 1 ? amount : (Number(amount) / 1e8) * price;
+    const value = price === 1 ? amount : fromBaseUnit(amount) * price;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -222,14 +203,15 @@
     showAssetBalances = !showAssetBalances;
   }
 
+  // Local wrapper to maintain maxLength behavior using shared utility
   function shortenAddress(address, maxLength = 24) {
     if (!address) return '';
     if (address.length <= maxLength) return address;
-    
+
     const start = Math.ceil(maxLength / 2);
     const end = Math.floor(maxLength / 2);
-    
-    return address.slice(0, start) + '...' + address.slice(-end);
+
+    return shortenAddressUtil(address, start, end);
   }
 
   function openExplorer(chain, address) {
@@ -329,8 +311,8 @@
               <div class="total-bond">
                 <div class="bond-row">
                   <span>Total Bond:</span>
-                  <span class="clickable amount-with-icon" on:click={() => copyToClipboard(Math.floor(calculateVaultBond(vault)).toLocaleString(), 'bond amount')}>
-                    {Math.floor(calculateVaultBond(vault)).toLocaleString()}
+                  <span class="clickable amount-with-icon" on:click={() => copyToClipboard(Math.floor(calculateVaultBond(vault, nodesData)).toLocaleString(), 'bond amount')}>
+                    {Math.floor(calculateVaultBond(vault, nodesData)).toLocaleString()}
                     <img 
                       src="/assets/coins/RUNE-ICON.svg" 
                       alt="RUNE"
@@ -344,14 +326,14 @@
                 </div>
                 <div class="bond-row">
                   <span> Total Bond Value:</span>
-                  <span class="clickable" on:click={() => copyToClipboard(formatUSDValue(calculateVaultBondUSD(calculateVaultBond(vault))), 'bond value')}>
-                    {formatUSDValue(calculateVaultBondUSD(calculateVaultBond(vault)))}
+                  <span class="clickable" on:click={() => copyToClipboard(formatUSDValue(calculateVaultBondUSD(calculateVaultBond(vault, nodesData))), 'bond value')}>
+                    {formatUSDValue(calculateVaultBondUSD(calculateVaultBond(vault, nodesData)))}
                   </span>
                 </div>
                 <div class="bond-row">
                   <span>Total Asset Value:</span>
-                  <span class="clickable" on:click={() => copyToClipboard(formatUSDValue(calculateTotalAssetValue(vault.coins)), 'total asset value')}>
-                    {formatUSDValue(calculateTotalAssetValue(vault.coins))}
+                  <span class="clickable" on:click={() => copyToClipboard(formatUSDValue(calculateVaultAssetValue(vault.coins, prices)), 'total asset value')}>
+                    {formatUSDValue(calculateVaultAssetValue(vault.coins, prices))}
                   </span>
                 </div>
               </div>
@@ -383,8 +365,8 @@
                   {#each vault.coins
                     .filter(coin => prices[coin.asset])
                     .sort((a, b) => {
-                      const aValue = (Number(a.amount) / 1e8) * prices[a.asset];
-                      const bValue = (Number(b.amount) / 1e8) * prices[b.asset];
+                      const aValue = fromBaseUnit(a.amount) * prices[a.asset];
+                      const bValue = fromBaseUnit(b.amount) * prices[b.asset];
                       return bValue - aValue;
                     }) as coin}
                     <div class="balance-row">

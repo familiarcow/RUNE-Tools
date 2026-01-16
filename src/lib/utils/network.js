@@ -435,3 +435,152 @@ export function getChainIcon(chain) {
 export function chainHasRouter(chain) {
   return ['ETH', 'AVAX', 'BSC', 'BASE'].includes(chain);
 }
+
+// ============================================
+// Vault Utilities
+// ============================================
+
+/**
+ * Vault status constants
+ * @constant {Object}
+ */
+export const VAULT_STATUS = {
+  ACTIVE: 'ActiveVault',
+  RETIRING: 'RetiringVault'
+};
+
+/**
+ * Fetch Asgard vaults from THORNode
+ *
+ * @returns {Promise<Array>} Array of vault objects
+ *
+ * @example
+ * const vaults = await getAsgardVaults();
+ * console.log(`Found ${vaults.length} vaults`);
+ */
+export async function getAsgardVaults() {
+  return fetchJSONWithFallback('/thorchain/vaults/asgard');
+}
+
+/**
+ * Sort vaults by status (Active first, then Retiring)
+ *
+ * @param {Array} vaults - Array of vault objects
+ * @returns {Array} Sorted vaults array
+ *
+ * @example
+ * const sorted = sortVaultsByStatus(vaults);
+ */
+export function sortVaultsByStatus(vaults) {
+  if (!vaults) return [];
+
+  return [...vaults].sort((a, b) => {
+    if (a.status === b.status) return 0;
+    return a.status === VAULT_STATUS.ACTIVE ? -1 : 1;
+  });
+}
+
+/**
+ * Format vault public key to short display name
+ *
+ * @param {string} pubKey - Vault public key
+ * @returns {string} Short vault name (last 4 chars uppercase)
+ *
+ * @example
+ * formatVaultName('thorpub1...abc123'); // Returns: 'C123'
+ */
+export function formatVaultName(pubKey) {
+  if (!pubKey) return '';
+  return pubKey.slice(-4).toUpperCase();
+}
+
+/**
+ * Calculate total bond for a vault based on its membership
+ *
+ * Sums the total_bond of all nodes that are members of the vault.
+ *
+ * @param {Object} vault - Vault object with membership array
+ * @param {Array} nodes - Array of node objects from getNodes()
+ * @returns {number} Total bond in RUNE (already converted from base units)
+ *
+ * @example
+ * const nodes = await getNodes();
+ * const vaults = await getAsgardVaults();
+ * const bond = calculateVaultBond(vaults[0], nodes);
+ * console.log(`Vault bond: ${bond.toLocaleString()} RUNE`);
+ */
+export function calculateVaultBond(vault, nodes) {
+  if (!vault || !vault.membership || !nodes || !nodes.length) return 0;
+
+  const totalBond = vault.membership.reduce((sum, pubkey) => {
+    const node = nodes.find((n) => n.pub_key_set?.secp256k1 === pubkey);
+    if (node) {
+      return sum + Number(node.total_bond);
+    }
+    return sum;
+  }, 0);
+
+  return fromBaseUnit(totalBond);
+}
+
+/**
+ * Calculate total USD value of assets in a vault
+ *
+ * @param {Array} coins - Array of coin objects from vault.coins
+ * @param {Object|Map} prices - Map or object of asset prices in USD
+ * @returns {number} Total USD value
+ *
+ * @example
+ * const value = calculateVaultAssetValue(vault.coins, priceMap);
+ * console.log(`Total vault value: $${value.toLocaleString()}`);
+ */
+export function calculateVaultAssetValue(coins, prices) {
+  if (!coins || !prices) return 0;
+
+  return coins.reduce((sum, coin) => {
+    const price = prices instanceof Map ? prices.get(coin.asset) : prices[coin.asset];
+    if (price) {
+      const amount = fromBaseUnit(coin.amount);
+      return sum + amount * price;
+    }
+    return sum;
+  }, 0);
+}
+
+/**
+ * Get vault summary with computed values
+ *
+ * @param {Object} vault - Vault object
+ * @param {Array} nodes - Array of node objects
+ * @param {Object} prices - Asset prices map
+ * @param {number} runePrice - RUNE price in USD
+ * @returns {Object} Vault summary with computed values
+ *
+ * @example
+ * const summary = getVaultSummary(vault, nodes, prices, runePrice);
+ * console.log(`Bond: ${summary.bondRune} RUNE ($${summary.bondUSD})`);
+ */
+export function getVaultSummary(vault, nodes, prices, runePrice) {
+  if (!vault) return null;
+
+  const bondRune = calculateVaultBond(vault, nodes);
+  const bondUSD = bondRune * (runePrice || 0);
+  const assetValueUSD = calculateVaultAssetValue(vault.coins, prices);
+
+  return {
+    pubKey: vault.pub_key,
+    name: formatVaultName(vault.pub_key),
+    status: vault.status,
+    isActive: vault.status === VAULT_STATUS.ACTIVE,
+    isRetiring: vault.status === VAULT_STATUS.RETIRING,
+    memberCount: vault.membership?.length || 0,
+    bondRune,
+    bondUSD,
+    assetValueUSD,
+    totalValueUSD: bondUSD + assetValueUSD,
+    inboundTxCount: vault.inbound_tx_count || 0,
+    outboundTxCount: vault.outbound_tx_count || 0,
+    addresses: vault.addresses || [],
+    coins: vault.coins || []
+  };
+}
