@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
+  import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
 
   let txId = '';
   let txData = null;
@@ -77,12 +78,11 @@
     }
   }
 
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
+  async function copyToClipboard(text) {
+    const success = await copyToClipboardUtil(text);
+    if (success) {
       showToast(`Copied: ${text}`);
-    }, (err) => {
-      console.error('Could not copy text: ', err);
-    });
+    }
   }
 
   function showToast(message) {

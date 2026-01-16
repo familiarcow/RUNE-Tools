@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { slide } from 'svelte/transition';
+  import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
 
   interface Pool {
     asset: string;
@@ -310,7 +311,7 @@
   }
 
   function copyToClipboard(address: string) {
-    navigator.clipboard.writeText(address);
+    copyToClipboardUtil(address);
   }
 
   function formatRuneAmount(amount: number | undefined): string {

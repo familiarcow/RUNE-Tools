@@ -4,7 +4,7 @@
   import { cubicOut } from 'svelte/easing';
   import { thornode } from '$lib/api';
   import { PageHeader } from '$lib/components';
-  import { formatNumber, formatUSD, shortenAddress } from '$lib/utils/formatting';
+  import { formatNumber, formatUSD, shortenAddress, copyToClipboard } from '$lib/utils/formatting';
 
   const pools = writable([]);
   const saversPositions = writable([]);
@@ -219,14 +219,6 @@
 
   $: filteredSavers = filterPositions(processedSavers, $searchQuery, $selectedAsset);
   $: filteredLending = filterPositions(processedLending, $searchQuery, $selectedAsset);
-
-  async function copyToClipboard(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  }
 </script>
 
 <main>

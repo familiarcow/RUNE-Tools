@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
+  import { copyToClipboard } from '$lib/utils/formatting';
 
   let limitSwapsSummary = null;
   let limitSwaps = [];
@@ -471,14 +472,7 @@
     return null;
   }
 
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      // Could add a toast notification here if desired
-      console.log('Copied to clipboard:', text);
-    }).catch(err => {
-      console.error('Failed to copy:', err);
-    });
-  }
+  // copyToClipboard imported from $lib/utils/formatting
 
   function openTxLink(txid) {
     window.open(`https://thorchain.net/tx/${txid}`, '_blank');

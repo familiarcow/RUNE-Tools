@@ -3,6 +3,7 @@
   import { fade } from 'svelte/transition';
   import { thornode } from '$lib/api';
   import { PageHeader, LoadingBar } from '$lib/components';
+  import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
 
   let constants = null;
   let mimir = null;
@@ -28,10 +29,11 @@
     }
   });
 
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
+  async function copyToClipboard(text) {
+    const success = await copyToClipboardUtil(text);
+    if (success) {
       showToast(`Copied "${text}" to clipboard!`);
-    });
+    }
   }
 
   function showToast(message) {

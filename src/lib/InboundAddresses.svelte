@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
+  import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
 
   let inboundAddresses = [];
   let loading = true;
@@ -90,14 +91,15 @@
     }
   });
 
-  function copyToClipboard(text, description) {
-    navigator.clipboard.writeText(text).then(() => {
+  async function copyToClipboard(text, description) {
+    const success = await copyToClipboardUtil(text, description);
+    if (success) {
       toastMessage = `Copied ${description}`;
       showToast = true;
       setTimeout(() => {
         showToast = false;
       }, 3000);
-    });
+    }
   }
 
   function formatOutboundFee(fee, chain) {

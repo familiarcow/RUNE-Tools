@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
 
   export let asset = "";
   export let address = "";
@@ -112,10 +113,11 @@
     }
   }
 
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      showToast("Address copied to clipboard!");
-    });
+  async function copyToClipboard(text) {
+    const success = await copyToClipboardUtil(text);
+    if (success) {
+      showToastMessage("Address copied to clipboard!");
+    }
   }
 
   let showToast = false;

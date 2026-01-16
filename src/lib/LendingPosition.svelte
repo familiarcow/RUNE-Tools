@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
 
   export let asset = "BTC.BTC";
   export let address = "";
@@ -67,10 +68,11 @@
     return `/assets/coins/${logoMap[assetName] || 'fallback-logo.svg'}`;
   }
 
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
+  async function copyToClipboard(text) {
+    const success = await copyToClipboardUtil(text);
+    if (success) {
       showToastMessage("Address copied to clipboard!");
-    });
+    }
   }
 
   let showToast = false;
