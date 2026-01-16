@@ -3,8 +3,9 @@
   import { fade } from "svelte/transition";
   import { thornode } from '$lib/api';
   import { midgard } from '$lib/api/midgard';
-  import { formatNumber, simplifyNumber } from '$lib/utils/formatting';
-  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { formatNumber, simplifyNumber, formatCountdown, getAddressSuffix } from '$lib/utils/formatting';
+  import { fromBaseUnit, BLOCK_TIME_SECONDS, blocksToSeconds, TIME_CONSTANTS } from '$lib/utils/blockchain';
+  import { calculateAPR, calculateAPY } from '$lib/utils/calculations';
   import { LoadingBar, StatusIndicator, ActionButton } from '$lib/components';
   import {
     currentCurrency,
@@ -60,7 +61,7 @@
 
     if (urlBondAddress) {
       my_bond_address = urlBondAddress;
-      bondAddressSuffix = urlBondAddress.slice(-4);
+      bondAddressSuffix = getAddressSuffix(urlBondAddress, 4);
       showData = true;
 
       // Always use new multi-node mode, ignore node_address parameter
@@ -79,8 +80,8 @@
       const CHURNINTERVAL = Number(CHURNINTERVALText);
       isChurningHalted = Number(HALTCHURNINGText) === 1;
 
-      const CHURNINTERVALSECONDS = CHURNINTERVAL * 6;
-      nextChurnTime = recentChurnTimestamp + CHURNINTERVALSECONDS;
+      const churnIntervalSeconds = blocksToSeconds(CHURNINTERVAL);
+      nextChurnTime = recentChurnTimestamp + churnIntervalSeconds;
       updateCountdown();
     } catch (error) {
       console.error("Error fetching churn interval:", error);
@@ -90,14 +91,7 @@
   const updateCountdown = () => {
     const now = Date.now() / 1000;
     const secondsLeft = nextChurnTime - now;
-    if (secondsLeft <= 0) {
-      countdown = "Now!";
-    } else {
-      const days = Math.floor(secondsLeft / (3600 * 24));
-      const hours = Math.floor((secondsLeft % (3600 * 24)) / 3600);
-      const minutes = Math.floor((secondsLeft % 3600) / 60);
-      countdown = `${days > 0 ? days + "d " : ""}${hours}h ${minutes}m`;
-    }
+    countdown = formatCountdown(secondsLeft, { zeroText: 'Now!' });
   };
 
   const fetchBtcPoolData = async () => {
@@ -128,7 +122,7 @@
         isMultiNode = false;
         const singleNode = nodesWithBond[0];
         node_address = singleNode.address;
-        nodeAddressSuffix = node_address.slice(-4);
+        nodeAddressSuffix = getAddressSuffix(node_address, 4);
         await fetchData();
       } else if (nodesWithBond.length > 1) {
         // Multiple nodes - use new UI
@@ -187,13 +181,12 @@
         // Calculate APY for this node
         const currentTime = Date.now() / 1000;
         const timeDiff = currentTime - recentChurnTimestamp;
-        const timeDiffInYears = timeDiff / (60 * 60 * 24 * 365.25);
-        const APR = userAward / userBond / timeDiffInYears;
-        const nodeAPY = (1 + APR / 365) ** 365 - 1;
+        const apr = calculateAPR(userAward, userBond, timeDiff);
+        const nodeAPY = calculateAPY(apr);
 
         return {
           address: node.address,
-          addressSuffix: node.address.slice(-4),
+          addressSuffix: getAddressSuffix(node.address, 4),
           status: nodeData.status,
           bond: userBond,
           award: userAward,
@@ -258,9 +251,8 @@
       recentChurnTimestamp = Number(churns[0].date) / 1e9;
       const currentTime = Date.now() / 1000;
       const timeDiff = currentTime - recentChurnTimestamp;
-      const timeDiffInYears = timeDiff / (60 * 60 * 24 * 365.25);
-      const APR = my_award / my_bond / timeDiffInYears;
-      APY = (1 + APR / 365) ** 365 - 1;
+      const apr = calculateAPR(my_award, my_bond, timeDiff);
+      APY = calculateAPY(apr);
 
       // Process price data
       runePriceUSD = fromBaseUnit(runePriceData.rune_price_in_tor);
@@ -276,7 +268,7 @@
   const handleSubmit = (event) => {
     event.preventDefault();
     if (my_bond_address) {
-      bondAddressSuffix = my_bond_address.slice(-4);
+      bondAddressSuffix = getAddressSuffix(my_bond_address, 4);
       showData = true;
       updateURLBondOnly();
       fetchBondData();
@@ -360,10 +352,10 @@
 
       node_address = randomNode.node_address;
       my_bond_address = randomBondProvider.bond_address;
-      
+
       // Update suffixes
-      bondAddressSuffix = my_bond_address.slice(-4);
-      nodeAddressSuffix = node_address.slice(-4);
+      bondAddressSuffix = getAddressSuffix(my_bond_address, 4);
+      nodeAddressSuffix = getAddressSuffix(node_address, 4);
       
       // Update the URL with the new addresses
       const url = new URL(window.location);
