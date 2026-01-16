@@ -5,6 +5,7 @@
   import { midgard } from '$lib/api/midgard';
   import { formatNumber, simplifyNumber } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { LoadingBar, StatusIndicator } from '$lib/components';
 
   let my_bond_address = "";
   let node_address = ""; // Keep for backwards compatibility
@@ -469,7 +470,7 @@
             <h3>Bond</h3>
             <div class="main-value">
               {#if isLoading}
-                <div class="loading-bar main-bar"></div>
+                <LoadingBar variant="main" />
               {:else if showContent}
                 <div class="fade-in-content">
                   {formatNumber(my_bond / 1e8, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
@@ -479,8 +480,8 @@
             </div>
             <div class="sub-values">
               {#if isLoading}
-                <div class="loading-bar sub-bar"></div>
-                <div class="loading-bar sub-bar"></div>
+                <LoadingBar variant="sub" width="45%" />
+                <LoadingBar variant="sub" width="45%" />
               {:else}
                 <span class="usd-value {showContent ? 'fade-in-content' : ''}">{formattedBondValue}</span>
                 <span class="btc-value {showContent ? 'fade-in-content' : ''}">
@@ -494,7 +495,7 @@
               <h3>Next Award</h3>
               <div class="main-value">
                 {#if isLoading}
-                  <div class="loading-bar main-bar"></div>
+                  <LoadingBar variant="main" />
                 {:else if showContent}
                   <div class="fade-in-content">
                     {formatNumber(my_award / 1e8, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
@@ -504,8 +505,8 @@
               </div>
               <div class="sub-values">
                 {#if isLoading}
-                  <div class="loading-bar sub-bar"></div>
-                  <div class="loading-bar sub-bar"></div>
+                  <LoadingBar variant="sub" width="45%" />
+                  <LoadingBar variant="sub" width="45%" />
                 {:else}
                   <span class="usd-value {showContent ? 'fade-in-content' : ''}">{formattedNextAward}</span>
                   <span class="btc-value {showContent ? 'fade-in-content' : ''}">
@@ -520,14 +521,14 @@
                 <h3>Node Status</h3>
                 <div class="main-value status-text">
                   {#if isLoading}
-                    <div class="loading-bar main-bar"></div>
+                    <LoadingBar variant="main" />
                   {:else}
                     <div class="{showContent ? 'fade-in-content' : ''}">{nodeStatus}</div>
                   {/if}
                 </div>
                 <div class="sub-values">
                   {#if isLoading}
-                    <div class="loading-bar sub-bar"></div>
+                    <LoadingBar variant="sub" width="45%" />
                   {:else}
                     <span class="info-text {showContent ? 'fade-in-content' : ''}">Node is churned out</span>
                   {/if}
@@ -536,15 +537,15 @@
                 <h3>APY</h3>
                 <div class="main-value">
                   {#if isLoading}
-                    <div class="loading-bar main-bar"></div>
+                    <LoadingBar variant="main" />
                   {:else}
                     <div class="{showContent ? 'fade-in-content' : ''}">{(APY * 100).toFixed(2)}%</div>
                   {/if}
                 </div>
                 <div class="sub-values">
                   {#if isLoading}
-                    <div class="loading-bar sub-bar"></div>
-                    <div class="loading-bar sub-bar"></div>
+                    <LoadingBar variant="sub" width="45%" />
+                    <LoadingBar variant="sub" width="45%" />
                   {:else}
                     <span class="usd-value {showContent ? 'fade-in-content' : ''}">{formattedAPY}/yr</span>
                     <span class="rune-value {showContent ? 'fade-in-content' : ''}">
@@ -561,7 +562,7 @@
               <div class="rune-price">
                 <img src="/assets/coins/RUNE-ICON.svg" alt="RUNE" width="24" height="24" />
                 {#if isLoading}
-                  <div class="loading-bar price-bar"></div>
+                  <LoadingBar variant="custom" width="80px" height="18px" />
                 {:else}
                   <span class="link-value {showContent ? 'fade-in-content' : ''}">{formattedRunePrice}</span>
                 {/if}
@@ -570,7 +571,7 @@
                 <div class="info-item">
                   <span class="link-label">Next Churn</span>
                   {#if isLoading}
-                    <div class="loading-bar info-bar"></div>
+                    <LoadingBar variant="custom" width="100%" height="13px" />
                   {:else if isChurningHalted}
                     <span class="link-value churn-paused {showContent ? 'fade-in-content' : ''}">Paused</span>
                   {:else}
@@ -581,14 +582,14 @@
                   {#if !isMultiNode}
                     <span class="link-label">{nodeAddressSuffix || 'Node'} Fee</span>
                     {#if isLoading}
-                      <div class="loading-bar info-bar"></div>
+                      <LoadingBar variant="custom" width="100%" height="13px" />
                     {:else}
                       <span class="link-value {showContent ? 'fade-in-content' : ''}">{(nodeOperatorFee * 100).toFixed(2)}%</span>
                     {/if}
                   {:else}
                     <span class="link-label">Nodes</span>
                     {#if isLoading}
-                      <div class="loading-bar info-bar"></div>
+                      <LoadingBar variant="custom" width="100%" height="13px" />
                     {:else}
                       <span class="link-value {showContent ? 'fade-in-content' : ''}">{bondNodes.length}</span>
                     {/if}
@@ -608,11 +609,11 @@
                     <div class="node-item">
                       <div class="node-status">
                         <div class="loading-bar node-indicator-bar"></div>
-                        <div class="loading-bar node-suffix-bar"></div>
+                        <LoadingBar variant="custom" width="40px" height="14px" />
                       </div>
                       <div class="node-details">
-                        <div class="loading-bar node-bond-bar"></div>
-                        <div class="loading-bar node-fee-bar"></div>
+                        <LoadingBar variant="custom" width="60px" height="14px" />
+                        <LoadingBar variant="custom" width="50px" height="12px" />
                       </div>
                     </div>
                   {/each}
@@ -620,7 +621,7 @@
                   {#each bondNodes as node}
                     <div class="node-item fade-in-content">
                       <div class="node-status">
-                        <div class="status-indicator" class:active={node.status === 'Active'} class:inactive={node.status !== 'Active'}></div>
+                        <StatusIndicator status={node.status === 'Active' ? 'active' : 'error'} pulse={node.status === 'Active'} />
                         <span class="node-suffix">{node.addressSuffix}</span>
                         <button class="node-link" on:click={() => window.open(`https://thorchain.net/node/${node.address}`, '_blank')} title="View Node Info">
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -849,11 +850,16 @@
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
+  .main-value > div {
+    display: flex;
+    align-items: center;
+
+  }
+
   .rune-icon {
     width: 24px;
     height: 24px;
     margin-left: 5px;
-    vertical-align: middle;
   }
 
   .sub-values {
@@ -1351,23 +1357,6 @@
     gap: 8px;
   }
 
-  .status-indicator {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    transition: all 0.3s ease;
-  }
-
-  .status-indicator.active {
-    background-color: #28a745;
-    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
-  }
-
-  .status-indicator.inactive {
-    background-color: #dc3545;
-    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
-  }
-
   .node-suffix {
     font-weight: 600;
     color: #ffffff;
@@ -1447,47 +1436,10 @@
     to { opacity: 1; }
   }
 
-  /* Bar sizes */
-  .main-bar {
-    height: 28px;
-    width: 60%;
-    margin: 0 auto;
-  }
-
-  .sub-bar {
-    height: 12px;
-    width: 45%;
-  }
-
-  .price-bar {
-    height: 18px;
-    width: 80px;
-  }
-
-  .info-bar {
-    height: 13px;
-    width: 100%;
-    margin-top: 2px;
-  }
-
+  /* Node loading bar */
   .node-indicator-bar {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-  }
-
-  .node-suffix-bar {
-    width: 40px;
-    height: 14px;
-  }
-
-  .node-bond-bar {
-    width: 60px;
-    height: 14px;
-  }
-
-  .node-fee-bar {
-    width: 50px;
-    height: 12px;
   }
 </style>
