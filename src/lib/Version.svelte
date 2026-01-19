@@ -3,9 +3,11 @@
   import { thornode } from '$lib/api';
   import { PageHeader, LoadingBar } from '$lib/components';
   import LinkOutIcon from './LinkOutIcon.svelte';
+  import { getNodes, filterNodesByStatus, NODE_STATUS } from '$lib/utils/nodes';
+  import { getCurrentBlock } from '$lib/utils/tcy';
+  import { BLOCK_TIME_SECONDS } from '$lib/utils/blockchain';
 
   const REFRESH_INTERVAL = 6000; // 6 seconds
-  const BLOCK_TIME = 6; // seconds per block
   
   let nodes = [];
   let versions = {};
@@ -65,19 +67,18 @@
   });
 
   async function fetchCurrentBlock() {
-    const data = await thornode.fetch('/thorchain/lastblock', { cache: false });
-    currentBlock = data[0].thorchain;
+    currentBlock = await getCurrentBlock();
   }
 
   function calculateTargetDate() {
     const blocksRemaining = upgradeProposal.height - currentBlock;
-    const secondsRemaining = blocksRemaining * BLOCK_TIME;
+    const secondsRemaining = blocksRemaining * BLOCK_TIME_SECONDS;
     targetDate = new Date(Date.now() + (secondsRemaining * 1000));
   }
 
   async function fetchNodeData() {
-    const data = await thornode.fetch('/thorchain/nodes', { cache: false });
-    nodes = data.filter(node => node.status === 'Active');
+    const allNodes = await getNodes({ cache: false });
+    nodes = filterNodesByStatus(allNodes, NODE_STATUS.ACTIVE);
     processVersions();
   }
 

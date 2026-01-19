@@ -4,7 +4,8 @@
   import { thornode } from '$lib/api';
   import { midgard } from '$lib/api/midgard';
   import { formatNumber, simplifyNumber, formatCountdown, getAddressSuffix } from '$lib/utils/formatting';
-  import { fromBaseUnit, BLOCK_TIME_SECONDS, blocksToSeconds, TIME_CONSTANTS } from '$lib/utils/blockchain';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { getChurnInfo, getLastChurn } from '$lib/utils/nodes';
   import { calculateAPR, calculateAPY } from '$lib/utils/calculations';
   import { LoadingBar, StatusIndicator, ActionButton } from '$lib/components';
   import {
@@ -71,17 +72,10 @@
 
   const fetchChurnInterval = async () => {
     try {
-      // Fetch both CHURNINTERVAL and HALTCHURNING in parallel
-      const [CHURNINTERVALText, HALTCHURNINGText] = await Promise.all([
-        thornode.getMimir('CHURNINTERVAL'),
-        thornode.getMimir('HALTCHURNING').catch(() => '0') // Default to 0 if not set
-      ]);
-
-      const CHURNINTERVAL = Number(CHURNINTERVALText);
-      isChurningHalted = Number(HALTCHURNINGText) === 1;
-
-      const churnIntervalSeconds = blocksToSeconds(CHURNINTERVAL);
-      nextChurnTime = recentChurnTimestamp + churnIntervalSeconds;
+      // Use shared churn utilities
+      const churnInfo = await getChurnInfo(recentChurnTimestamp);
+      isChurningHalted = churnInfo.isHalted;
+      nextChurnTime = churnInfo.nextChurnTimestamp;
       updateCountdown();
     } catch (error) {
       console.error("Error fetching churn interval:", error);
@@ -145,13 +139,13 @@
   const fetchMultiNodeData = async (nodes) => {
     try {
       // Fetch common data first
-      const [churns, runePriceData, btcPoolData] = await Promise.all([
-        midgard.getChurns(),
+      const [lastChurn, runePriceData, btcPoolData] = await Promise.all([
+        getLastChurn(),
         thornode.getNetwork(),
         thornode.getPool('BTC.BTC')
       ]);
 
-      recentChurnTimestamp = Number(churns[0].date) / 1e9;
+      recentChurnTimestamp = lastChurn?.timestampSec || 0;
       runePriceUSD = fromBaseUnit(runePriceData.rune_price_in_tor);
       
       const balanceAsset = btcPoolData.balance_asset;
@@ -228,9 +222,9 @@
   const fetchData = async () => {
     try {
       // Parallelize independent API calls
-      const [nodeData, churns, runePriceData] = await Promise.all([
+      const [nodeData, lastChurn, runePriceData] = await Promise.all([
         thornode.fetch(`/thorchain/node/${node_address}`),
-        midgard.getChurns(),
+        getLastChurn(),
         thornode.getNetwork()
       ]);
 
@@ -248,7 +242,7 @@
       my_award = my_bond_ownership_percentage * current_award;
 
       // Process churn data for APY calculation
-      recentChurnTimestamp = Number(churns[0].date) / 1e9;
+      recentChurnTimestamp = lastChurn?.timestampSec || 0;
       const currentTime = Date.now() / 1000;
       const timeDiff = currentTime - recentChurnTimestamp;
       const apr = calculateAPR(my_award, my_bond, timeDiff);
