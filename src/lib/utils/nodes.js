@@ -692,3 +692,293 @@ export async function fetchNodesWithMetadata(options = {}) {
     totalCount: nodes.length
   };
 }
+
+// ============================================
+// Churn Prediction Utilities
+// ============================================
+
+/**
+ * Leave status types for churn prediction
+ * @constant {Object}
+ */
+export const LEAVE_STATUS = {
+  LEAVING: 'leaving',
+  OLDEST: 'oldest',
+  WORST: 'worst',
+  LOWEST: 'lowest'
+};
+
+/**
+ * Determine if/why a node may be churned out
+ *
+ * Identifies nodes that are:
+ * - Requested to leave (voluntary)
+ * - Oldest active node (by block height)
+ * - Worst performing (most slash points)
+ * - Lowest bond
+ *
+ * @param {Object} node - Node to check
+ * @param {Array<Object>} allNodes - All nodes for comparison
+ * @returns {Object|null} Leave status or null if not at risk
+ *
+ * @example
+ * const status = getLeaveStatus(node, allNodes);
+ * if (status) {
+ *   console.log(`Node at risk: ${status.type} - ${status.description}`);
+ * }
+ */
+export function getLeaveStatus(node, allNodes) {
+  // Check for requested_to_leave first
+  if (node.requested_to_leave) {
+    return { type: LEAVE_STATUS.LEAVING, description: 'Node has requested to leave' };
+  }
+
+  const activeNodes = filterNodesByStatus(allNodes, NODE_STATUS.ACTIVE);
+  if (activeNodes.length === 0) return null;
+
+  // Find oldest active node
+  const oldestNode = activeNodes.reduce((oldest, current) =>
+    Number(current.active_block_height) < Number(oldest.active_block_height) ? current : oldest
+  );
+
+  if (node.node_address === oldestNode.node_address) {
+    return { type: LEAVE_STATUS.OLDEST, description: 'Oldest active node by block height' };
+  }
+
+  // Find worst performing node (most slash points)
+  const worstNode = activeNodes.reduce((worst, current) =>
+    Number(current.slash_points) > Number(worst.slash_points) ? current : worst
+  );
+
+  if (node.node_address === worstNode.node_address) {
+    return { type: LEAVE_STATUS.WORST, description: 'Highest slash points' };
+  }
+
+  // Find lowest bond node
+  const lowestBondNode = activeNodes.reduce((lowest, current) =>
+    Number(current.total_bond) < Number(lowest.total_bond) ? current : lowest
+  );
+
+  if (node.node_address === lowestBondNode.node_address) {
+    return { type: LEAVE_STATUS.LOWEST, description: 'Lowest total bond' };
+  }
+
+  return null;
+}
+
+/**
+ * Calculate how many nodes will churn out
+ *
+ * Counts nodes that are leaving, oldest, worst, or lowest bond.
+ *
+ * @param {Array<Object>} activeNodes - Active nodes to analyze
+ * @returns {number} Count of nodes that will churn out
+ *
+ * @example
+ * const leavingCount = calculateNodesLeaving(activeNodes);
+ * console.log(`${leavingCount} nodes will churn out next cycle`);
+ */
+export function calculateNodesLeaving(activeNodes) {
+  if (!activeNodes || activeNodes.length === 0) return 0;
+
+  return activeNodes.filter(node =>
+    node.requested_to_leave ||
+    node.forced_to_leave ||
+    getLeaveStatus(node, activeNodes)?.type === LEAVE_STATUS.OLDEST ||
+    getLeaveStatus(node, activeNodes)?.type === LEAVE_STATUS.WORST ||
+    getLeaveStatus(node, activeNodes)?.type === LEAVE_STATUS.LOWEST
+  ).length;
+}
+
+/**
+ * Determine if a standby node is likely to join in the next churn
+ *
+ * Based on preflight status, bond ranking, and available spots.
+ *
+ * @param {Object} node - Standby node to check
+ * @param {Array<Object>} standbyNodes - All standby nodes
+ * @param {number} activeCount - Current active node count
+ * @param {number} nodesLeavingCount - Nodes churning out
+ * @param {number} [newNodesPerChurn=4] - Max new nodes per churn (MIMIR)
+ * @param {number} [maxValidatorSet=120] - Max validator set size (MIMIR)
+ * @returns {boolean} True if node is likely to join
+ *
+ * @example
+ * const likely = isLikelyToJoin(node, standbyNodes, 103, 3, 4, 120);
+ * if (likely) console.log('This node will probably join next churn');
+ */
+export function isLikelyToJoin(node, standbyNodes, activeCount, nodesLeavingCount, newNodesPerChurn = 4, maxValidatorSet = 120) {
+  // First check if node has valid preflight status
+  if (!node.preflight_status || node.preflight_status.code !== 0) {
+    return false;
+  }
+
+  // Get all eligible nodes sorted by bond
+  const eligibleNodes = standbyNodes
+    .filter(n => n.preflight_status && n.preflight_status.code === 0)
+    .sort((a, b) => Number(b.total_bond) - Number(a.total_bond));
+
+  // Find index of current node in eligible nodes
+  const nodeIndex = eligibleNodes.findIndex(n => n.node_address === node.node_address);
+
+  // Calculate available spots considering maximum validator set
+  const nodesAfterLeaving = activeCount - nodesLeavingCount;
+  const availableSpots = Math.min(newNodesPerChurn, maxValidatorSet - nodesAfterLeaving);
+
+  // Check if node is within the available spots (can't be negative)
+  return nodeIndex >= 0 && nodeIndex < Math.max(0, availableSpots);
+}
+
+// ============================================
+// Chain Observation Utilities
+// ============================================
+
+/**
+ * Get maximum observed chain heights from nodes
+ *
+ * Scans all nodes' observe_chains to find the highest reported
+ * height for each chain.
+ *
+ * @param {Array<Object>} nodes - Nodes with observe_chains data
+ * @returns {Object} Map of chain name to max height
+ *
+ * @example
+ * const maxHeights = getMaxChainHeights(nodes);
+ * console.log(`BTC max height: ${maxHeights.BTC}`);
+ */
+export function getMaxChainHeights(nodes) {
+  if (!nodes) return {};
+
+  const maxHeights = {};
+
+  nodes.forEach(node => {
+    (node.observe_chains || []).forEach(chain => {
+      const currentMax = maxHeights[chain.chain] || 0;
+      maxHeights[chain.chain] = Math.max(currentMax, chain.height);
+    });
+  });
+
+  return maxHeights;
+}
+
+/**
+ * Get unique chains observed by nodes
+ *
+ * @param {Array<Object>} nodes - Nodes with observe_chains data
+ * @returns {Array<string>} Sorted array of unique chain names
+ *
+ * @example
+ * const chains = getUniqueChains(nodes);
+ * // => ['AVAX', 'BCH', 'BTC', 'DOGE', 'ETH', 'GAIA', 'LTC']
+ */
+export function getUniqueChains(nodes) {
+  if (!nodes) return [];
+
+  const chains = new Set();
+  nodes.forEach(node => {
+    (node.observe_chains || []).forEach(chain => {
+      chains.add(chain.chain);
+    });
+  });
+
+  return [...chains].sort();
+}
+
+/**
+ * Get a node's observed height for a specific chain
+ *
+ * @param {Object} node - Node with observe_chains data
+ * @param {string} chainName - Chain to look up
+ * @returns {number|null} Chain height or null if not observed
+ *
+ * @example
+ * const btcHeight = getNodeChainHeight(node, 'BTC');
+ * if (btcHeight) console.log(`Node observes BTC at ${btcHeight}`);
+ */
+export function getNodeChainHeight(node, chainName) {
+  if (!node?.observe_chains) return null;
+
+  const chain = node.observe_chains.find(c => c.chain === chainName);
+  return chain ? chain.height : null;
+}
+
+/**
+ * Format chain height difference for display
+ *
+ * Returns a formatted string showing sync status:
+ * - "✓" if synced (heights match)
+ * - "-15" if behind by 15 blocks
+ * - "-1k+" if behind by more than 999 blocks
+ * - "?" if height unknown
+ *
+ * @param {number|null} nodeHeight - Node's chain height
+ * @param {number} maxHeight - Network max height
+ * @returns {string} Formatted difference string
+ *
+ * @example
+ * formatChainHeightDiff(100000, 100000);  // => "✓"
+ * formatChainHeightDiff(99985, 100000);   // => "-15"
+ * formatChainHeightDiff(98000, 100000);   // => "-1k+"
+ */
+export function formatChainHeightDiff(nodeHeight, maxHeight) {
+  if (!nodeHeight) return '?';
+  if (nodeHeight === maxHeight) return '✓';
+
+  const diff = nodeHeight - maxHeight;
+
+  // Format negative numbers compactly
+  if (diff < 0) {
+    const absDiff = Math.abs(diff);
+    if (absDiff > 999) return '-1k+';
+    return diff.toString();
+  }
+
+  // Positive differences
+  if (diff > 999) return '+1k+';
+  return '+' + diff.toString();
+}
+
+// ============================================
+// Node Search Utilities
+// ============================================
+
+/**
+ * Search nodes by various fields
+ *
+ * Searches node address, operator address, bond providers,
+ * and vault (signer) membership.
+ *
+ * @param {Array<Object>} nodes - Nodes to search
+ * @param {string} query - Search term (case-insensitive)
+ * @returns {Array<Object>} Matching nodes
+ *
+ * @example
+ * const results = searchNodes(nodes, 'thor1abc');
+ * console.log(`Found ${results.length} matching nodes`);
+ */
+export function searchNodes(nodes, query) {
+  if (!nodes || !query) return nodes || [];
+
+  const searchTerm = query.toLowerCase().trim();
+  if (!searchTerm) return nodes;
+
+  return nodes.filter(node => {
+    // Check node address
+    if (node.node_address?.toLowerCase().includes(searchTerm)) return true;
+
+    // Check operator address
+    if (node.node_operator_address?.toLowerCase().includes(searchTerm)) return true;
+
+    // Check bond providers
+    if (node.bond_providers?.providers?.some(provider =>
+      provider.bond_address?.toLowerCase().includes(searchTerm)
+    )) return true;
+
+    // Check signer membership (vault membership)
+    if (node.signer_membership?.some(signer =>
+      signer?.toLowerCase().includes(searchTerm)
+    )) return true;
+
+    return false;
+  });
+}

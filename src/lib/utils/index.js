@@ -155,6 +155,7 @@ export {
 export {
   // Constants
   NODE_STATUS,
+  LEAVE_STATUS,
 
   // Node/bond fetching
   getNodes,
@@ -189,7 +190,21 @@ export {
   getChurnInfo,
   getTimeSinceChurn,
   getRecentChurns,
-  getLastChurn
+  getLastChurn,
+
+  // Churn prediction utilities
+  getLeaveStatus,
+  calculateNodesLeaving,
+  isLikelyToJoin,
+
+  // Chain observation utilities
+  getMaxChainHeights,
+  getUniqueChains,
+  getNodeChainHeight,
+  formatChainHeightDiff,
+
+  // Node search utilities
+  searchNodes
 } from './nodes.js';
 
 // ============================================

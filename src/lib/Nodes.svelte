@@ -7,6 +7,20 @@
   import { fromBaseUnit, blocksToSeconds } from '$lib/utils/blockchain';
   import { calculateAPR as calcAPR, calculateAPY as calcAPY } from '$lib/utils/calculations';
   import { fetchWithFallback, fetchMimirValue } from '$lib/utils/api';
+  import {
+    getNodes,
+    getLastChurn,
+    filterNodesByStatus,
+    NODE_STATUS,
+    getLeaveStatus,
+    calculateNodesLeaving,
+    isLikelyToJoin,
+    getMaxChainHeights,
+    getUniqueChains,
+    getNodeChainHeight,
+    formatChainHeightDiff,
+    searchNodes
+  } from '$lib/utils/nodes';
 
   let nodes = [];
   let activeNodes = [];
@@ -299,47 +313,19 @@
     return formatNumberUtil(fromBaseUnit(amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Calculate chain height difference
-  const getHeightDiff = (nodeHeight, maxHeight) => {
-    if (!nodeHeight) return '?';
-    if (nodeHeight === maxHeight) return '✓';
-    const diff = nodeHeight - maxHeight;
-    // Format negative numbers compactly, limit to 3 digits + minus sign
-    if (diff < 0) {
-      const absDiff = Math.abs(diff);
-      if (absDiff > 999) return '-1k+';
-      return diff.toString();
-    }
-    // Positive differences (shouldn't happen often, but handle just in case)
-    if (diff > 999) return '+1k+';
-    return '+' + diff.toString();
-  };
+  // Use shared utility for chain height difference formatting
+  const getHeightDiff = formatChainHeightDiff;
 
-  // Update max chain heights and unique chains
-  const updateChainInfo = (nodes) => {
-    maxChainHeights = {};
-    uniqueChains = new Set(); // Create new Set instance to trigger reactivity
-    
-    // Collect all unique chains and their maximum heights
-    nodes.forEach(node => {
-      (node.observe_chains || []).forEach(chain => {
-        uniqueChains.add(chain.chain);
-        const currentMax = maxChainHeights[chain.chain] || 0;
-        maxChainHeights[chain.chain] = Math.max(currentMax, chain.height);
-      });
-    });
-    
-    // Force reactivity update
-    uniqueChains = uniqueChains;
+  // Update max chain heights and unique chains using shared utilities
+  const updateChainInfo = (nodesData) => {
+    maxChainHeights = getMaxChainHeights(nodesData);
+    uniqueChains = new Set(getUniqueChains(nodesData));
     console.log('Unique chains:', [...uniqueChains]);
     console.log('Max chain heights:', maxChainHeights);
   };
 
-  // Get chain height for a specific node and chain
-  const getChainHeight = (node, chainName) => {
-    const chain = (node.observe_chains || []).find(c => c.chain === chainName);
-    return chain ? chain.height : null;
-  };
+  // Use shared utility for getting chain height
+  const getChainHeight = getNodeChainHeight;
 
   // Toggle row expansion
   const toggleRow = (nodeAddress) => {
@@ -459,35 +445,9 @@
     standbyNodes = sortNodes(standbyNodes, sortField, sortDirection);
   };
 
-  // Filter nodes based on search query
-  const filterNodes = (nodes, query) => {
-    if (!query) return nodes;
-    
-    const searchTerm = query.toLowerCase().trim();
-    return nodes.filter(node => {
-      // Check node address
-      if (node.node_address.toLowerCase().includes(searchTerm)) return true;
-      
-      // Check operator address
-      if (node.node_operator_address.toLowerCase().includes(searchTerm)) return true;
-      
-      // Check bond providers
-      if (node.bond_providers?.providers?.some(provider => 
-        provider.bond_address.toLowerCase().includes(searchTerm)
-      )) return true;
-
-      // Check signer membership (vault membership)
-      if (node.signer_membership?.some(signer => 
-        signer.toLowerCase().includes(searchTerm)
-      )) return true;
-
-      return false;
-    });
-  };
-
-  // Reactive statements for filtered nodes
-  $: filteredActiveNodes = filterNodes(activeNodes, searchQuery);
-  $: filteredStandbyNodes = filterNodes(standbyNodes, searchQuery);
+  // Reactive statements for filtered nodes using shared search utility
+  $: filteredActiveNodes = searchNodes(activeNodes, searchQuery);
+  $: filteredStandbyNodes = searchNodes(standbyNodes, searchQuery);
 
   // Add function to fetch latest block height
   const fetchLatestBlock = async () => {
@@ -504,23 +464,18 @@
   // Update fetchNodes to include block height fetch
   const fetchNodes = async () => {
     if (isPaused) return;
-    
+
     try {
       isLoading = true;
-      const [nodesResponse, churnsResponse] = await Promise.all([
-        fetchWithFallback('/thorchain/nodes'),
-        fetch('https://midgard.ninerealms.com/v2/churns'),
+      const [nodesData, lastChurnData] = await Promise.all([
+        getNodes({ cache: false }),
+        getLastChurn(),
         fetchLatestBlock(),
         fetchMimirValuesLocal()
       ]);
 
-      const [nodesData, churnsData] = await Promise.all([
-        nodesResponse.json(),
-        churnsResponse.json()
-      ]);
-
       nodes = nodesData;
-      lastChurnHeight = Number(churnsData[0].date) / 1e9;
+      lastChurnHeight = lastChurnData?.timestampSec || 0;
       recentChurnTimestamp = lastChurnHeight;
       updateNextChurnTime();
 
@@ -534,19 +489,20 @@
       });
 
       updateChainInfo(nodes);
-      
+
       // Calculate nodes that will be churned out
-      const activeNodesList = nodes.filter(node => node.status === 'Active');
+      const activeNodesList = filterNodesByStatus(nodes, NODE_STATUS.ACTIVE);
       nodesLeavingCount = calculateNodesLeaving(activeNodesList);
-      
-      // Get standby nodes and mark those likely to join
-      const standbyNodesList = nodes
-        .filter(node => node.status === 'Standby')
-        .sort((a, b) => Number(b.total_bond) - Number(a.total_bond))
-        .map((node, index) => ({
-          ...node,
-          likelyToJoin: isLikelyToJoin(node, index)
-        }));
+
+      // Get standby nodes sorted by bond
+      const standbyNodesSorted = filterNodesByStatus(nodes, NODE_STATUS.STANDBY)
+        .sort((a, b) => Number(b.total_bond) - Number(a.total_bond));
+
+      // Mark those likely to join using shared utility
+      const standbyNodesList = standbyNodesSorted.map(node => ({
+        ...node,
+        likelyToJoin: isLikelyToJoin(node, standbyNodesSorted, activeNodesList.length, nodesLeavingCount, newNodesPerChurn, maxValidatorSet)
+      }));
 
       // First sort by star status and bond
       activeNodes = sortNodesByStarAndBond(activeNodesList);
@@ -597,48 +553,7 @@
     };
   });
 
-  // Determine leave status for a node
-  const getLeaveStatus = (node, allNodes) => {
-    // Check for requested_to_leave first
-    if (node.requested_to_leave) {
-      return { type: 'leaving', description: 'Node has requested to leave' };
-    }
-
-    // Find oldest active node
-    const oldestNode = allNodes
-      .filter(n => n.status === 'Active')
-      .reduce((oldest, current) => 
-        Number(current.active_block_height) < Number(oldest.active_block_height) ? current : oldest
-      );
-    
-    if (node.node_address === oldestNode.node_address) {
-      return { type: 'oldest', description: 'Oldest active node by block height' };
-    }
-
-    // Find worst performing node (most slash points)
-    const worstNode = allNodes
-      .filter(n => n.status === 'Active')
-      .reduce((worst, current) => 
-        Number(current.slash_points) > Number(worst.slash_points) ? current : worst
-      );
-    
-    if (node.node_address === worstNode.node_address) {
-      return { type: 'worst', description: 'Highest slash points' };
-    }
-
-    // Find lowest bond node
-    const lowestBondNode = allNodes
-      .filter(n => n.status === 'Active')
-      .reduce((lowest, current) => 
-        Number(current.total_bond) < Number(lowest.total_bond) ? current : lowest
-      );
-    
-    if (node.node_address === lowestBondNode.node_address) {
-      return { type: 'lowest', description: 'Lowest total bond' };
-    }
-
-    return null;
-  };
+  // Note: getLeaveStatus is now imported from shared utilities
 
   // Add vault color mapping
   let vaultColorMap = new Map();
@@ -701,39 +616,12 @@
     countdown = formatCountdown(secondsLeft, { zeroText: 'Churning...' });
   };
 
-  // Function to calculate nodes that will be churned out
-  const calculateNodesLeaving = (nodes) => {
-    return nodes.filter(node => 
-      node.requested_to_leave || 
-      node.forced_to_leave ||
-      getLeaveStatus(node, nodes)?.type === 'oldest' ||
-      getLeaveStatus(node, nodes)?.type === 'worst' ||
-      getLeaveStatus(node, nodes)?.type === 'lowest'
-    ).length;
-  };
+  // Note: calculateNodesLeaving is now imported from shared utilities
 
-  // Function to determine if a standby node is likely to join
-  const isLikelyToJoin = (node) => {
-    // First check if node has valid preflight status
-    if (!node.preflight_status || node.preflight_status.code !== 0) {
-      return false;
-    }
-
-    // Get all eligible nodes sorted by bond
-    const eligibleNodes = standbyNodes
-      .filter(n => n.preflight_status && n.preflight_status.code === 0)
-      .sort((a, b) => Number(b.total_bond) - Number(a.total_bond));
-    
-    // Find index of current node in eligible nodes
-    const nodeIndex = eligibleNodes.findIndex(n => n.node_address === node.node_address);
-    
-    // Calculate available spots considering maximum validator set
-    const currentActiveNodes = activeNodes.length;
-    const nodesAfterLeaving = currentActiveNodes - nodesLeavingCount;
-    const availableSpots = Math.min(newNodesPerChurn, maxValidatorSet - nodesAfterLeaving);
-    
-    // Check if node is within the available spots (can't be negative)
-    return nodeIndex < Math.max(0, availableSpots);
+  // Wrapper function to determine if a standby node is likely to join
+  // using component state variables
+  const checkIsLikelyToJoin = (node) => {
+    return isLikelyToJoin(node, standbyNodes, activeNodes.length, nodesLeavingCount, newNodesPerChurn, maxValidatorSet);
   };
 
   $: eligibleStandbyNodes = standbyNodes.filter(node => 
@@ -1433,8 +1321,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
           <tr class="main-row"
             class:row-starred={starredNodes.has(node.node_address)}
             class:row-jailed={node.jail && node.jail.release_height > currentBlockHeight}
-            class:row-joining={node.preflight_status?.code === 0 && isLikelyToJoin(node)}
-            class:row-eligible={node.preflight_status?.code === 0 && !isLikelyToJoin(node)}
+            class:row-joining={node.preflight_status?.code === 0 && checkIsLikelyToJoin(node)}
+            class:row-eligible={node.preflight_status?.code === 0 && !checkIsLikelyToJoin(node)}
             class:row-ineligible={!node.preflight_status || node.preflight_status.code !== 0}
           >
             <td class="number-cell">{i + 1}</td>
