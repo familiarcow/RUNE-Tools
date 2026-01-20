@@ -6,6 +6,9 @@
     import { getAssetLogo, getChainLogo, getAssetDisplayName, ASSET_LOGOS, CHAIN_LOGOS } from '$lib/constants/assets';
     import { formatUSD, formatUSDWithDecimals, shortenAddress, getAddressSuffix } from '$lib/utils/formatting';
     import { denomToAsset } from '$lib/utils/wallet';
+    import { fromBaseUnit } from '$lib/utils/blockchain';
+    import { getAllPools } from '$lib/utils/liquidity';
+    import { getRunePrice } from '$lib/utils/tcy';
     import { getBondsForAddresses, calculateTotalBondValue } from '$lib/utils/nodes';
 
 //This app currently does not check free asset value on chains other than THORChain
@@ -35,7 +38,7 @@
         return new Intl.NumberFormat('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-        }).format(Number(amount) / 1e8);
+        }).format(fromBaseUnit(amount));
     }
 
     // formatUSD and formatUSDWithDecimals imported from $lib/utils/formatting
@@ -50,10 +53,9 @@
         return pool.split('-')[0];
     }
 
-    async function fetchRunePrice() {
+    async function fetchRunePriceData() {
         try {
-            const data = await thornode.fetch('/thorchain/network');
-            runePrice = Number(data.rune_price_in_tor) / 1e8;
+            runePrice = await getRunePrice();
         } catch (e) {
             console.error('Error fetching RUNE price:', e);
         }
@@ -61,11 +63,11 @@
 
     async function fetchAssetPrices() {
         try {
-            const pools = await thornode.fetch('/thorchain/pools');
+            const pools = await getAllPools();
 
             // Create a price map for all assets
             const priceMap = pools.reduce((acc, pool) => {
-                acc[pool.asset] = Number(pool.asset_tor_price) / 1e8;
+                acc[pool.asset] = fromBaseUnit(pool.asset_tor_price);
                 return acc;
             }, {});
 
@@ -96,8 +98,8 @@
                         lpPositions.push({
                             pool: formatPoolName(data.asset),
                             fullPool: data.asset,
-                            assetAmount: Number(data.asset_redeem_value) / 1e8,
-                            runeAmount: Number(data.rune_redeem_value) / 1e8,
+                            assetAmount: fromBaseUnit(data.asset_redeem_value),
+                            runeAmount: fromBaseUnit(data.rune_redeem_value),
                             assetAddress: data.rune_address // Using rune_address as identifier
                         });
                     }
@@ -130,7 +132,7 @@
             }
 
             await Promise.all([
-                fetchRunePrice(),
+                fetchRunePriceData(),
                 fetchAssetPrices()
             ]);
 

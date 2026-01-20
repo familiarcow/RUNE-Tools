@@ -1,6 +1,11 @@
 <script>
   import { onMount } from 'svelte';
   import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { fromBaseUnit, getAssetShortName } from '$lib/utils/blockchain';
+  import { formatNumber as formatNum, formatUSD as formatUSDUtil, formatBasisPoints, formatMimirBasisPoints } from '$lib/utils/formatting';
+  import { getAllPools } from '$lib/utils/liquidity';
+  import { getOutboundFees, calculateTotalFeeSurplus } from '$lib/utils/network';
+  import { getAssetLogo } from '$lib/constants/assets';
 
   let outboundFees = [];
   let prices = {};
@@ -11,77 +16,35 @@
   let sortDirection = 'desc';
   let searchQuery = '';
 
-  // Asset logos mapping - merged from SwapEstimator.svelte and PriceChecker.svelte
-  const assetLogos = {
-    'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
-    'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BSC.BNB': 'assets/coins/binance-coin-bnb-logo.svg',
-    'BCH.BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
-    'LTC.LTC': 'assets/coins/litecoin-ltc-logo.svg',
-    'AVAX.AVAX': 'assets/coins/avalanche-avax-logo.svg',
-    'GAIA.ATOM': 'assets/coins/cosmos-atom-logo.svg',
-    'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
-    'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
-    'THOR.TCY': 'assets/coins/TCY.svg',
-    'SOL.SOL': 'assets/coins/solana-sol-logo.svg',
-    'BASE.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'assets/coins/usd-coin-usdc-logo.svg',
-    'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'assets/coins/tether-usdt-logo.svg',
-    'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': 'assets/coins/wrapped-bitcoin-wbtc-logo.svg',
-    'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': 'assets/coins/multi-collateral-dai-dai-logo.svg',
-    'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': 'assets/coins/gemini-dollar-gusd-logo.svg',
-    'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': 'assets/coins/liquity-usd-logo.svg',
-    'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': 'assets/coins/paxos-standard-usdp-logo.svg',
-    'ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9': 'assets/coins/aave-aave-logo.svg',
-    'ETH.LINK-0X514910771AF9CA656AF840DFF83E8264ECF986CA': 'assets/coins/chainlink-link-logo.svg',
-    'ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F': 'assets/coins/synthetix-snx-logo.svg',
-    'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'assets/coins/fox-token-fox-logo.svg',
-    'ETH.DPI-0X1494CA1F11D487C2BBE4543E90080AEBA4BA3C2B': 'assets/coins/dpi-logo.png',
-    'ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044': 'assets/coins/thorswap-logo.png',
-    'ETH.VTHOR-0X815C23ECA83261B6EC689B60CC4A58B54BC24D8D': 'assets/coins/thorswap-logo.png',
-    'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'assets/coins/xrune-logo.png',
-    'ETH.TGT-0X108A850856DB3F85D0269A2693D896B394C80325': 'assets/coins/tgt-logo.png',
-    'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': 'assets/coins/usd-coin-usdc-logo.svg',
-    'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg',
-    'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'assets/coins/solana-sol-logo.svg',
-    'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'assets/coins/tether-usdt-logo.svg',
-    'BSC.TWT-0X4B0F1812E5DF2A09796481FF14017E6005508003': 'assets/coins/twt-logo.png',
-    'BNB.BUSD-BD1': 'assets/coins/binance-usd-busd-logo.svg',
-    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'assets/coins/coinbase-wrapped-btc-logo.svg'
-  };
+  // Asset logos now imported from $lib/constants/assets
 
 
-  // Format number with commas
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat().format(num);
-  };
+  // Format number with commas (using shared utility)
+  const formatNumber = (num) => formatNum(num, { maximumFractionDigits: 8 });
 
   // Format amount (divide by 1e8)
   const formatAmount = (amount) => {
     if (!amount) return '0';
-    return formatNumber((Number(amount) / 1e8).toFixed(8));
+    return formatNum(fromBaseUnit(amount), { minimumFractionDigits: 8, maximumFractionDigits: 8 });
   };
 
   // Format amount without decimals (for surplus display)
   const formatAmountNoDecimals = (amount) => {
     if (!amount) return '0';
-    return formatNumber(Math.round(Number(amount) / 1e8));
+    return formatNum(Math.round(fromBaseUnit(amount)), { maximumFractionDigits: 0 });
   };
 
   // Format outbound fee amount (divide by 1e8 but don't round)
   const formatOutboundFee = (amount) => {
     if (!amount) return '0';
-    const value = Number(amount) / 1e8;
-    // Use toLocaleString with maximum precision to avoid rounding
-    return value.toLocaleString('en-US', { 
+    const value = fromBaseUnit(amount);
+    return value.toLocaleString('en-US', {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 20 
+      maximumFractionDigits: 20
     });
   };
 
-  // Format USD amount
+  // Format USD amount (using shared utility with extended decimals)
   const formatUSD = (amount) => {
     if (!amount || isNaN(amount)) return '$0.00';
     return new Intl.NumberFormat('en-US', {
@@ -96,45 +59,26 @@
   const calculateFeeUSD = (asset, outboundFee) => {
     const assetPrice = prices[asset];
     if (!assetPrice || !outboundFee) return 0;
-    
-    const feeAmount = Number(outboundFee) / 1e8; // Convert fee to decimal
-    const priceUSD = Number(assetPrice) / 1e8; // Convert price to USD
-    
+
+    const feeAmount = fromBaseUnit(outboundFee);
+    const priceUSD = fromBaseUnit(assetPrice);
+
     return feeAmount * priceUSD;
   };
 
-  // Format percentage from basis points (divide by 10000)
+  // Format percentage from basis points (using shared utility)
   const formatPercentage = (basisPoints) => {
     if (!basisPoints) return '0';
-    return ((Number(basisPoints) / 10000) * 100).toFixed(2);
+    return formatBasisPoints(basisPoints, 2).replace('%', '');
   };
 
-  // Format mimir basis points to percentage (divide by 100)
+  // Format mimir basis points to percentage (using shared utility)
   const formatMimirPercentage = (basisPoints) => {
     if (!basisPoints) return '0';
-    return (Number(basisPoints) / 100).toFixed(1);
+    return formatMimirBasisPoints(basisPoints, 1).replace('%', '');
   };
 
-  // Get short asset name with chain (e.g., "BTC.BTC" -> "BTC", "ETH.USDC-0X..." -> "USDC (ETH)")
-  const getShortAssetName = (asset) => {
-    if (asset === 'THOR.RUNE') return 'RUNE';
-    
-    const parts = asset.split(/\.|-/);
-    const [chain, assetName] = parts;
-    
-    if (assetName === 'ETH') {
-      return `${assetName} (${chain})`;
-    } else if (["ETH", "BSC", "AVAX", "BASE"].includes(chain) && parts[2]) {
-      return `${assetName} (${chain})`;
-    } else {
-      return assetName || asset;
-    }
-  };
-
-  // Get asset logo (returns undefined if no logo exists)
-  const getAssetLogo = (asset) => {
-    return assetLogos[asset];
-  };
+  // Get short asset name - using shared utility from blockchain.js
 
   // Sort function
   const sortData = (data, field, direction) => {
@@ -143,7 +87,7 @@
       
       switch (field) {
         case 'asset':
-          comparison = getShortAssetName(a.asset).localeCompare(getShortAssetName(b.asset));
+          comparison = getAssetShortName(a.asset).localeCompare(getAssetShortName(b.asset));
           break;
         case 'outbound_fee':
         case 'fee_withheld_rune':
@@ -190,40 +134,26 @@
     const searchTerm = query.toLowerCase().trim();
     return data.filter(fee => 
       fee.asset.toLowerCase().includes(searchTerm) ||
-      getShortAssetName(fee.asset).toLowerCase().includes(searchTerm)
+      getAssetShortName(fee.asset).toLowerCase().includes(searchTerm)
     );
   };
 
   // Reactive statement for filtered data
   $: filteredFees = filterData(outboundFees, searchQuery);
 
-  // Calculate total surplus (fee_withheld_rune - fee_spent_rune)
-  $: totalSurplus = (() => {
-    let totalWithheld = 0;
-    let totalSpent = 0;
-    
-    filteredFees.forEach(fee => {
-      if (fee.fee_withheld_rune) {
-        totalWithheld += Number(fee.fee_withheld_rune);
-      }
-      if (fee.fee_spent_rune) {
-        totalSpent += Number(fee.fee_spent_rune);
-      }
-    });
-    
-    return totalWithheld - totalSpent;
-  })();
+  // Calculate total surplus using shared utility
+  $: totalSurplus = calculateTotalFeeSurplus(filteredFees).raw;
 
   // Fetch outbound fees data
-  const fetchOutboundFees = async () => {
+  const fetchOutboundFeesData = async () => {
     try {
       isLoading = true;
       error = null;
 
-      // Fetch outbound fees, pools, and mimir data in parallel using shared utility
+      // Fetch outbound fees, pools, and mimir data in parallel using shared utilities
       const [feesData, poolsData, mimirDataResponse] = await Promise.all([
-        fetchJSONWithFallback('/thorchain/outbound_fees'),
-        fetchJSONWithFallback('/thorchain/pools'),
+        getOutboundFees(),
+        getAllPools(),
         fetchJSONWithFallback('/thorchain/mimir')
       ]);
 
@@ -245,7 +175,7 @@
   };
 
   onMount(async () => {
-    await fetchOutboundFees();
+    await fetchOutboundFeesData();
   });
 </script>
 
@@ -403,12 +333,12 @@
                   {#if getAssetLogo(fee.asset)}
                     <img 
                       src={getAssetLogo(fee.asset)} 
-                      alt={getShortAssetName(fee.asset)}
+                      alt={getAssetShortName(fee.asset)}
                       class="asset-logo"
                       loading="lazy"
                     />
                   {/if}
-                  <span class="asset-name">{getShortAssetName(fee.asset)}</span>
+                  <span class="asset-name">{getAssetShortName(fee.asset)}</span>
                 </div>
               </td>
               <td class="amount-cell">
@@ -417,7 +347,7 @@
                   {#if getAssetLogo(fee.asset)}
                     <img 
                       src={getAssetLogo(fee.asset)} 
-                      alt={getShortAssetName(fee.asset)}
+                      alt={getAssetShortName(fee.asset)}
                       class="fee-asset-icon"
                       loading="lazy"
                     />

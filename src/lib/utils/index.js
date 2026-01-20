@@ -38,6 +38,11 @@ export {
   formatPrice,
   formatCryptoAmount,
 
+  // Basis points formatting
+  basisPointsToPercent,
+  formatBasisPoints,
+  formatMimirBasisPoints,
+
   // Time/date formatting
   formatTime,
   formatDate,
@@ -255,7 +260,17 @@ export {
   // Outbound fee fetching
   getOutboundFees,
   getOutboundFee,
+  getOutboundFeeAmount,
+  getOutboundFeeUSD,
   getChainOutboundFee,
+  getOutboundFeesByChain,
+
+  // Fee calculations
+  calculateFeeSurplus,
+  calculateTotalFeeSurplus,
+  getDynamicMultiplier,
+  getOutboundFeeDetails,
+  getAllOutboundFeeDetails,
 
   // Fee formatting
   formatOutboundFee,

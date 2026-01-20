@@ -4,9 +4,11 @@
   import { copyToClipboard as copyToClipboardUtil, shortenAddress } from '$lib/utils/formatting';
   import { fetchJSONWithFallback } from '$lib/utils/api';
   import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { getAllPools } from '$lib/utils/liquidity';
   import {
     CHAIN_EXPLORERS,
-    formatOutboundFeeWithUSD
+    formatOutboundFeeWithUSD,
+    getInboundAddresses
   } from '$lib/utils/network';
 
   let inboundAddresses = [];
@@ -34,8 +36,8 @@
   onMount(async () => {
     try {
       const [inboundData, poolsData, networkData] = await Promise.all([
-        fetchJSONWithFallback('/thorchain/inbound_addresses'),
-        fetchJSONWithFallback('/thorchain/pools'),
+        getInboundAddresses(),
+        getAllPools(),
         fetchJSONWithFallback('/thorchain/network')
       ]);
 

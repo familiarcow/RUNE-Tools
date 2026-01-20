@@ -1,6 +1,10 @@
 <script>
   import { onMount } from 'svelte';
   import Chart from 'chart.js/auto';
+  import { midgard } from '$lib/api/midgard';
+  import { getAllPools } from '$lib/utils/liquidity';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { formatNumber as formatNum, formatUSD as formatUSDUtil } from '$lib/utils/formatting';
 
   let days = 30;
   let earningsData = null;
@@ -34,8 +38,7 @@
   async function fetchEarnings() {
     try {
       isLoading = true;
-      const response = await fetch(`https://midgard.ninerealms.com/v2/history/earnings?interval=day&count=${days}`);
-      const data = await response.json();
+      const data = await midgard.getEarningsHistory({ interval: 'day', count: days });
       earningsData = data.intervals;
       isLoading = false;
     } catch (err) {
@@ -46,12 +49,11 @@
 
   async function fetchPoolsData() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/pools');
-      const data = await response.json();
-      poolsData = data.reduce((acc, pool) => {
+      const pools = await getAllPools();
+      poolsData = pools.reduce((acc, pool) => {
         acc[pool.asset] = {
-          runeDepth: (Number(pool.balance_rune) / 1e8) * 2,
-          usdDepth: (Number(pool.balance_asset) / 1e8) * 2 * (Number(pool.asset_tor_price) / 1e8)
+          runeDepth: fromBaseUnit(pool.balance_rune) * 2,
+          usdDepth: fromBaseUnit(pool.balance_asset) * 2 * fromBaseUnit(pool.asset_tor_price)
         };
         return acc;
       }, {});

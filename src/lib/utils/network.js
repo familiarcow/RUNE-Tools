@@ -255,6 +255,59 @@ export async function getOutboundFee(asset) {
 }
 
 /**
+ * Get the outbound fee amount for a specific asset (in native units)
+ * Returns just the number, divided by 1e8
+ *
+ * @param {string} asset - Asset identifier (e.g., 'BTC.BTC', 'ETH.ETH')
+ * @returns {Promise<number>} Fee amount in native units or 0 if not found
+ *
+ * @example
+ * const btcFee = await getOutboundFeeAmount('BTC.BTC');
+ * // Returns: 0.0003 (amount in BTC)
+ */
+export async function getOutboundFeeAmount(asset) {
+  const fee = await getOutboundFee(asset);
+  if (!fee?.outbound_fee) return 0;
+  return fromBaseUnit(fee.outbound_fee);
+}
+
+/**
+ * Get the outbound fee in USD for a specific asset
+ *
+ * @param {string} asset - Asset identifier (e.g., 'BTC.BTC', 'ETH.ETH')
+ * @param {number|Object|Map} assetPrice - Either the price directly (in USD), or a price map
+ * @returns {Promise<number>} Fee in USD or 0 if not calculable
+ *
+ * @example
+ * // With direct price
+ * const feeUSD = await getOutboundFeeUSD('BTC.BTC', 95000);
+ * // Returns: 28.50 (in USD)
+ *
+ * // With price map
+ * const feeUSD = await getOutboundFeeUSD('BTC.BTC', priceMap);
+ */
+export async function getOutboundFeeUSD(asset, assetPrice) {
+  const feeAmount = await getOutboundFeeAmount(asset);
+  if (!feeAmount) return 0;
+
+  // Determine the actual price value
+  let priceUSD;
+  if (typeof assetPrice === 'number') {
+    priceUSD = assetPrice;
+  } else if (assetPrice instanceof Map) {
+    const rawPrice = assetPrice.get(asset);
+    priceUSD = rawPrice ? fromBaseUnit(rawPrice) : 0;
+  } else if (assetPrice && typeof assetPrice === 'object') {
+    const rawPrice = assetPrice[asset];
+    priceUSD = rawPrice ? fromBaseUnit(rawPrice) : 0;
+  } else {
+    return 0;
+  }
+
+  return feeAmount * priceUSD;
+}
+
+/**
  * Get the basic outbound fee for a chain from inbound addresses
  * This is the fee in the chain's native token
  *
@@ -347,6 +400,182 @@ export function formatOutboundFeeWithUSD(fee, chain, assetPrices) {
     usd: null,
     usdDisplay: null
   };
+}
+
+/**
+ * Get outbound fees filtered by chain
+ *
+ * @param {string} chain - Chain identifier (e.g., 'BTC', 'ETH', 'AVAX')
+ * @returns {Promise<Array>} Filtered outbound fee objects
+ *
+ * @example
+ * const ethFees = await getOutboundFeesByChain('ETH');
+ * // Returns all ETH.* asset fees
+ */
+export async function getOutboundFeesByChain(chain) {
+  const fees = await getOutboundFees();
+  return fees.filter((f) => f.asset.startsWith(`${chain}.`));
+}
+
+/**
+ * Calculate fee surplus for a single outbound fee
+ * Surplus = fee_withheld_rune - fee_spent_rune
+ *
+ * @param {Object} fee - Outbound fee object
+ * @returns {number} Surplus in base units (1e8)
+ *
+ * @example
+ * const surplus = calculateFeeSurplus(btcFee);
+ * // Returns: 50000000 (0.5 RUNE in base units)
+ */
+export function calculateFeeSurplus(fee) {
+  if (!fee) return 0;
+  const withheld = Number(fee.fee_withheld_rune) || 0;
+  const spent = Number(fee.fee_spent_rune) || 0;
+  return withheld - spent;
+}
+
+/**
+ * Calculate total fee surplus across multiple outbound fees
+ *
+ * @param {Array} fees - Array of outbound fee objects
+ * @returns {Object} Total surplus in base units and formatted
+ *
+ * @example
+ * const totals = calculateTotalFeeSurplus(allFees);
+ * // Returns: { raw: 500000000, amount: 5, withheld: 10, spent: 5 }
+ */
+export function calculateTotalFeeSurplus(fees) {
+  if (!fees || fees.length === 0) {
+    return { raw: 0, amount: 0, withheld: 0, spent: 0 };
+  }
+
+  let totalWithheld = 0;
+  let totalSpent = 0;
+
+  fees.forEach((fee) => {
+    totalWithheld += Number(fee.fee_withheld_rune) || 0;
+    totalSpent += Number(fee.fee_spent_rune) || 0;
+  });
+
+  const surplus = totalWithheld - totalSpent;
+
+  return {
+    raw: surplus,
+    amount: fromBaseUnit(surplus),
+    withheld: fromBaseUnit(totalWithheld),
+    spent: fromBaseUnit(totalSpent)
+  };
+}
+
+/**
+ * Get dynamic multiplier info for an outbound fee
+ * The multiplier adjusts fees based on network conditions
+ *
+ * @param {Object} fee - Outbound fee object
+ * @returns {Object} Multiplier info
+ *
+ * @example
+ * const multiplier = getDynamicMultiplier(btcFee);
+ * // Returns: { basisPoints: 15000, percent: 150, isElevated: true }
+ */
+export function getDynamicMultiplier(fee) {
+  if (!fee?.dynamic_multiplier_basis_points) {
+    return { basisPoints: 10000, percent: 100, isElevated: false };
+  }
+
+  const basisPoints = Number(fee.dynamic_multiplier_basis_points);
+  const percent = basisPoints / 100; // 10000 bp = 100%
+
+  return {
+    basisPoints,
+    percent,
+    isElevated: basisPoints > 10000 // Elevated if above 100%
+  };
+}
+
+/**
+ * Get comprehensive outbound fee details for an asset
+ * Combines fee data with USD pricing and surplus calculation
+ *
+ * @param {string} asset - Asset identifier
+ * @param {Object|Map} assetPrices - Asset prices (asset_tor_price values)
+ * @returns {Promise<Object|null>} Detailed fee info or null
+ *
+ * @example
+ * const details = await getOutboundFeeDetails('BTC.BTC', priceMap);
+ * // Returns: { asset, fee, feeFormatted, feeUSD, surplus, multiplier, ... }
+ */
+export async function getOutboundFeeDetails(asset, assetPrices = {}) {
+  const fee = await getOutboundFee(asset);
+  if (!fee) return null;
+
+  const chain = asset.split('.')[0];
+
+  // Get price for this asset
+  const price = assetPrices instanceof Map ? assetPrices.get(asset) : assetPrices[asset];
+  const priceUSD = price ? fromBaseUnit(price) : 0;
+
+  // Calculate fee in native token
+  const feeAmount = fromBaseUnit(fee.outbound_fee);
+  const feeUSD = feeAmount * priceUSD;
+
+  // Calculate surplus
+  const surplus = calculateFeeSurplus(fee);
+
+  // Get multiplier
+  const multiplier = getDynamicMultiplier(fee);
+
+  return {
+    asset,
+    chain,
+    fee: fee.outbound_fee,
+    feeAmount,
+    feeUSD,
+    feeUSDDisplay: feeUSD > 0 ? `$${feeUSD.toFixed(2)}` : null,
+    withheldRune: fromBaseUnit(fee.fee_withheld_rune),
+    spentRune: fromBaseUnit(fee.fee_spent_rune),
+    surplusRune: fromBaseUnit(surplus),
+    multiplier,
+    raw: fee
+  };
+}
+
+/**
+ * Get all outbound fees with computed details
+ * Useful for displaying a full fee dashboard
+ *
+ * @param {Object|Map} assetPrices - Asset prices
+ * @returns {Promise<Array>} Array of detailed fee objects
+ *
+ * @example
+ * const allDetails = await getAllOutboundFeeDetails(priceMap);
+ */
+export async function getAllOutboundFeeDetails(assetPrices = {}) {
+  const fees = await getOutboundFees();
+
+  return fees.map((fee) => {
+    const chain = fee.asset.split('.')[0];
+    const price = assetPrices instanceof Map ? assetPrices.get(fee.asset) : assetPrices[fee.asset];
+    const priceUSD = price ? fromBaseUnit(price) : 0;
+    const feeAmount = fromBaseUnit(fee.outbound_fee);
+    const feeUSD = feeAmount * priceUSD;
+    const surplus = calculateFeeSurplus(fee);
+    const multiplier = getDynamicMultiplier(fee);
+
+    return {
+      asset: fee.asset,
+      chain,
+      feeAmount,
+      feeUSD,
+      feeUSDDisplay: feeUSD > 0 ? `$${feeUSD.toFixed(2)}` : null,
+      withheldRune: fromBaseUnit(fee.fee_withheld_rune),
+      spentRune: fromBaseUnit(fee.fee_spent_rune),
+      surplusRune: fromBaseUnit(surplus),
+      multiplier,
+      raw: fee
+    };
+  });
 }
 
 // ============================================

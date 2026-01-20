@@ -80,6 +80,56 @@ export function formatPercentageNoSign(num, decimals = 2) {
 }
 
 /**
+ * Convert basis points to decimal percentage
+ * @param {number} basisPoints - Value in basis points (10000 = 100%)
+ * @returns {number} Decimal percentage (e.g., 5000 -> 50)
+ *
+ * @example
+ * basisPointsToPercent(10000); // => 100
+ * basisPointsToPercent(5000);  // => 50
+ * basisPointsToPercent(150);   // => 1.5
+ */
+export function basisPointsToPercent(basisPoints) {
+  if (!basisPoints) return 0;
+  return Number(basisPoints) / 100;
+}
+
+/**
+ * Format basis points as percentage string
+ * THORChain uses 10000 basis points = 100%
+ *
+ * @param {number} basisPoints - Value in basis points
+ * @param {number} decimals - Decimal places (default: 2)
+ * @returns {string} Formatted percentage (e.g., "50.00%")
+ *
+ * @example
+ * formatBasisPoints(10000);  // => "100.00%"
+ * formatBasisPoints(5000);   // => "50.00%"
+ * formatBasisPoints(150, 1); // => "1.5%"
+ */
+export function formatBasisPoints(basisPoints, decimals = 2) {
+  if (!basisPoints) return '0%';
+  return `${basisPointsToPercent(basisPoints).toFixed(decimals)}%`;
+}
+
+/**
+ * Format mimir basis points (100 = 1%)
+ * Some mimir values use 100 bp = 1% instead of 10000 bp = 100%
+ *
+ * @param {number} basisPoints - Value in mimir basis points
+ * @param {number} decimals - Decimal places (default: 1)
+ * @returns {string} Formatted percentage (e.g., "50.0%")
+ *
+ * @example
+ * formatMimirBasisPoints(5000); // => "50.0%"
+ * formatMimirBasisPoints(150);  // => "1.5%"
+ */
+export function formatMimirBasisPoints(basisPoints, decimals = 1) {
+  if (!basisPoints) return '0%';
+  return `${(Number(basisPoints) / 100).toFixed(decimals)}%`;
+}
+
+/**
  * Simplify large numbers to human-readable format
  * @param {number} num - Number to simplify
  * @returns {string} Simplified string (e.g., "1.5M", "2.3B")
