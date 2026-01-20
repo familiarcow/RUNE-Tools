@@ -3,6 +3,7 @@
   import { fetchJSONWithFallback } from '$lib/utils/api';
   import { getAddressSuffix } from '$lib/utils/formatting';
   import {
+    getNodes,
     getActiveNodeAddresses,
     groupNodesByOperator,
     calculateConsensusThreshold
@@ -86,7 +87,7 @@
 
   async function fetchNodeData() {
     try {
-      nodeData = await fetchJSONWithFallback('/thorchain/nodes');
+      nodeData = await getNodes({ cache: false });
       activeNodeAddresses = getActiveNodeAddresses(nodeData);
       activeNodeCount = activeNodeAddresses.length;
       nodeOperators = groupNodesByOperator(nodeData);
