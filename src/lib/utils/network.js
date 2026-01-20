@@ -814,6 +814,92 @@ export function getVaultSummary(vault, nodes, prices, runePrice) {
   };
 }
 
+/**
+ * Aggregate vault balances by asset across all Asgard vaults
+ *
+ * Returns a map of asset identifiers to their total balance across all vaults.
+ * Useful for comparing vault holdings against pool depths.
+ *
+ * @param {Object} [options={}] - Options
+ * @param {Array<Object>} [options.vaults] - Pre-fetched vaults (will fetch if not provided)
+ * @returns {Promise<Object>} Map of asset identifier to total balance (in base units as number)
+ *
+ * @example
+ * const vaultBalances = await getVaultBalanceMap();
+ * // => { 'BTC.BTC': 123456789, 'ETH.ETH': 987654321, ... }
+ *
+ * const btcInVaults = fromBaseUnit(vaultBalances['BTC.BTC']);
+ * console.log(`${btcInVaults.toFixed(8)} BTC in vaults`);
+ */
+export async function getVaultBalanceMap(options = {}) {
+  try {
+    const vaults = options.vaults || (await getAsgardVaults());
+    const balanceMap = {};
+
+    for (const vault of vaults) {
+      if (!vault.coins) continue;
+
+      for (const coin of vault.coins) {
+        const amount = Number(coin.amount);
+        if (balanceMap[coin.asset]) {
+          balanceMap[coin.asset] += amount;
+        } else {
+          balanceMap[coin.asset] = amount;
+        }
+      }
+    }
+
+    return balanceMap;
+  } catch (error) {
+    console.error('Failed to build vault balance map:', error);
+    return {};
+  }
+}
+
+/**
+ * Get vault balance for a specific asset
+ *
+ * @param {string} asset - Asset identifier (e.g., 'BTC.BTC')
+ * @param {Object} [vaultBalanceMap] - Pre-fetched vault balance map (optional)
+ * @returns {Promise<number>} Vault balance in base units, or 0 if not found
+ *
+ * @example
+ * // Single lookup
+ * const btcVaultBalance = await getVaultAssetBalance('BTC.BTC');
+ *
+ * // Multiple lookups (more efficient with pre-fetched map)
+ * const vaultBalances = await getVaultBalanceMap();
+ * const btcBalance = await getVaultAssetBalance('BTC.BTC', vaultBalances);
+ * const ethBalance = await getVaultAssetBalance('ETH.ETH', vaultBalances);
+ */
+export async function getVaultAssetBalance(asset, vaultBalanceMap = null) {
+  const balanceMap = vaultBalanceMap || (await getVaultBalanceMap());
+  return balanceMap[asset] || 0;
+}
+
+/**
+ * Calculate vault surplus/deficit for an asset
+ *
+ * Compares vault holdings against pool depth + trade depth to determine
+ * if there's excess or missing assets in the vaults.
+ *
+ * @param {number} vaultBalance - Vault balance in base units
+ * @param {number} poolBalance - Pool asset balance in base units
+ * @param {number} [tradeDepth=0] - Trade asset depth in base units
+ * @returns {number} Surplus (positive) or deficit (negative) in base units
+ *
+ * @example
+ * const surplus = calculateVaultSurplus(vaultBalance, poolBalance, tradeDepth);
+ * if (surplus > 0) {
+ *   console.log(`Vault has ${fromBaseUnit(surplus)} extra assets`);
+ * } else {
+ *   console.log(`Vault is missing ${fromBaseUnit(Math.abs(surplus))} assets`);
+ * }
+ */
+export function calculateVaultSurplus(vaultBalance, poolBalance, tradeDepth = 0) {
+  return vaultBalance - poolBalance - tradeDepth;
+}
+
 // ============================================
 // Block Height Utilities
 // ============================================

@@ -698,3 +698,139 @@ export function isSymmetricLP(position) {
 export function isAsymmetricLP(position) {
   return getLPTypeFromPosition(position) !== LP_TYPES.SYMMETRIC;
 }
+
+// ============================================
+// Trade Asset Utilities
+// ============================================
+
+/**
+ * Fetch trade unit data from THORNode
+ *
+ * Returns raw trade unit data for all assets with trade accounts.
+ *
+ * @param {Object} [options={}] - Fetch options
+ * @returns {Promise<Array<Object>>} Array of trade unit objects
+ *
+ * @example
+ * const tradeUnits = await getTradeUnits();
+ * // => [{ asset: 'BTC~BTC', depth: '123456789', units: '100000000' }, ...]
+ */
+export async function getTradeUnits(options = {}) {
+  try {
+    return await thornode.fetch('/thorchain/trade/units', options);
+  } catch (error) {
+    console.error('Failed to fetch trade units:', error);
+    return [];
+  }
+}
+
+/**
+ * Get trade asset depth map
+ *
+ * Returns a map of normalized asset identifiers to their trade account depths.
+ * Normalizes asset notation from trade format (BTC~BTC) to standard (BTC.BTC).
+ *
+ * @param {Object} [options={}] - Fetch options
+ * @returns {Promise<Object>} Map of asset identifier to depth (in base units as number)
+ *
+ * @example
+ * const tradeDepths = await getTradeAssetDepthMap();
+ * // => { 'BTC.BTC': 123456789, 'ETH.ETH': 987654321, ... }
+ *
+ * const btcTradeDepth = tradeDepths['BTC.BTC'];
+ * const btcTradeAmount = fromBaseUnit(btcTradeDepth);
+ */
+export async function getTradeAssetDepthMap(options = {}) {
+  try {
+    const data = await getTradeUnits(options);
+    return data.reduce((acc, item) => {
+      // Normalize trade asset notation (BTC~BTC -> BTC.BTC)
+      const normalizedAsset = item.asset.replace('~', '.');
+      acc[normalizedAsset] = Number(item.depth);
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error('Failed to build trade asset depth map:', error);
+    return {};
+  }
+}
+
+/**
+ * Get trade asset depth for a specific pool
+ *
+ * @param {string} asset - Asset identifier (e.g., 'BTC.BTC')
+ * @param {Object} [tradeDepthMap] - Pre-fetched trade depth map (optional, will fetch if not provided)
+ * @returns {Promise<number>} Trade asset depth in base units, or 0 if not found
+ *
+ * @example
+ * // Single lookup
+ * const btcTradeDepth = await getTradeAssetDepth('BTC.BTC');
+ *
+ * // Multiple lookups (more efficient with pre-fetched map)
+ * const tradeDepths = await getTradeAssetDepthMap();
+ * const btcDepth = await getTradeAssetDepth('BTC.BTC', tradeDepths);
+ * const ethDepth = await getTradeAssetDepth('ETH.ETH', tradeDepths);
+ */
+export async function getTradeAssetDepth(asset, tradeDepthMap = null) {
+  const depthMap = tradeDepthMap || (await getTradeAssetDepthMap());
+  return depthMap[asset] || 0;
+}
+
+/**
+ * Get pools enriched with trade asset data
+ *
+ * Fetches pools and trade units, then merges them together.
+ * Useful for components that need both pool info and trade depths.
+ *
+ * @param {Object} [options={}] - Options
+ * @param {boolean} [options.availableOnly=true] - Only return available pools
+ * @returns {Promise<Array<Object>>} Array of pool objects with trade_asset_depth added
+ *
+ * @example
+ * const poolsWithTrade = await getPoolsWithTradeData();
+ * poolsWithTrade.forEach(pool => {
+ *   console.log(`${pool.asset}: Pool depth ${pool.balance_asset}, Trade depth ${pool.trade_asset_depth}`);
+ * });
+ */
+export async function getPoolsWithTradeData(options = {}) {
+  const { availableOnly = true, ...fetchOptions } = options;
+
+  try {
+    const [pools, tradeDepths] = await Promise.all([
+      thornode.getPools(fetchOptions),
+      getTradeAssetDepthMap(fetchOptions)
+    ]);
+
+    const filteredPools = availableOnly
+      ? pools.filter((pool) => pool.status === 'Available')
+      : pools;
+
+    return filteredPools.map((pool) => ({
+      ...pool,
+      trade_asset_depth: tradeDepths[pool.asset] || 0,
+      usd_price: fromBaseUnit(pool.asset_tor_price)
+    }));
+  } catch (error) {
+    console.error('Failed to get pools with trade data:', error);
+    return [];
+  }
+}
+
+/**
+ * Calculate trade to pool ratio
+ *
+ * Returns the percentage of trade asset depth relative to total pool depth.
+ *
+ * @param {number} tradeDepth - Trade asset depth in base units
+ * @param {number} poolAssetBalance - Pool asset balance in base units
+ * @returns {number} Ratio as percentage (0-100)
+ *
+ * @example
+ * const ratio = calculateTradePoolRatio(pool.trade_asset_depth, pool.balance_asset);
+ * console.log(`Trade accounts are ${ratio.toFixed(2)}% of pool`);
+ */
+export function calculateTradePoolRatio(tradeDepth, poolAssetBalance) {
+  if (!poolAssetBalance || poolAssetBalance === 0) return 0;
+  // Trade depth compared to total pool depth (2x asset balance for symmetric)
+  return (tradeDepth / (2 * poolAssetBalance)) * 100;
+}

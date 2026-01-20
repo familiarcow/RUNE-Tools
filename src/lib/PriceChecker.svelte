@@ -2,10 +2,10 @@
   import { onMount } from 'svelte';
   import { writable, derived } from 'svelte/store';
   import { cubicOut } from 'svelte/easing';
-  import { thornode } from '$lib/api';
   import { PageHeader, LoadingBar } from '$lib/components';
   import { formatNumber, formatUSD } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { getPoolsWithTradeData } from '$lib/utils/liquidity';
   import { ASSET_LOGOS, getAssetLogo } from '$lib/constants/assets';
 
   const pools = writable([]);
@@ -72,32 +72,16 @@
     'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'thorstarter'
   };
 
-  async function getTradeAssets() {
-    try {
-      const data = await thornode.fetch('/thorchain/trade/units');
-      return data.reduce((acc, item) => {
-        const formattedAsset = item.asset.replace('~', '.');
-        acc[formattedAsset] = Number(item.depth);
-        return acc;
-      }, {});
-    } catch (error) {
-      console.error('Failed to fetch trade assets:', error);
-      return {};
-    }
-  }
-
   async function getPools() {
     try {
-      const tradeAssets = await getTradeAssets();
-      const data = await thornode.fetch('/thorchain/pools');
-      return data
-        .filter(pool => pool.status === "Available")
+      const poolsData = await getPoolsWithTradeData({ availableOnly: true });
+      return poolsData
         .map(pool => ({
           asset: pool.asset,
-          usd_price: fromBaseUnit(pool.asset_tor_price),
-          rune_depth: Number(pool.rune_depth),
-          asset_depth: Number(pool.asset_depth),
-          trade_asset_depth: Number(tradeAssets[pool.asset] || 0),
+          usd_price: pool.usd_price,
+          rune_depth: Number(pool.balance_rune),
+          asset_depth: Number(pool.balance_asset),
+          trade_asset_depth: pool.trade_asset_depth,
           balance_asset: Number(pool.balance_asset)
         }))
         .sort((a, b) => b.rune_depth - a.rune_depth);

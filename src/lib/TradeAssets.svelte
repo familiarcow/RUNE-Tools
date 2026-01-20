@@ -3,10 +3,9 @@
   import { writable } from 'svelte/store';
   import SettingsIcon from '../../public/assets/Settings.svelte';
   import RefreshIcon from '../../public/assets/Refresh.svelte';
-  import { getAllPools } from '$lib/utils/liquidity';
-  import { getAsgardVaults } from '$lib/utils/network';
+  import { getPoolsWithTradeData } from '$lib/utils/liquidity';
+  import { getVaultBalanceMap } from '$lib/utils/network';
   import { fromBaseUnit } from '$lib/utils/blockchain';
-  import { fetchJSONWithFallback } from '$lib/utils/api';
 
   const showInUSD = writable(false);
   const showVaultInfo = writable(false);
@@ -16,70 +15,26 @@
   const selectedSortOption = writable('depth');
   const pools = writable([]);
 
-  async function getVaultBalances() {
-    try {
-      // Use shared utility with caching and fallback support
-      const vaults = await getAsgardVaults();
-      const coinSums = {};
-
-      vaults.forEach((vault) => {
-        if (!vault.coins) {
-          return;
-        }
-        vault.coins.forEach((coin) => {
-          const asset = coin.asset;
-          const amount = Number(coin.amount);
-          if (coinSums[asset]) {
-            coinSums[asset] += amount;
-          } else {
-            coinSums[asset] = amount;
-          }
-        });
-      });
-
-      return coinSums;
-    } catch (error) {
-      return {};
-    }
-  }
-
-  async function getTradeAssets() {
-    try {
-      // Use shared utility with fallback support
-      const data = await fetchJSONWithFallback('/thorchain/trade/units');
-      return data.reduce((acc, item) => {
-        const formattedAsset = item.asset.replace('~', '.');
-        acc[formattedAsset] = Number(item.depth);
-        return acc;
-      }, {});
-    } catch (error) {
-      console.error('Failed to fetch trade assets:', error);
-      return {};
-    }
-  }
-
   async function getPools() {
-    const [tradeAssets, vaultBalances, data] = await Promise.all([
-      getTradeAssets(),
-      getVaultBalances(),
-      getAllPools()
+    const [poolsWithTrade, vaultBalances] = await Promise.all([
+      getPoolsWithTradeData({ availableOnly: true }),
+      getVaultBalanceMap()
     ]);
-    return data
-      .filter(pool => pool.status === "Available")
+
+    return poolsWithTrade
       .map(pool => {
-        const assetDepth = Number(tradeAssets[pool.asset] || '0');
-        const vaultBalance = Number(vaultBalances[pool.asset] || '0');
-        const usdPrice = fromBaseUnit(pool.asset_tor_price);
+        const vaultBalance = Number(vaultBalances[pool.asset] || 0);
         const synthSupply = Number(pool.synth_supply) || 0;
         const saversDepth = Number(pool.savers_depth) || 0;
         const nonSaverSynths = synthSupply - saversDepth;
-        const synthConversion = assetDepth + nonSaverSynths > 0 ? (assetDepth / (assetDepth + nonSaverSynths)) * 100 : 0;
+        const tradeDepth = pool.trade_asset_depth || 0;
+        const synthConversion = tradeDepth + nonSaverSynths > 0
+          ? (tradeDepth / (tradeDepth + nonSaverSynths)) * 100
+          : 0;
 
         return {
           ...pool,
-          trade_asset_depth: assetDepth,
           vault_balance: vaultBalance,
-          usd_price: usdPrice,
           synth_supply: synthSupply,
           savers_depth: saversDepth,
           non_saver_synths: nonSaverSynths,

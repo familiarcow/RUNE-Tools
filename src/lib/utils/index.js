@@ -160,7 +160,14 @@ export {
   getRuneValueInBTC,
   buildPoolPriceMap,
   getPoolDepth,
-  getPoolDepthUSD
+  getPoolDepthUSD,
+
+  // Trade asset utilities
+  getTradeUnits,
+  getTradeAssetDepthMap,
+  getTradeAssetDepth,
+  getPoolsWithTradeData,
+  calculateTradePoolRatio
 } from './liquidity.js';
 
 // ============================================
@@ -302,6 +309,9 @@ export {
   calculateVaultBond,
   calculateVaultAssetValue,
   getVaultSummary,
+  getVaultBalanceMap,
+  getVaultAssetBalance,
+  calculateVaultSurplus,
 
   // Block height utilities
   getCurrentBlock,
