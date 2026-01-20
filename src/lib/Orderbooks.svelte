@@ -1,7 +1,10 @@
 <script>
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { copyToClipboard } from '$lib/utils/formatting';
+  import { copyToClipboard, formatUSDCompact, formatRatio } from '$lib/utils/formatting';
+  import { getRunePrice } from '$lib/utils/network';
+  import { fromBaseUnit, normalizeAsset, getAssetType, getChainFromAsset } from '$lib/utils/blockchain';
+  import { getPoolDepthUSD } from '$lib/utils/liquidity';
 
   let limitSwapsSummary = null;
   let limitSwaps = [];
@@ -47,7 +50,7 @@
       poolPrices.clear();
       pools.forEach(pool => {
         if (pool.asset && pool.asset_tor_price) {
-          const usdPrice = parseInt(pool.asset_tor_price) / 1e8;
+          const usdPrice = fromBaseUnit(pool.asset_tor_price);
           
           // Store with original asset name (e.g., ETH.USDC-0X123...)
           poolPrices.set(pool.asset, usdPrice);
@@ -87,16 +90,10 @@
 
   async function fetchNetworkInfo() {
     try {
-      const response = await fetch(`${MAINNET_API}/network`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      
-      // Get RUNE price in USD from rune_price_in_tor
-      if (data.rune_price_in_tor) {
-        runePrice = parseInt(data.rune_price_in_tor) / 1e8;
-        // Update poolPrices map with RUNE price
-        poolPrices.set('THOR.RUNE', runePrice);
-      }
+      // Use shared utility for RUNE price
+      runePrice = await getRunePrice();
+      // Update poolPrices map with RUNE price
+      poolPrices.set('THOR.RUNE', runePrice);
     } catch (err) {
       console.error('Error fetching network info:', err);
       // Don't set error for network info as it's not critical
@@ -192,7 +189,7 @@
 
   function formatUSD(amount) {
     if (!amount) return '$0';
-    const usdValue = parseInt(amount) / 1e8;
+    const usdValue = fromBaseUnit(amount);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -201,75 +198,13 @@
     }).format(usdValue);
   }
 
-  function normalizeAsset(asset) {
-    if (!asset) return '';
-    
-    // Handle assets with contract addresses first
-    // Format: ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48
-    const dashParts = asset.split('-');
-    let cleanAsset = asset;
-    
-    // Check if the last part is a contract address (starts with 0X and is long enough)
-    if (dashParts.length >= 3) {
-      const lastPart = dashParts[dashParts.length - 1];
-      if (lastPart.toUpperCase().startsWith('0X') && lastPart.length > 10) {
-        // Remove the contract address part
-        cleanAsset = dashParts.slice(0, -1).join('-');
-      }
-    }
-    
-    // Now normalize the separators to dot notation for consistency
-    // . = native asset (keep as-is)
-    // - = secured asset (convert to .)
-    // ~ = trade asset (convert to .)
-    if (cleanAsset.includes('-') && !cleanAsset.includes('.') && !cleanAsset.includes('~')) {
-      // This is a secured asset, convert to dot notation
-      const parts = cleanAsset.split('-');
-      if (parts.length === 2) {
-        return `${parts[0]}.${parts[1]}`;
-      }
-    } else if (cleanAsset.includes('~')) {
-      // This is a trade asset, convert to dot notation
-      return cleanAsset.replace('~', '.');
-    }
-    
-    // Native assets with . or already clean assets
-    return cleanAsset;
-  }
-
-  function getAssetType(asset) {
-    if (!asset) return 'unknown';
-    
-    // Remove contract address if present
-    const dashParts = asset.split('-');
-    let cleanAsset = asset;
-    if (dashParts.length >= 3) {
-      const lastPart = dashParts[dashParts.length - 1];
-      if (lastPart.toUpperCase().startsWith('0X') && lastPart.length > 10) {
-        cleanAsset = dashParts.slice(0, -1).join('-');
-      }
-    }
-    
-    if (cleanAsset.includes('.')) return 'native';
-    if (cleanAsset.includes('-')) return 'secured';
-    if (cleanAsset.includes('~')) return 'trade';
-    return 'unknown';
-  }
+  // normalizeAsset and getAssetType imported from $lib/utils/blockchain
 
   function getAssetDisplay(asset) {
     return normalizeAsset(asset);
   }
 
-  function getChainFromAsset(asset) {
-    if (!asset) return '';
-    
-    // Use normalized asset (always uses dot notation)
-    const normalizedAsset = normalizeAsset(asset);
-    
-    // Split on dot to get chain part
-    const parts = normalizedAsset.split('.');
-    return parts[0] || '';
-  }
+  // getChainFromAsset imported from $lib/utils/blockchain
 
   function shortenAddress(address) {
     if (!address) return '';
@@ -296,13 +231,7 @@
     return ratio;
   }
 
-  function formatRatio(ratio) {
-    if (!ratio) return 'N/A';
-    return ratio.toLocaleString('en-US', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 6 
-    });
-  }
+  // formatRatio imported from $lib/utils/formatting
 
   function getPoolByAsset(asset) {
     if (!asset) return null;
@@ -397,38 +326,9 @@
     return null;
   }
 
-  function formatUSDShort(amount) {
-    if (!amount || amount === 0) return '$0';
-    
-    const num = Math.floor(amount);
-    
-    if (num >= 1e9) {
-      return `$${(num / 1e9).toFixed(1)}B`;
-    } else if (num >= 1e6) {
-      return `$${(num / 1e6).toFixed(1)}M`;
-    } else if (num >= 1e3) {
-      return `$${(num / 1e3).toFixed(1)}k`;
-    } else {
-      return `$${num}`;
-    }
-  }
+  // formatUSDCompact imported from $lib/utils/formatting (replaces formatUSDCompact)
 
-  function getPoolDepthUSD(pool) {
-    if (!pool || !pool.balance_asset || !pool.asset_tor_price) {
-      console.log('Pool depth calculation failed:', { pool, hasBalance: !!pool?.balance_asset, hasPrice: !!pool?.asset_tor_price });
-      return 0;
-    }
-    const balanceAsset = parseInt(pool.balance_asset) / 1e8;
-    const assetPrice = parseInt(pool.asset_tor_price) / 1e8;
-    const depth = 2 * balanceAsset * assetPrice;
-    
-    // Debug logging for ETH assets
-    if (pool.asset && pool.asset.includes('ETH') && (pool.asset.includes('USDC') || pool.asset.includes('DAI'))) {
-      console.log('Pool depth calculation for', pool.asset, ':', { balanceAsset, assetPrice, depth });
-    }
-    
-    return depth;
-  }
+  // getPoolDepthUSD imported from $lib/utils/liquidity
 
 
   function getAssetPriceUSD(asset) {
@@ -460,13 +360,13 @@
     // Fallback to pool data search with normalized asset
     const pool = getPoolByAsset(normalizedAsset);
     if (pool && pool.asset_tor_price) {
-      return parseInt(pool.asset_tor_price) / 1e8;
+      return fromBaseUnit(pool.asset_tor_price);
     }
-    
+
     // Final fallback: search pools with original asset name
     const originalPool = pools.find(pool => pool.asset === asset);
     if (originalPool && originalPool.asset_tor_price) {
-      return parseInt(originalPool.asset_tor_price) / 1e8;
+      return fromBaseUnit(originalPool.asset_tor_price);
     }
     
     return null;
@@ -783,7 +683,7 @@
             <div class="info-card">
               <div class="info-value">
                 {#if getPoolByAsset(selectedPair.source_asset)}
-                  {formatUSDShort(getPoolDepthUSD(getPoolByAsset(selectedPair.source_asset)))}
+                  {formatUSDCompact(getPoolDepthUSD(getPoolByAsset(selectedPair.source_asset)))}
                 {:else}
                   N/A
                 {/if}
@@ -798,7 +698,7 @@
             <div class="info-card">
               <div class="info-value">
                 {#if getPoolByAsset(selectedPair.target_asset)}
-                  {formatUSDShort(getPoolDepthUSD(getPoolByAsset(selectedPair.target_asset)))}
+                  {formatUSDCompact(getPoolDepthUSD(getPoolByAsset(selectedPair.target_asset)))}
                 {:else}
                   N/A
                 {/if}

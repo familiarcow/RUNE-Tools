@@ -3,6 +3,10 @@
   import { writable } from 'svelte/store';
   import SettingsIcon from '../../public/assets/Settings.svelte';
   import RefreshIcon from '../../public/assets/Refresh.svelte';
+  import { getAllPools } from '$lib/utils/liquidity';
+  import { getAsgardVaults } from '$lib/utils/network';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { fetchJSONWithFallback } from '$lib/utils/api';
 
   const showInUSD = writable(false);
   const showVaultInfo = writable(false);
@@ -14,9 +18,8 @@
 
   async function getVaultBalances() {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/vaults/asgard");
-      const vaults = await response.json();
-
+      // Use shared utility with caching and fallback support
+      const vaults = await getAsgardVaults();
       const coinSums = {};
 
       vaults.forEach((vault) => {
@@ -42,8 +45,8 @@
 
   async function getTradeAssets() {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/trade/units");
-      const data = await response.json();
+      // Use shared utility with fallback support
+      const data = await fetchJSONWithFallback('/thorchain/trade/units');
       return data.reduce((acc, item) => {
         const formattedAsset = item.asset.replace('~', '.');
         acc[formattedAsset] = Number(item.depth);
@@ -56,15 +59,17 @@
   }
 
   async function getPools() {
-    const [tradeAssets, vaultBalances] = await Promise.all([getTradeAssets(), getVaultBalances()]);
-    const response = await fetch("https://thornode.ninerealms.com/thorchain/pools");
-    const data = await response.json();
+    const [tradeAssets, vaultBalances, data] = await Promise.all([
+      getTradeAssets(),
+      getVaultBalances(),
+      getAllPools()
+    ]);
     return data
       .filter(pool => pool.status === "Available")
       .map(pool => {
         const assetDepth = Number(tradeAssets[pool.asset] || '0');
         const vaultBalance = Number(vaultBalances[pool.asset] || '0');
-        const usdPrice = Number(pool.asset_tor_price) / 1e8;
+        const usdPrice = fromBaseUnit(pool.asset_tor_price);
         const synthSupply = Number(pool.synth_supply) || 0;
         const saversDepth = Number(pool.savers_depth) || 0;
         const nonSaverSynths = synthSupply - saversDepth;
@@ -125,13 +130,13 @@
 
   function calculateSums(pools, showInUSD) {
     return pools.reduce((acc, pool) => {
-      const poolDepth = pool.balance_asset / 1e8;
-      const tradeDepth = pool.trade_asset_depth / 1e8;
-      const vaultBalance = pool.vault_balance / 1e8;
-      const vaultSurplus = (pool.vault_balance - pool.balance_asset - pool.trade_asset_depth) / 1e8;
-      const synthSupply = pool.synth_supply / 1e8;
-      const saversDepth = pool.savers_depth / 1e8;
-      const nonSaverSynths = pool.non_saver_synths / 1e8;
+      const poolDepth = fromBaseUnit(pool.balance_asset);
+      const tradeDepth = fromBaseUnit(pool.trade_asset_depth);
+      const vaultBalance = fromBaseUnit(pool.vault_balance);
+      const vaultSurplus = fromBaseUnit(pool.vault_balance - pool.balance_asset - pool.trade_asset_depth);
+      const synthSupply = fromBaseUnit(pool.synth_supply);
+      const saversDepth = fromBaseUnit(pool.savers_depth);
+      const nonSaverSynths = fromBaseUnit(pool.non_saver_synths);
       const usdMultiplier = pool.usd_price;
 
       acc.poolDepth += showInUSD ? poolDepth * usdMultiplier : poolDepth;

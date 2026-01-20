@@ -3,6 +3,9 @@
   import LPChecker from './LPChecker.svelte';
   import LPDetail from './LPDetail.svelte';
   import { writable } from 'svelte/store';
+  import { getAllPools } from '$lib/utils/liquidity';
+  import { getRunePrice } from '$lib/utils/network';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
 
   let activeTab = 'checker';
   let selectedPool = null;
@@ -33,18 +36,17 @@
 
   onMount(async () => {
     try {
-      // Fetch pools list
-      const poolsResponse = await fetch(`${API_DOMAIN}/thorchain/pools`);
-      pools = await poolsResponse.json();
+      // Fetch pools list and RUNE price using shared utilities
+      const [poolsData, runePriceData] = await Promise.all([
+        getAllPools(),
+        getRunePrice()
+      ]);
+      pools = poolsData;
+      runePrice = runePriceData;
 
-      // Fetch RUNE price
-      const networkResponse = await fetch(`${API_DOMAIN}/thorchain/network`);
-      const networkData = await networkResponse.json();
-      runePrice = parseFloat(networkData.rune_price_in_tor) / 1e8;
-
-      // Fetch asset prices
+      // Build asset prices map
       for (const pool of pools) {
-        assetPrices[pool.asset] = parseFloat(pool.asset_tor_price) / 1e8;
+        assetPrices[pool.asset] = fromBaseUnit(pool.asset_tor_price);
       }
 
       // Parse URL parameters

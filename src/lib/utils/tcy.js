@@ -15,6 +15,9 @@
 
 import { fetchJSONWithFallback, THORNODE_ENDPOINTS, MIDGARD_ENDPOINTS } from './api.js';
 import { fromBaseUnit } from './blockchain.js';
+// Import general network functions and re-export for backwards compatibility
+import { getRunePrice, getCurrentBlock } from './network.js';
+export { getRunePrice, getCurrentBlock };
 
 // ============================================
 // Constants
@@ -88,24 +91,7 @@ export async function getTCYPrice() {
   }
 }
 
-/**
- * Fetch RUNE price in USD from THORNode network data
- *
- * @returns {Promise<number>} RUNE price in USD
- *
- * @example
- * const runePrice = await getRunePrice();
- * console.log(`RUNE Price: $${runePrice.toFixed(2)}`);
- */
-export async function getRunePrice() {
-  try {
-    const networkData = await fetchJSONWithFallback('/thorchain/network');
-    return fromBaseUnit(networkData.rune_price_in_tor);
-  } catch (error) {
-    console.error('Error fetching RUNE price:', error);
-    return 0;
-  }
-}
+// getRunePrice is now imported from network.js and re-exported above
 
 /**
  * Fetch both TCY and RUNE prices at once
@@ -555,31 +541,7 @@ export async function getRuneSupplyAndMarketCap() {
  * const block = await getCurrentBlock();
  * console.log(`Current block: ${block}`);
  */
-export async function getCurrentBlock() {
-  // Try RPC status endpoint first (fastest)
-  try {
-    const response = await fetch('https://rpc-v2.ninerealms.com/status');
-    const data = await response.json();
-    const height = Number(data.result?.sync_info?.latest_block_height);
-    if (height > 0) return height;
-  } catch (e) {
-    // Continue to fallback
-  }
-
-  // Fallback to THORNode lastblock
-  try {
-    const data = await fetchJSONWithFallback('/thorchain/lastblock');
-    if (Array.isArray(data)) {
-      const thor = data.find((x) => (x?.chain || '').toUpperCase() === 'THOR');
-      const height = Number(thor?.thorchain || thor?.last_observed_in);
-      if (height > 0) return height;
-    }
-  } catch (e) {
-    console.error('Error fetching current block:', e);
-  }
-
-  return 0;
-}
+// getCurrentBlock is now imported from network.js and re-exported above
 
 /**
  * Calculate next distribution block

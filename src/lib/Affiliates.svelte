@@ -1,7 +1,9 @@
 <script lang="ts">
   import { writable } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { getInboundAddresses, getExplorerUrl } from '$lib/utils/network';
+  import { getInboundAddresses, getExplorerUrl, getOutboundFee } from '$lib/utils/network';
+  import { getAllPools } from '$lib/utils/liquidity';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
   import { fetchJSONWithFallback } from '$lib/utils/api';
 
   interface ThorNameResponse {
@@ -113,11 +115,8 @@
 
   async function queryPools() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/pools');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: Pool[] = await response.json();
+      // Use shared utility with caching and fallback support
+      const data: Pool[] = await getAllPools();
       pools.set(data);
       console.log('Pools:', data);
     } catch (error) {
@@ -128,10 +127,10 @@
 
   async function queryOutboundFee(asset: string) {
     try {
-      // Use shared utility with fallback support
-      const data: OutboundFee[] = await fetchJSONWithFallback(`/thorchain/outbound_fee/${asset}`);
-      outboundFeeInfo.set(data[0]);
-      console.log('Outbound fee info:', data[0]);
+      // Use shared utility with caching and fallback support
+      const data = await getOutboundFee(asset);
+      outboundFeeInfo.set(data);
+      console.log('Outbound fee info:', data);
     } catch (error) {
       console.error('Error fetching outbound fee:', error);
       outboundFeeInfo.set(null);
@@ -146,7 +145,7 @@
       }
       const data: NetworkData = await response.json();
       networkData.set(data);
-      runePrice = Number(data.rune_price_in_tor) / 1e8;
+      runePrice = fromBaseUnit(data.rune_price_in_tor);
       console.log('Network data:', data);
     } catch (error) {
       console.error('Error fetching network data:', error);
@@ -193,7 +192,7 @@
 
     if (preferredPool && $outboundFeeInfo) {
       outboundFee = $outboundFeeInfo.outbound_fee;
-      const outboundFeeInAsset = Number(outboundFee) / 1e8;
+      const outboundFeeInAsset = fromBaseUnit(outboundFee);
       const assetPriceInRune = Number(preferredPool.balance_rune) / Number(preferredPool.balance_asset);
       const outboundFeeInRune = outboundFeeInAsset * assetPriceInRune;
       payoutThreshold = formatRune((outboundFeeInRune * preferredAssetFeeMultiplier * 1e8).toString());
@@ -210,7 +209,7 @@
   }
 
   function formatRune(amount: string): string {
-    return (Number(amount) / 1e8).toFixed(2);
+    return fromBaseUnit(amount).toFixed(2);
   }
 
   function formatUSD(amount: number): string {

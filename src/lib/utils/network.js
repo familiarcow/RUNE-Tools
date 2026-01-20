@@ -813,3 +813,166 @@ export function getVaultSummary(vault, nodes, prices, runePrice) {
     coins: vault.coins || []
   };
 }
+
+// ============================================
+// Block Height Utilities
+// ============================================
+
+/**
+ * Get current THORChain block height
+ *
+ * Tries RPC endpoint first (fastest), falls back to THORNode lastblock.
+ *
+ * @returns {Promise<number>} Current block height, or 0 on error
+ *
+ * @example
+ * const block = await getCurrentBlock();
+ * console.log(`Current block: ${block.toLocaleString()}`);
+ */
+export async function getCurrentBlock() {
+  // Try RPC status endpoint first (fastest)
+  try {
+    const response = await fetch('https://rpc-v2.ninerealms.com/status');
+    const data = await response.json();
+    const height = Number(data.result?.sync_info?.latest_block_height);
+    if (height > 0) return height;
+  } catch (e) {
+    // Continue to fallback
+  }
+
+  // Fallback to THORNode lastblock
+  try {
+    const data = await fetchJSONWithFallback('/thorchain/lastblock');
+    if (Array.isArray(data)) {
+      const thor = data.find((x) => (x?.chain || '').toUpperCase() === 'THOR');
+      const height = Number(thor?.thorchain || thor?.last_observed_in);
+      if (height > 0) return height;
+    }
+  } catch (e) {
+    console.error('Error fetching current block:', e);
+  }
+
+  return 0;
+}
+
+// ============================================
+// RUNE Price Utilities
+// ============================================
+
+/**
+ * Fetch current RUNE price in USD (via TOR)
+ *
+ * Gets the RUNE price from the /thorchain/network endpoint.
+ * TOR is THORChain's USD-pegged stablecoin reference.
+ *
+ * @returns {Promise<number>} RUNE price in USD
+ *
+ * @example
+ * const runePrice = await getRunePrice();
+ * console.log(`RUNE price: $${runePrice.toFixed(2)}`);
+ */
+export async function getRunePrice() {
+  try {
+    const networkData = await fetchJSONWithFallback('/thorchain/network');
+    return fromBaseUnit(networkData.rune_price_in_tor);
+  } catch (error) {
+    console.error('Error fetching RUNE price:', error);
+    return 0;
+  }
+}
+
+// ============================================
+// Swapper Clout Utilities
+// ============================================
+
+/**
+ * Fetch swapper clout data for an address
+ *
+ * Swapper Clout is THORChain's measure of liquidity fees paid.
+ * When you swap, fees are added to your clout score. The score
+ * can be "spent" to reduce outbound delays on subsequent swaps.
+ *
+ * @param {string} address - THORChain address (thor1...)
+ * @returns {Promise<Object>} Clout data including score, spent, and reclaimed
+ *
+ * @example
+ * const clout = await getSwapperClout('thor1abc...');
+ * console.log(`Total clout: ${clout.score}`);
+ * console.log(`Spent: ${clout.spent}`);
+ * console.log(`Reclaimed: ${clout.reclaimed}`);
+ */
+export async function getSwapperClout(address) {
+  if (!address) {
+    throw new Error('Address is required');
+  }
+
+  return await fetchJSONWithFallback(`/thorchain/clout/swap/${address}`);
+}
+
+/**
+ * Calculate available clout from total, spent, and reclaimed values
+ *
+ * Available clout = Total score - Spent + Reclaimed
+ *
+ * Uses BigInt for precision with large numbers.
+ *
+ * @param {string|number|bigint} total - Total clout score
+ * @param {string|number|bigint} spent - Amount spent
+ * @param {string|number|bigint} reclaimed - Amount reclaimed
+ * @returns {string} Available clout as string (for BigInt compatibility)
+ *
+ * @example
+ * const available = calculateAvailableClout('100000000', '50000000', '25000000');
+ * // => '75000000'
+ */
+export function calculateAvailableClout(total, spent, reclaimed) {
+  const totalBigInt = BigInt(total || 0);
+  const spentBigInt = BigInt(spent || 0);
+  const reclaimedBigInt = BigInt(reclaimed || 0);
+  const available = totalBigInt - spentBigInt + reclaimedBigInt;
+  return available.toString();
+}
+
+/**
+ * Calculate net spent clout (spent minus reclaimed)
+ *
+ * Net spent = Spent - Reclaimed
+ *
+ * Uses BigInt for precision with large numbers.
+ *
+ * @param {string|number|bigint} spent - Amount spent
+ * @param {string|number|bigint} reclaimed - Amount reclaimed
+ * @returns {string} Net spent clout as string (for BigInt compatibility)
+ *
+ * @example
+ * const netSpent = calculateSpentClout('50000000', '25000000');
+ * // => '25000000'
+ */
+export function calculateSpentClout(spent, reclaimed) {
+  const spentBigInt = BigInt(spent || 0);
+  const reclaimedBigInt = BigInt(reclaimed || 0);
+  const spentClout = spentBigInt - reclaimedBigInt;
+  return spentClout.toString();
+}
+
+/**
+ * Format clout value to RUNE and USD amounts
+ *
+ * Converts base unit clout to human-readable RUNE and USD values.
+ *
+ * @param {string|number} cloutValue - Clout value in base units
+ * @param {number} runePrice - Current RUNE price in USD
+ * @returns {Object} Object with rune and usd amounts
+ *
+ * @example
+ * const formatted = formatCloutValue('12345678900', 0.67);
+ * // => { rune: 123.456789, usd: 82.72 }
+ */
+export function formatCloutValue(cloutValue, runePrice) {
+  const runeValue = fromBaseUnit(cloutValue);
+  const usdValue = runeValue * (runePrice || 0);
+  return {
+    rune: runeValue,
+    usd: usdValue
+  };
+}

@@ -4,6 +4,8 @@
   import { thornode } from '$lib/api';
   import { PageHeader, LoadingBar } from '$lib/components';
   import { formatNumber } from '$lib/utils/formatting';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { getAssetLogo } from '$lib/constants/assets';
 
   let loading = true;
   let error = null;
@@ -16,55 +18,11 @@
   let tvlCapBasisPoints = -1;
   let effectiveSecurityBudget = 0;
 
-  // Asset logos configuration
-  const assetLogos = {
-    'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
-    'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BSC.BNB': 'assets/coins/binance-coin-bnb-logo.svg',
-    'BCH.BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
-    'LTC.LTC': 'assets/coins/litecoin-ltc-logo.svg',
-    'AVAX.AVAX': 'assets/coins/avalanche-avax-logo.svg',
-    'GAIA.ATOM': 'assets/coins/cosmos-atom-logo.svg',
-    'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
-    'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
-    'ETH.USDC': 'assets/coins/usd-coin-usdc-logo.svg',
-    'ETH.USDT': 'assets/coins/tether-usdt-logo.svg',
-    'ETH.WBTC': 'assets/coins/wrapped-bitcoin-wbtc-logo.svg',
-    'AVAX.USDC': 'assets/coins/usd-coin-usdc-logo.svg',
-    'AVAX.USDT': 'assets/coins/tether-usdt-logo.svg',
-    'BSC.USDC': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BSC.USDT': 'assets/coins/tether-usdt-logo.svg',
-    'BSC.TWT': 'assets/coins/twt-logo.png',
-    'ETH.DAI': 'assets/coins/multi-collateral-dai-dai-logo.svg',
-    'ETH.GUSD': 'assets/coins/gemini-dollar-gusd-logo.svg',
-    'ETH.LUSD': 'assets/coins/liquity-usd-logo.svg',
-    'ETH.USDP': 'assets/coins/paxos-standard-usdp-logo.svg',
-    'ETH.AAVE': 'assets/coins/aave-aave-logo.svg',
-    'ETH.LINK': 'assets/coins/chainlink-link-logo.svg',
-    'ETH.SNX': 'assets/coins/synthetix-snx-logo.svg',
-    'ETH.FOX': 'assets/coins/fox-token-fox-logo.svg',
-    'AVAX.SOL': 'assets/coins/solana-sol-logo.svg',
-    'BASE.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BASE.USDC': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BASE.CBBTC': 'assets/coins/coinbase-wrapped-btc-logo.svg',
-    'ETH.DPI': 'assets/coins/dpi-logo.png',
-    'ETH.THOR': 'assets/coins/thorswap-logo.png',
-    'ETH.VTHOR': 'assets/coins/thorswap-logo.png',
-    'ETH.XRUNE': 'assets/coins/xrune-logo.png',
-    'ETH.TGT': 'assets/coins/tgt-logo.png'
-  };
-
-  // formatNumber imported from $lib/utils/formatting
+  // Asset logos now imported from $lib/constants/assets via getAssetLogo
 
   // Format asset name to remove contract address
   function formatAssetName(asset) {
     return asset.split('-')[0];
-  }
-
-  // Get logo URL for asset
-  function getAssetLogo(asset) {
-    const shortAsset = formatAssetName(asset);
-    return assetLogos[shortAsset] || '/assets/coins/fallback-logo.svg';
   }
 
   async function fetchVaultData() {
@@ -86,7 +44,7 @@
       });
 
       // Calculate total pooled RUNE
-      totalPooledRune = pools.reduce((sum, pool) => sum + Number(pool.balance_rune) / 1e8, 0);
+      totalPooledRune = pools.reduce((sum, pool) => sum + fromBaseUnit(pool.balance_rune), 0);
 
       // Calculate total assets and their RUNE values
       const assets = new Map();
@@ -102,7 +60,7 @@
 
       // Convert to array and calculate RUNE values
       vaultAssets = Array.from(assets.values()).map(asset => {
-        const amountInBase = asset.amount / 1e8;
+        const amountInBase = fromBaseUnit(asset.amount);
         const runePrice = assetPrices[asset.asset] || 0;
         const runeValue = amountInBase * runePrice;
 
@@ -125,14 +83,14 @@
         .sort((a, b) => Number(b.total_bond) - Number(a.total_bond));
 
       // Calculate total node bond
-      totalNodeBond = activeNodes.reduce((sum, node) => sum + Number(node.total_bond), 0) / 1e8;
+      totalNodeBond = activeNodes.reduce((sum, node) => sum + fromBaseUnit(node.total_bond), 0);
 
       // Calculate cutoff index for bottom 2/3 of nodes
       const cutoffIndex = Math.floor(activeNodes.length / 3);
       const bottomTwoThirdsNodes = activeNodes.slice(cutoffIndex);
 
       // Calculate effective security budget from bottom 2/3 of nodes (legacy method)
-      effectiveSecurityBudget = bottomTwoThirdsNodes.reduce((sum, node) => sum + Number(node.total_bond), 0) / 1e8;
+      effectiveSecurityBudget = bottomTwoThirdsNodes.reduce((sum, node) => sum + fromBaseUnit(node.total_bond), 0);
 
       // Calculate new security budget based on TVLCAPBASISPOINTS
       if (tvlCapBasisPoints === -1) {

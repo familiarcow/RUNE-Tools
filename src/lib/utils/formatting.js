@@ -152,6 +152,70 @@ export function simplifyNumber(num) {
 }
 
 /**
+ * Format a USD amount with compact notation (K/M/B suffixes)
+ *
+ * Similar to simplifyNumber but adds the $ prefix for USD display.
+ * Useful for displaying large monetary values in limited space.
+ *
+ * @param {number} amount - Amount in USD
+ * @returns {string} Compact USD string (e.g., "$1.5M", "$2.3B", "$500k")
+ *
+ * @example
+ * formatUSDCompact(1500000);  // => "$1.5M"
+ * formatUSDCompact(2300000000);  // => "$2.3B"
+ * formatUSDCompact(500000);  // => "$500k"
+ * formatUSDCompact(1234);  // => "$1,234"
+ * formatUSDCompact(0);  // => "$0"
+ */
+export function formatUSDCompact(amount) {
+  if (!amount || amount === 0) return '$0';
+
+  const num = Math.floor(amount);
+
+  if (num >= 1e9) {
+    return `$${(num / 1e9).toFixed(1)}B`;
+  } else if (num >= 1e6) {
+    return `$${(num / 1e6).toFixed(1)}M`;
+  } else if (num >= 1e3) {
+    return `$${(num / 1e3).toFixed(1)}k`;
+  } else {
+    return `$${num.toLocaleString('en-US')}`;
+  }
+}
+
+/**
+ * Format a ratio/exchange rate with appropriate precision
+ *
+ * Formats ratios with variable decimal places based on the value.
+ * Useful for displaying exchange rates, price ratios, etc.
+ *
+ * @param {number} ratio - The ratio to format
+ * @param {Object} [options={}] - Formatting options
+ * @param {number} [options.minDecimals=2] - Minimum decimal places
+ * @param {number} [options.maxDecimals=6] - Maximum decimal places
+ * @param {string} [options.fallback='N/A'] - Value to return if ratio is null/undefined
+ * @returns {string} Formatted ratio string
+ *
+ * @example
+ * formatRatio(1.5);  // => "1.50"
+ * formatRatio(0.000123);  // => "0.000123"
+ * formatRatio(1234.567);  // => "1,234.57"
+ * formatRatio(null);  // => "N/A"
+ */
+export function formatRatio(ratio, options = {}) {
+  const { minDecimals = 2, maxDecimals = 6, fallback = 'N/A' } = options;
+
+  if (ratio === null || ratio === undefined || isNaN(ratio)) {
+    return fallback;
+  }
+
+  return ratio.toLocaleString('en-US', {
+    minimumFractionDigits: minDecimals,
+    maximumFractionDigits: maxDecimals
+  });
+}
+
+/**
  * Format a price with dynamic decimal places based on magnitude
  * - Prices >= 1000: 2 decimals
  * - Prices >= 1: 4 decimals

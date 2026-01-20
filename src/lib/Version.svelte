@@ -4,7 +4,7 @@
   import { PageHeader, LoadingBar } from '$lib/components';
   import LinkOutIcon from './LinkOutIcon.svelte';
   import { getNodes, filterNodesByStatus, NODE_STATUS } from '$lib/utils/nodes';
-  import { getCurrentBlock } from '$lib/utils/tcy';
+  import { getCurrentBlock } from '$lib/utils/network';
   import { BLOCK_TIME_SECONDS } from '$lib/utils/blockchain';
 
   const REFRESH_INTERVAL = 6000; // 6 seconds

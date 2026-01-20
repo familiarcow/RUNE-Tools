@@ -1,6 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
+  import { getRunePrice } from '$lib/utils/network';
+  import { getAllPools } from '$lib/utils/liquidity';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
 
   const pools = writable([]);
   const loading = writable(true);
@@ -21,33 +24,11 @@
 
   async function fetchRUNEPrice() {
     try {
-      // Use CoinGecko API to get RUNE price in USD
-      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=thorchain&vs_currencies=usd');
-      const data = await response.json();
-      return data.thorchain?.usd || 0;
+      // Use shared utility with caching and fallback support
+      return await getRunePrice();
     } catch (error) {
-      console.error('Failed to fetch RUNE price from CoinGecko:', error);
-      
-      // Fallback: calculate from USDC pool
-      try {
-        const poolsResponse = await fetch('https://thornode.ninerealms.com/thorchain/pools');
-        const pools = await poolsResponse.json();
-        
-        const usdcPool = pools.find(pool => 
-          pool.asset.includes('USDC') && pool.status === 'Available'
-        );
-        
-        if (usdcPool) {
-          const assetDepth = Number(usdcPool.balance_asset);
-          const runeDepth = Number(usdcPool.balance_rune);
-          return (assetDepth / 1e6) / (runeDepth / 1e8); // Adjust for decimals
-        }
-        
-        return 0;
-      } catch (fallbackError) {
-        console.error('Fallback RUNE price calculation failed:', fallbackError);
-        return 0;
-      }
+      console.error('Failed to fetch RUNE price:', error);
+      return 0;
     }
   }
 
@@ -65,8 +46,8 @@
 
   async function fetchPoolsData() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/pools');
-      const data = await response.json();
+      // Use shared utility with caching and fallback support
+      const data = await getAllPools();
       return data.filter(pool => pool.status === 'Available');
     } catch (error) {
       console.error('Failed to fetch pools data:', error);
@@ -130,7 +111,7 @@
         const treasuryOwnershipPercent = poolUnits > 0 ? (treasuryPosition.liquidityUnits / poolUnits) * 100 : 0;
         
         // Calculate pool values in RUNE and USD
-        const poolTotalLiquidityRune = (balanceRune / 1e8) * 2;
+        const poolTotalLiquidityRune = fromBaseUnit(balanceRune) * 2;
         const poolTotalLiquidityUSD = poolTotalLiquidityRune * price;
         
         // Calculate POL value
@@ -152,7 +133,7 @@
           polValueUSD,
           balanceRune,
           balanceAsset,
-          assetPrice: Number(pool.asset_tor_price) / 1e8
+          assetPrice: fromBaseUnit(pool.asset_tor_price)
         };
       });
 

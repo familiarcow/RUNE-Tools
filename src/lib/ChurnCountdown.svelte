@@ -3,7 +3,7 @@
   import { fade, fly } from 'svelte/transition';
   import { thornode } from '$lib/api';
   import { getRecentChurns, getChurnInfo } from '$lib/utils/nodes';
-  import { getCurrentBlock } from '$lib/utils/tcy';
+  import { getCurrentBlock } from '$lib/utils/network';
 
   // State
   let isLoading = true;

@@ -2,6 +2,15 @@
   import { onMount, afterUpdate } from 'svelte';
   import { fade } from 'svelte/transition';
   import { navigate } from 'svelte-routing';
+  import { getRunePrice } from '$lib/utils/network';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { formatNumber, shortenAddress } from '$lib/utils/formatting';
+  import {
+    getSwapperClout,
+    calculateAvailableClout,
+    calculateSpentClout,
+    formatCloutValue
+  } from '$lib/utils/network';
 
   export let address = '';
 
@@ -64,10 +73,8 @@
 
   async function fetchRunePrice() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/network');
-      if (!response.ok) throw new Error('Failed to fetch RUNE price');
-      const data = await response.json();
-      runePrice = Number(data.rune_price_in_tor) / 1e8;
+      // Use shared utility for RUNE price
+      runePrice = await getRunePrice();
     } catch (err) {
       console.error('Error fetching RUNE price:', err);
     }
@@ -83,9 +90,8 @@
     error = '';
 
     try {
-      const response = await fetch(`https://thornode.ninerealms.com/thorchain/clout/swap/${runeAddress}`);
-      if (!response.ok) throw new Error('Failed to fetch data');
-      cloutData = await response.json();
+      // Use shared utility for fetching clout data
+      cloutData = await getSwapperClout(runeAddress);
     } catch (err) {
       error = 'Error fetching data. Please try again.';
       cloutData = null;
@@ -102,36 +108,20 @@
     }
   }
 
-  const formatNumber = (num) => new Intl.NumberFormat().format(num);
-  
+  // formatNumber and shortenAddress imported from $lib/utils/formatting
+  // calculateAvailableClout, calculateSpentClout imported from $lib/utils/network
+
+  // Format clout for display (wrapper around formatCloutValue)
   const formatClout = (num) => {
-    const bigIntNum = BigInt(num);
-    const runeValue = Number(bigIntNum) / 1e8;
-    const usdValue = runeValue * runePrice;
+    const { rune, usd } = formatCloutValue(num, runePrice);
     return {
-      rune: formatNumber(runeValue),
-      usd: formatNumber(usdValue.toFixed(2))
+      rune: formatNumber(rune),
+      usd: formatNumber(usd.toFixed(2))
     };
   }
-  
-  const calculateAvailableClout = (total, spent, reclaimed) => {
-    const totalBigInt = BigInt(total);
-    const spentBigInt = BigInt(spent);
-    const reclaimedBigInt = BigInt(reclaimed);
-    const available = totalBigInt - spentBigInt + reclaimedBigInt;
-    return available.toString();
-  }
 
-  const calculateSpentClout = (spent, reclaimed) => {
-    const spentBigInt = BigInt(spent);
-    const reclaimedBigInt = BigInt(reclaimed);
-    const spentClout = spentBigInt - reclaimedBigInt;
-    return spentClout.toString();
-  }
-
-  const formatAddress = (address) => {
-    return `${address.slice(0, 20)}...${address.slice(-4)}`;
-  };
+  // Format address for display (20 chars + ... + last 4)
+  const formatAddress = (addr) => shortenAddress(addr, 20, 4);
 
   function toggleExplanation() {
     showExplanation = !showExplanation;

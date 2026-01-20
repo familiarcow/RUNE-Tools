@@ -9,9 +9,9 @@
   } from '$lib/utils/formatting';
   import { blocksToSeconds, fromBaseUnit } from '$lib/utils/blockchain';
   import { fetchJSONWithFallback, THORNODE_ENDPOINTS, MIDGARD_ENDPOINTS } from '$lib/utils/api';
+  import { getRunePrice } from '$lib/utils/network';
   import {
     getTCYPrice,
-    getRunePrice,
     getTCYMimir,
     getTCYConstants,
     getTCYStaker,

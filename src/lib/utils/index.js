@@ -59,7 +59,11 @@ export {
   // Countdown/duration formatting
   formatCountdown,
   formatDuration,
-  formatBlocksCountdown
+  formatBlocksCountdown,
+
+  // Compact formatting
+  formatUSDCompact,
+  formatRatio
 } from './formatting.js';
 
 // ============================================
@@ -89,6 +93,10 @@ export {
   // Address utilities
   normalizeAddress,
   isEVMChain,
+
+  // Asset normalization
+  normalizeAsset,
+  getAssetType,
 
   // Block time utilities
   blocksToSeconds,
@@ -151,7 +159,8 @@ export {
   convertAssetToRune,
   getRuneValueInBTC,
   buildPoolPriceMap,
-  getPoolDepth
+  getPoolDepth,
+  getPoolDepthUSD
 } from './liquidity.js';
 
 // ============================================
@@ -292,7 +301,19 @@ export {
   formatVaultName,
   calculateVaultBond,
   calculateVaultAssetValue,
-  getVaultSummary
+  getVaultSummary,
+
+  // Block height utilities
+  getCurrentBlock,
+
+  // RUNE price utilities
+  getRunePrice,
+
+  // Swapper clout utilities
+  getSwapperClout,
+  calculateAvailableClout,
+  calculateSpentClout,
+  formatCloutValue
 } from './network.js';
 
 // ============================================
@@ -306,9 +327,8 @@ export {
   TCY_MIMIR_KEYS,
   TCY_CONSTANT_KEYS,
 
-  // Price fetching
+  // Price fetching (getRunePrice is now in network.js)
   getTCYPrice,
-  getRunePrice,
   getPrices,
 
   // Pool data
@@ -339,8 +359,7 @@ export {
   getTCYMarketCap,
   getRuneSupplyAndMarketCap,
 
-  // Block & distribution timing
-  getCurrentBlock,
+  // Block & distribution timing (getCurrentBlock is now in network.js)
   getNextDistributionBlock,
   calculateUserDistributionShare,
 

@@ -2,6 +2,9 @@
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
   import { cubicOut } from 'svelte/easing';
+  import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { getAllPools } from '$lib/utils/liquidity';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
 
   const oraclePrices = writable({});
   const poolPrices = writable({});
@@ -152,8 +155,8 @@
 
   async function fetchOraclePrices() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/oracle/prices');
-      const data = await response.json();
+      // Use shared utility with fallback support
+      const data = await fetchJSONWithFallback('/thorchain/oracle/prices');
       const pricesMap = {};
       data.prices.forEach(item => {
         pricesMap[item.symbol] = parseFloat(item.price);
@@ -167,13 +170,13 @@
 
   async function fetchPoolPrices() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/pools');
-      const data = await response.json();
+      // Use shared utility with caching and fallback support
+      const data = await getAllPools();
       const pricesMap = {};
       data
         .filter(pool => pool.status === 'Available')
         .forEach(pool => {
-          pricesMap[pool.asset] = Number(pool.asset_tor_price) / 1e8;
+          pricesMap[pool.asset] = fromBaseUnit(pool.asset_tor_price);
         });
       return pricesMap;
     } catch (error) {

@@ -127,12 +127,26 @@ export function getAssetShortName(fullName) {
 
 /**
  * Get the chain name from an asset identifier
- * @param {string} asset - Full asset identifier
+ *
+ * Handles all asset formats (native, secured, trade) by normalizing first.
+ *
+ * @param {string} asset - Full asset identifier in any format
  * @returns {string} Chain name
+ *
+ * @example
+ * getChainFromAsset('ETH.ETH');  // => 'ETH'
+ * getChainFromAsset('ETH-USDC-0X123');  // => 'ETH'
+ * getChainFromAsset('ETH~USDC-0X123');  // => 'ETH'
  */
 export function getChainFromAsset(asset) {
   if (!asset) return '';
-  return asset.split('.')[0] || '';
+
+  // Use normalized asset (always uses dot notation)
+  const normalized = normalizeAsset(asset);
+
+  // Split on dot to get chain part
+  const parts = normalized.split('.');
+  return parts[0] || '';
 }
 
 /**
@@ -220,6 +234,105 @@ export const CHAINS = {
 export function isEVMChain(chain) {
   const evmChains = ['ETH', 'BSC', 'AVAX', 'BASE'];
   return evmChains.includes(chain);
+}
+
+/**
+ * Normalize a THORChain asset identifier
+ *
+ * Handles multiple asset formats and normalizes them to standard dot notation:
+ * - Native assets: ETH.ETH (unchanged)
+ * - Secured assets: ETH-USDC-0X123 -> ETH.USDC
+ * - Trade assets: ETH~USDC-0X123 -> ETH.USDC
+ *
+ * Also removes contract addresses for cleaner display.
+ *
+ * @param {string} asset - Asset identifier in any format
+ * @returns {string} Normalized asset identifier (e.g., "ETH.USDC")
+ *
+ * @example
+ * normalizeAsset('ETH.ETH');
+ * // => 'ETH.ETH'
+ *
+ * normalizeAsset('ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48');
+ * // => 'ETH.USDC'
+ *
+ * normalizeAsset('ETH~USDC-0XA0B86991');
+ * // => 'ETH.USDC'
+ */
+export function normalizeAsset(asset) {
+  if (!asset) return '';
+
+  // Handle assets with contract addresses first
+  // Format: ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48
+  const dashParts = asset.split('-');
+  let cleanAsset = asset;
+
+  // Check if the last part is a contract address (starts with 0X and is long enough)
+  if (dashParts.length >= 3) {
+    const lastPart = dashParts[dashParts.length - 1];
+    if (lastPart.toUpperCase().startsWith('0X') && lastPart.length > 10) {
+      // Remove the contract address part
+      cleanAsset = dashParts.slice(0, -1).join('-');
+    }
+  }
+
+  // Now normalize the separators to dot notation for consistency
+  // . = native asset (keep as-is)
+  // - = secured asset (convert to .)
+  // ~ = trade asset (convert to .)
+  if (cleanAsset.includes('-') && !cleanAsset.includes('.') && !cleanAsset.includes('~')) {
+    // This is a secured asset, convert to dot notation
+    const parts = cleanAsset.split('-');
+    if (parts.length === 2) {
+      return `${parts[0]}.${parts[1]}`;
+    }
+  } else if (cleanAsset.includes('~')) {
+    // This is a trade asset, convert to dot notation
+    return cleanAsset.replace('~', '.');
+  }
+
+  // Native assets with . or already clean assets
+  return cleanAsset;
+}
+
+/**
+ * Get the type of a THORChain asset based on its format
+ *
+ * THORChain supports multiple asset types with different separators:
+ * - Native: CHAIN.ASSET (e.g., ETH.ETH, BTC.BTC)
+ * - Secured: CHAIN-ASSET-CONTRACT (e.g., ETH-USDC-0X123)
+ * - Trade: CHAIN~ASSET-CONTRACT (e.g., ETH~USDC-0X123)
+ *
+ * @param {string} asset - Asset identifier
+ * @returns {'native'|'secured'|'trade'|'unknown'} Asset type
+ *
+ * @example
+ * getAssetType('ETH.ETH');
+ * // => 'native'
+ *
+ * getAssetType('ETH-USDC-0XA0B86991');
+ * // => 'secured'
+ *
+ * getAssetType('ETH~USDC-0XA0B86991');
+ * // => 'trade'
+ */
+export function getAssetType(asset) {
+  if (!asset) return 'unknown';
+
+  // Remove contract address if present
+  const dashParts = asset.split('-');
+  let cleanAsset = asset;
+  if (dashParts.length >= 3) {
+    const lastPart = dashParts[dashParts.length - 1];
+    if (lastPart.toUpperCase().startsWith('0X') && lastPart.length > 10) {
+      cleanAsset = dashParts.slice(0, -1).join('-');
+    }
+  }
+
+  if (cleanAsset.includes('.')) return 'native';
+  if (cleanAsset.includes('-')) return 'secured';
+  if (cleanAsset.includes('~')) return 'trade';
+  return 'unknown';
 }
 
 // ============================================

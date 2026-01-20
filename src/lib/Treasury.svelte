@@ -8,7 +8,7 @@
     import { denomToAsset } from '$lib/utils/wallet';
     import { fromBaseUnit } from '$lib/utils/blockchain';
     import { getAllPools } from '$lib/utils/liquidity';
-    import { getRunePrice } from '$lib/utils/tcy';
+    import { getRunePrice } from '$lib/utils/network';
     import { getBondsForAddresses, calculateTotalBondValue } from '$lib/utils/nodes';
 
 //This app currently does not check free asset value on chains other than THORChain

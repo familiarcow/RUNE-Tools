@@ -4,9 +4,9 @@
   import { cubicOut } from 'svelte/easing';
   import { formatNumber as sharedFormatNumber } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { getRunePrice } from '$lib/utils/network';
   import {
     getTCYPrice,
-    getRunePrice,
     getPrices,
     getTCYPool,
     getTCYLiquidity,

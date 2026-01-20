@@ -187,9 +187,14 @@ export async function getAllLPPositionsParallel(address, pools, options = {}) {
     pools.map((pool) => getLPPosition(pool, address, options))
   );
 
-  return results
-    .filter((r) => r.status === 'fulfilled' && r.value !== null)
-    .map((r) => r.value);
+  // Filter for fulfilled results with non-null values
+  const positions = [];
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value !== null) {
+      positions.push(result.value);
+    }
+  }
+  return positions;
 }
 
 // ============================================
@@ -578,6 +583,36 @@ export function getPoolDepth(pool) {
     assetDepth,
     totalDepthRune: runeDepth * 2 // Symmetric pools have equal value on both sides
   };
+}
+
+/**
+ * Calculate total pool depth in USD
+ *
+ * Uses the pool's asset price (from TOR/USD) and asset balance to calculate
+ * the total value of the pool. Since pools are symmetric (equal value on both sides),
+ * the total depth is 2x the asset side value.
+ *
+ * @param {Object} pool - Pool object from THORNode API
+ * @param {string} pool.balance_asset - Asset balance in base units
+ * @param {string} pool.asset_tor_price - Asset price in TOR (USD) in base units
+ * @returns {number} Total pool depth in USD
+ *
+ * @example
+ * const pool = await thornode.getPool('BTC.BTC');
+ * const depthUSD = getPoolDepthUSD(pool);
+ * console.log(`Pool depth: $${depthUSD.toLocaleString()}`);
+ * // => "Pool depth: $500,000,000"
+ */
+export function getPoolDepthUSD(pool) {
+  if (!pool || !pool.balance_asset || !pool.asset_tor_price) {
+    return 0;
+  }
+
+  const balanceAsset = fromBaseUnit(pool.balance_asset);
+  const assetPrice = fromBaseUnit(pool.asset_tor_price);
+
+  // Total depth is 2x the asset side value (symmetric pool)
+  return 2 * balanceAsset * assetPrice;
 }
 
 // ============================================

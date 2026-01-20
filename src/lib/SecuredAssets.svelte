@@ -3,6 +3,7 @@
   import { writable } from 'svelte/store';
   import SettingsIcon from '../../public/assets/Settings.svelte';
   import RefreshIcon from '../../public/assets/Refresh.svelte';
+  import { fetchJSONWithFallback } from '$lib/utils/api';
 
   const showInUSD = writable(false);
   const showSettings = writable(false);
@@ -11,8 +12,8 @@
 
   async function getSecuredAssets() {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/securedassets");
-      const data = await response.json();
+      // Use shared utility with fallback support
+      const data = await fetchJSONWithFallback('/thorchain/securedassets');
       return data.map(asset => ({
         ...asset,
         supply: Number(asset.supply),
