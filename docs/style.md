@@ -541,7 +541,7 @@ src/lib/components/
 
 | Component | LoadingBar | StatusIndicator | ActionButton | PageHeader | Toast | CSS Vars | Shared Utils |
 |-----------|:----------:|:---------------:|:------------:|:----------:|:-----:|:--------:|:------------:|
-| BondTracker | ✅ | ✅ | ✅ | ❌ | Inline | ❌ | ❌ |
+| BondTracker | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
 | Version | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
 | **Vaults** | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
 | TCY | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
@@ -555,6 +555,7 @@ src/lib/components/
 | 2024-01 | Toast.svelte | Created new shared component | ✅ Tested |
 | 2024-01 | Vaults.svelte | Migrated inline toast to Toast component | ✅ Tested |
 | 2025-01 | Vaults.svelte | Full migration: CSS variables, LoadingBar, shared utils (formatting.js), shared constants (assets.js), removed ~70 lines of duplicate code | ✅ Tested |
+| 2025-01 | BondTracker.svelte | Full migration: CSS variables, Toast component (was inline), simplified toast logic | ✅ Tested |
 
 ### Migration Priority
 
