@@ -328,6 +328,28 @@
   // Use shared utility for getting chain height
   const getChainHeight = getNodeChainHeight;
 
+  // Calculate chain sync status for a node - returns lagging and synced chains
+  const getChainSyncStatus = (node) => {
+    const lagging = [];
+    const synced = [];
+
+    for (const chain of sortedChains) {
+      const height = getChainHeight(node, chain);
+      const maxHeight = maxChainHeights[chain];
+      const diff = height !== null ? height - maxHeight : null;
+
+      if (diff === null) {
+        lagging.push({ chain, status: '?' });
+      } else if (diff < 0) {
+        lagging.push({ chain, status: diff > -999 ? diff : '-1k+' });
+      } else {
+        synced.push(chain);
+      }
+    }
+
+    return { lagging, synced, allSynced: lagging.length === 0 };
+  };
+
   // Toggle row expansion
   const toggleRow = (nodeAddress) => {
     if (expandedRows.has(nodeAddress)) {
@@ -804,17 +826,9 @@
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          {#each sortedChains as chain}
-            <th class="chain-col">
-              <div class="chain-title" title="Block height difference for {chain}. ✓ means synced, negative numbers show blocks behind, ? means unknown">
-                <img 
-                  src={`assets/chains/${chain}.svg`}
-                  alt={chain}
-                  class="chain-header-icon"
-                />
-              </div>
-            </th>
-          {/each}
+          <th class="chains-col" title="Chain daemon sync status - shows lagging chains with block difference">
+            Chains
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -978,17 +992,32 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                 -
               {/if}
             </td>
-            {#each sortedChains as chain}
-              <td class="chain-col">
-                <span class="chain-status">
-                  {getHeightDiff(getChainHeight(node, chain), maxChainHeights[chain])}
-                </span>
-              </td>
-            {/each}
+            <td class="chains-col">
+              {#if true}
+                {@const status = getChainSyncStatus(node)}
+                {#if status.allSynced}
+                  <div class="chains-synced" title="All chains synced: {sortedChains.join(', ')}">
+                    {#each sortedChains as chain}
+                      <img src={`assets/chains/${chain}.svg`} alt={chain} class="chain-mini-icon" />
+                    {/each}
+                    <span class="sync-badge synced">✓</span>
+                  </div>
+                {:else}
+                  <div class="chains-lagging" title="Lagging chains - {status.lagging.map(l => `${l.chain}: ${l.status}`).join(', ')}">
+                    {#each status.lagging as { chain, status: lag }}
+                      <div class="chain-lag-item">
+                        <img src={`assets/chains/${chain}.svg`} alt={chain} class="chain-mini-icon" />
+                        <span class="lag-badge">{lag}</span>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              {/if}
+            </td>
           </tr>
           {#if expandedRows.has(node.node_address)}
             <tr class="expanded-row">
-              <td colspan="{10 + sortedChains.length}">
+              <td colspan="11">
                 <div class="bond-providers">
                   <div class="bond-header">
                     <h4>Node Details - {node.node_address.slice(-4)}</h4>
@@ -2320,41 +2349,99 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     font-size: 0.8125rem;
   }
 
-  .chain-col {
-    padding: 2px !important;
+  /* Single compact chains column */
+  .chains-col {
+    width: 180px !important;
+    min-width: 180px !important;
+    padding: 4px 8px !important;
+  }
+
+  th.chains-col {
     text-align: center !important;
-    width: 20px !important;
   }
 
-  .chain-title {
-    font-size: 9px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: #ffffff;
-    padding: 1px;
+  /* Synced state - overlapping card-style icons */
+  .chains-synced {
     display: flex;
-    justify-content: center;
     align-items: center;
+    flex-wrap: nowrap;
   }
 
+  .chains-synced .chain-mini-icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.85;
+    object-fit: contain;
+    margin-left: -5px; /* 33% overlap */
+    position: relative;
+    border-radius: 50%;
+    background: #2c2c2c;
+    padding: 1px;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .chains-synced .chain-mini-icon:first-child {
+    margin-left: 0;
+  }
+
+  .chain-mini-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+    object-fit: contain;
+  }
+
+  /* Header chain icon (THOR logo next to block height) */
   .chain-header-icon {
     width: 14px;
     height: 14px;
     object-fit: contain;
   }
 
-  .chain-status {
-    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-    font-size: 9px;
-    display: inline-block;
-    min-width: 18px;
-    text-align: center;
-    background: rgba(74, 144, 226, 0.08);
-    padding: 0px 1px;
-    border-radius: 2px;
-    color: #4A90E2;
+  .chain-more {
+    font-size: 10px;
+    color: #888;
+    margin-left: 4px;
+  }
+
+  .sync-badge {
+    margin-left: 4px;
+    font-size: 12px;
+  }
+
+  .sync-badge.synced {
+    color: #28a745;
+  }
+
+  /* Lagging state - show problems */
+  .chains-lagging {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chain-lag-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .chain-lag-item .chain-mini-icon {
+    opacity: 1;
+  }
+
+  .lag-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -6px;
+    background: #dc3545;
+    color: white;
+    font-size: 8px;
+    font-weight: 600;
+    padding: 1px 3px;
+    border-radius: 3px;
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .rune-amount {
