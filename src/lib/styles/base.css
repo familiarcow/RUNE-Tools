@@ -1,0 +1,419 @@
+/**
+ * RUNE Tools Base Styles
+ *
+ * Common utility classes and base patterns for consistent styling.
+ * Import after variables.css
+ *
+ * Usage:
+ *   @import '$lib/styles/variables.css';
+ *   @import '$lib/styles/base.css';
+ */
+
+/* ========================================
+   UTILITY CLASSES - Display
+   ======================================== */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+
+.grid { display: grid; }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+/* ========================================
+   UTILITY CLASSES - Spacing
+   ======================================== */
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+.gap-xl { gap: var(--space-xl); }
+
+/* ========================================
+   UTILITY CLASSES - Text
+   ======================================== */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+
+.font-medium { font-weight: var(--font-medium); }
+.font-semibold { font-weight: var(--font-semibold); }
+.font-bold { font-weight: var(--font-bold); }
+
+.uppercase { text-transform: uppercase; }
+.tracking-wide { letter-spacing: var(--tracking-wide); }
+
+/* ========================================
+   COMMON PATTERNS - Card
+   ======================================== */
+.card-base {
+  background: var(--gradient-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-default);
+  transition: var(--transition-smooth);
+}
+
+.card-base:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow);
+  border-color: var(--border-hover);
+  background: var(--gradient-card-hover);
+}
+
+.card-fixed {
+  height: var(--card-height);
+  position: relative;
+}
+
+/* ========================================
+   COMMON PATTERNS - Card Content
+   ======================================== */
+.card-title {
+  font-size: var(--text-sm);
+  margin: 0 0 6px 0;
+  color: var(--text-muted);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.card-main-value {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-extrabold);
+  color: var(--text-primary);
+  position: absolute;
+  top: 50%;
+  left: var(--space-lg);
+  right: var(--space-lg);
+  transform: translateY(-50%);
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  letter-spacing: var(--tracking-tight);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.card-sub-values {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  position: absolute;
+  bottom: var(--space-lg);
+  left: var(--space-lg);
+  right: var(--space-lg);
+  font-weight: var(--font-medium);
+}
+
+/* ========================================
+   COMMON PATTERNS - Section
+   ======================================== */
+.section-base {
+  background: var(--gradient-card);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-default);
+}
+
+/* ========================================
+   COMMON PATTERNS - Header with Shimmer
+   ======================================== */
+.header-gradient {
+  background: var(--gradient-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  color: var(--text-primary);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-extrabold);
+  letter-spacing: var(--tracking-tight);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  margin: 0;
+}
+
+.header-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: shimmerSlide 5s infinite;
+}
+
+/* ========================================
+   COMMON PATTERNS - Stat Card (Compact)
+   ======================================== */
+.stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.stat-value {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: var(--font-bold);
+  letter-spacing: -0.2px;
+}
+
+/* ========================================
+   COMMON PATTERNS - Progress Bar
+   ======================================== */
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: visible;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: 3px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-fill.success {
+  background: var(--gradient-success);
+}
+
+/* ========================================
+   COMMON PATTERNS - Loading Shimmer
+   ======================================== */
+.loading-shimmer {
+  background: var(--gradient-shimmer);
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: var(--animation-shimmer);
+}
+
+/* ========================================
+   COMMON PATTERNS - Toast
+   ======================================== */
+.toast-base {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--accent-link) 0%, #357abd 100%);
+  color: var(--text-primary);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-default);
+  font-weight: var(--font-semibold);
+  z-index: var(--z-toast);
+  font-size: var(--text-base);
+  max-width: 80%;
+  text-align: center;
+}
+
+/* ========================================
+   COMMON PATTERNS - Form Input
+   ======================================== */
+.input-base {
+  padding: var(--space-lg) var(--space-xl);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-input);
+  background: var(--gradient-card);
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  transition: var(--transition-smooth);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.input-base:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-input-focus);
+  transform: translateY(-2px);
+  background: var(--gradient-card-hover);
+}
+
+.input-base::placeholder {
+  color: var(--text-placeholder);
+}
+
+/* ========================================
+   COMMON PATTERNS - Button
+   ======================================== */
+.btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.btn-primary {
+  background: var(--gradient-primary);
+  color: var(--text-primary);
+  box-shadow: 0 4px 14px 0 rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px 0 rgba(102, 126, 234, 0.5);
+}
+
+/* ========================================
+   COMMON PATTERNS - Action Button (Icon)
+   ======================================== */
+.action-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+  box-shadow: var(--shadow-button);
+  backdrop-filter: blur(10px);
+}
+
+.action-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* ========================================
+   COMMON PATTERNS - Clickable
+   ======================================== */
+.clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity var(--transition-fast);
+}
+
+.clickable:hover {
+  opacity: 0.8;
+}
+
+.clickable:active {
+  opacity: 0.6;
+}
+
+/* ========================================
+   COMMON PATTERNS - Gradient Text
+   ======================================== */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ========================================
+   COMMON PATTERNS - Badge
+   ======================================== */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+}
+
+.badge-primary {
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--text-primary);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+/* ========================================
+   COMMON PATTERNS - Alert
+   ======================================== */
+.alert-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  color: var(--color-currency);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* ========================================
+   COMMON PATTERNS - Icon Sizing
+   ======================================== */
+.icon-sm { width: 16px; height: 16px; }
+.icon-md { width: 20px; height: 20px; }
+.icon-lg { width: 24px; height: 24px; }
+
+.icon-inline {
+  vertical-align: middle;
+  margin-left: 5px;
+}
+
+/* ========================================
+   RESPONSIVE - Mobile Adjustments
+   ======================================== */
+@media (max-width: 600px) {
+  .card-fixed {
+    height: auto;
+    min-height: var(--card-height-mobile);
+  }
+
+  .card-main-value {
+    position: static;
+    transform: none;
+    margin: var(--space-sm) 0;
+    font-size: 22px;
+  }
+
+  .card-sub-values {
+    position: static;
+    margin-top: var(--space-sm);
+  }
+
+  .grid-cols-2,
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}

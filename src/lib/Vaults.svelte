@@ -1,8 +1,13 @@
 <script>
   import { onMount } from 'svelte';
-  import { fade } from 'svelte/transition';
-  import { slide } from 'svelte/transition';
-  import { copyToClipboard as copyToClipboardUtil, shortenAddress as shortenAddressUtil } from '$lib/utils/formatting';
+  import { fade, slide } from 'svelte/transition';
+  import {
+    copyToClipboard as copyToClipboardUtil,
+    shortenAddress as shortenAddressUtil,
+    formatThorAmount,
+    formatUSD
+  } from '$lib/utils/formatting';
+  import { Toast, LoadingBar } from '$lib/components';
   import {
     CHAIN_ICONS,
     CHAIN_EXPLORERS,
@@ -15,6 +20,7 @@
   import { fetchJSONWithFallback } from '$lib/utils/api';
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { getNodes } from '$lib/utils/nodes';
+  import { getAssetLogo, getAssetDisplayName } from '$lib/constants';
 
   let vaults = [];
   let prices = {};
@@ -39,43 +45,6 @@
     'THOR': 'https://thorchain.net/address/'
   };
 
-  const assetLogos = {
-    'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
-    'ETH.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BSC.BNB': 'assets/coins/binance-coin-bnb-logo.svg',
-    'BCH.BCH': 'assets/coins/bitcoin-cash-bch-logo.svg',
-    'LTC.LTC': 'assets/coins/litecoin-ltc-logo.svg',
-    'AVAX.AVAX': 'assets/coins/avalanche-avax-logo.svg',
-    'GAIA.ATOM': 'assets/coins/cosmos-atom-logo.svg',
-    'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
-    'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
-    'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': 'assets/coins/usd-coin-usdc-logo.svg',
-    'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7': 'assets/coins/tether-usdt-logo.svg',
-    'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': 'assets/coins/wrapped-bitcoin-wbtc-logo.svg',
-    'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E': 'assets/coins/usd-coin-usdc-logo.svg',
-    'AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7': 'assets/coins/tether-usdt-logo.svg',
-    'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': 'assets/coins/tether-usdt-logo.svg',
-    'BSC.TWT-0X4B0F1812E5DF2A09796481FF14017E6005508003': 'assets/coins/twt-logo.png',
-    'ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F': 'assets/coins/multi-collateral-dai-dai-logo.svg',
-    'ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD': 'assets/coins/gemini-dollar-gusd-logo.svg',
-    'ETH.LUSD-0X5F98805A4E8BE255A32880FDEC7F6728C6568BA0': 'assets/coins/liquity-usd-logo.svg',
-    'ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1': 'assets/coins/paxos-standard-usdp-logo.svg',
-    'ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9': 'assets/coins/aave-aave-logo.svg',
-    'ETH.LINK-0X514910771AF9CA656AF840DFF83E8264ECF986CA': 'assets/coins/chainlink-link-logo.svg',
-    'ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F': 'assets/coins/synthetix-snx-logo.svg',
-    'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'assets/coins/fox-token-fox-logo.svg',
-    'AVAX.SOL-0XFE6B19286885A4F7F55ADAD09C3CD1F906D2478F': 'assets/coins/solana-sol-logo.svg',
-    'BASE.ETH': 'assets/coins/ethereum-eth-logo.svg',
-    'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913': 'assets/coins/usd-coin-usdc-logo.svg',
-    'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'assets/coins/coinbase-wrapped-btc-logo.svg',
-    'ETH.DPI-0X1494CA1F11D487C2BBE4543E90080AEBA4BA3C2B': 'assets/coins/dpi-logo.png',
-    'ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044': 'assets/coins/thorswap-logo.png',
-    'ETH.VTHOR-0X815C23ECA83261B6EC689B60CC4A58B54BC24D8D': 'assets/coins/thorswap-logo.png',
-    'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'assets/coins/xrune-logo.png',
-    'ETH.TGT-0X108A850856DB3F85D0269A2693D896B394C80325': 'assets/coins/tgt-logo.png'
-  };
-
   async function fetchPrices() {
     try {
       const pools = await fetchJSONWithFallback('/thorchain/pools');
@@ -98,33 +67,6 @@
     }
   }
 
-  function formatAmount(amount) {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(fromBaseUnit(amount));
-  }
-
-  function formatPrice(amount) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  }
-
-  function formatAssetName(asset) {
-    const [chain, token] = asset.split('.');
-    
-    // Handle native assets (e.g., BTC.BTC, ETH.ETH)
-    if (token === chain) {
-      return token;
-    }
-    
-    // Handle synths and tokens (e.g., AVAX.USDC-0XB97EF9EF8734C71904D8002F)
-    const baseToken = token.split('-')[0];
-    return `${baseToken} (${chain})`;
-  }
-
   async function fetchNodesData() {
     try {
       nodesData = await getNodes();
@@ -133,15 +75,11 @@
     }
   }
 
-  // calculateVaultBond is now imported from network.js
-
   function calculateVaultBondUSD(bondInRune) {
     if (!networkData) return 0;
     const runePrice = fromBaseUnit(networkData.rune_price_in_tor);
     return bondInRune * runePrice;
   }
-
-  // calculateVaultAssetValue is now imported from network.js
 
   async function fetchNetwork() {
     try {
@@ -176,26 +114,12 @@
     fetchVaults();
   });
 
-  // formatVaultName is now imported from network.js
-
-  function formatUSDValue(amount, price = 1) {
-    const value = price === 1 ? amount : fromBaseUnit(amount) * price;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  }
 
   async function copyToClipboard(text, description) {
     const success = await copyToClipboardUtil(text, description);
     if (success) {
       toastMessage = `Copied ${description}!`;
       showToast = true;
-      setTimeout(() => {
-        showToast = false;
-      }, 3000);
     }
   }
 
@@ -227,7 +151,10 @@
     <h1>THORChain Vaults</h1>
 
     {#if loading}
-      <div class="loading">Loading vaults...</div>
+      <div class="loading-container">
+        <LoadingBar variant="main" width="200px" />
+        <LoadingBar variant="sub" width="120px" />
+      </div>
     {:else if error}
       <div class="error">Error: {error}</div>
     {:else}
@@ -326,14 +253,14 @@
                 </div>
                 <div class="bond-row">
                   <span> Total Bond Value:</span>
-                  <span class="clickable" on:click={() => copyToClipboard(formatUSDValue(calculateVaultBondUSD(calculateVaultBond(vault, nodesData))), 'bond value')}>
-                    {formatUSDValue(calculateVaultBondUSD(calculateVaultBond(vault, nodesData)))}
+                  <span class="clickable" on:click={() => copyToClipboard(formatUSD(calculateVaultBondUSD(calculateVaultBond(vault, nodesData))), 'bond value')}>
+                    {formatUSD(calculateVaultBondUSD(calculateVaultBond(vault, nodesData)))}
                   </span>
                 </div>
                 <div class="bond-row">
                   <span>Total Asset Value:</span>
-                  <span class="clickable" on:click={() => copyToClipboard(formatUSDValue(calculateVaultAssetValue(vault.coins, prices)), 'total asset value')}>
-                    {formatUSDValue(calculateVaultAssetValue(vault.coins, prices))}
+                  <span class="clickable" on:click={() => copyToClipboard(formatUSD(calculateVaultAssetValue(vault.coins, prices)), 'total asset value')}>
+                    {formatUSD(calculateVaultAssetValue(vault.coins, prices))}
                   </span>
                 </div>
               </div>
@@ -369,35 +296,42 @@
                       const bValue = fromBaseUnit(b.amount) * prices[b.asset];
                       return bValue - aValue;
                     }) as coin}
+                    {@const assetLogo = getAssetLogo(coin.asset)}
+                    {@const assetName = getAssetDisplayName(coin.asset)}
+                    {@const chainId = coin.asset.split('.')[0]}
                     <div class="balance-row">
                       <div class="asset-info">
                         <div class="logo-container">
-                          {#if assetLogos[coin.asset]}
-                            <img 
-                              src={assetLogos[coin.asset]} 
-                              alt={formatAssetName(coin.asset)}
+                          {#if assetLogo}
+                            <img
+                              src={assetLogo}
+                              alt={assetName}
                               class="asset-icon"
+                              on:error={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = '/assets/coins/fallback-logo.svg';
+                              }}
                             />
                             <div class="chain-logo-container">
-                              <img 
-                                src={`assets/chains/${coin.asset.split('.')[0]}.svg`}
-                                alt={coin.asset.split('.')[0]}
+                              <img
+                                src={`assets/chains/${chainId}.svg`}
+                                alt={chainId}
                                 class="chain-icon"
                               />
                             </div>
                           {/if}
                         </div>
-                        <span class="asset-name">{formatAssetName(coin.asset)}</span>
+                        <span class="asset-name">{assetName}</span>
                       </div>
                       <div class="amount-group">
-                        <span 
-                          class="amount clickable" 
-                          on:click={() => copyToClipboard(formatAmount(coin.amount), `${formatAssetName(coin.asset)} amount`)}
-                        >{formatAmount(coin.amount)}</span>
-                        <span 
-                          class="usd-value clickable" 
-                          on:click={() => copyToClipboard(formatUSDValue(coin.amount, prices[coin.asset]), `${formatAssetName(coin.asset)} USD value`)}
-                        >{formatUSDValue(coin.amount, prices[coin.asset])}</span>
+                        <span
+                          class="amount clickable"
+                          on:click={() => copyToClipboard(formatThorAmount(fromBaseUnit(coin.amount)), `${assetName} amount`)}
+                        >{formatThorAmount(fromBaseUnit(coin.amount))}</span>
+                        <span
+                          class="usd-value clickable"
+                          on:click={() => copyToClipboard(formatUSD(fromBaseUnit(coin.amount) * prices[coin.asset]), `${assetName} USD value`)}
+                        >{formatUSD(fromBaseUnit(coin.amount) * prices[coin.asset])}</span>
                       </div>
                     </div>
                   {/each}
@@ -422,38 +356,40 @@
       </div>
     {/if}
 
-    {#if showToast}
-      <div class="toast" transition:fade>
-        {toastMessage}
-      </div>
-    {/if}
+<Toast
+      message={toastMessage}
+      visible={showToast}
+      on:hide={() => showToast = false}
+    />
   </div>
 </main>
 
 <style>
+  @import '$lib/styles/variables.css';
+
   main {
-    padding: 20px;
-    color: #FFFFFF;
-    background-color: #1a1a1a;
+    padding: var(--space-xl);
+    color: var(--text-primary);
+    background-color: var(--bg-main);
     min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-family: var(--font-system);
   }
 
   .container {
-    max-width: 1400px;
+    max-width: var(--container-2xl);
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 var(--space-xl);
   }
 
   h1 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 16px;
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    color: #FFFFFF;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-xl);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    font-size: var(--text-3xl);
+    font-weight: var(--font-extrabold);
+    letter-spacing: var(--tracking-tight);
+    color: var(--text-primary);
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     position: relative;
     overflow: hidden;
@@ -468,18 +404,21 @@
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    animation: shimmer 5s infinite;
+    animation: shimmerSlide 5s infinite;
   }
 
-  @keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 40px;
   }
 
   .vaults-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1rem;
+    gap: var(--space-lg);
     max-width: 100%;
   }
 
@@ -490,57 +429,57 @@
   }
 
   .vault-card {
-    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
-    border-radius: 16px;
+    background: var(--gradient-card);
+    border-radius: var(--radius-xl);
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-default);
+    transition: var(--transition-smooth);
   }
 
   .vault-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-    border-color: rgba(99, 102, 241, 0.6);
-    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--border-hover);
+    background: var(--gradient-card-hover);
   }
 
   .card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 12px;
+    background: var(--gradient-primary);
+    padding: var(--space-md);
   }
 
   .card-header.retiring {
-    background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 100%);
+    background: var(--gradient-error);
   }
 
   .card-header h2 {
     margin: 0;
-    color: #FFFFFF;
-    font-size: 20px;
-    font-weight: 700;
+    color: var(--text-primary);
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
     font-family: inherit;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .pubkey {
     font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
     color: rgba(255, 255, 255, 0.8);
-    margin-top: 8px;
+    margin-top: var(--space-sm);
     white-space: nowrap;
   }
 
   .card-content {
-    padding: 12px;
+    padding: var(--space-md);
   }
 
   .address-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xs);
     font-size: 13px;
     width: 100%;
   }
@@ -553,15 +492,15 @@
   .chain-name {
     min-width: 60px;
     flex-shrink: 0;
-    color: #ffffff;
-    font-weight: 600;
+    color: var(--text-primary);
+    font-weight: var(--font-semibold);
   }
 
   .address {
     font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    color: #c0c0c0;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-secondary);
     white-space: nowrap;
     flex: 1;
   }
@@ -577,81 +516,73 @@
   .amount-group {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: var(--space-md);
   }
 
   .asset-name {
-    color: #ffffff;
-    font-weight: 600;
+    color: var(--text-primary);
+    font-weight: var(--font-semibold);
     font-family: inherit;
   }
 
   .amount {
     font-family: inherit;
-    font-weight: 600;
-    color: #ffffff;
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
   }
 
   .usd-value {
-    font-size: 12px;
-    font-weight: 500;
-    color: #a0a0a0;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-muted);
     opacity: 0.9;
   }
 
   hr {
     border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    margin: 8px 0;
+    border-top: 1px solid var(--border-subtle);
+    margin: var(--space-sm) 0;
   }
 
   h4 {
-    margin: 8px 0;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 700;
+    margin: var(--space-sm) 0;
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    font-weight: var(--font-bold);
     font-family: inherit;
     letter-spacing: -0.2px;
     text-transform: uppercase;
     opacity: 0.9;
   }
 
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: #a0a0a0;
-    font-size: 18px;
-    font-weight: 600;
-  }
-
   .error {
-    color: #dc3545;
+    color: var(--color-error);
     text-align: center;
     padding: 40px;
-    font-size: 18px;
-    font-weight: 600;
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
     background: rgba(220, 53, 69, 0.1);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(220, 53, 69, 0.2);
   }
 
   @media (max-width: 600px) {
     main {
-      padding: 12px;
+      padding: var(--space-md);
     }
 
     .container {
-      padding: 0 12px;
+      padding: 0 var(--space-md);
     }
 
     h1 {
-      font-size: 24px;
-      padding: 12px;
+      font-size: var(--text-2xl);
+      padding: var(--space-md);
     }
 
     .vaults-container {
       grid-template-columns: 1fr;
-      gap: 8px;
+      gap: var(--space-sm);
     }
 
     .card-header {
@@ -659,7 +590,7 @@
     }
 
     .card-header h2 {
-      font-size: 18px;
+      font-size: var(--text-lg);
     }
 
     .card-content {
@@ -669,11 +600,11 @@
 
   @media (max-width: 400px) {
     main {
-      padding: 8px;
+      padding: var(--space-sm);
     }
 
     .container {
-      padding: 0 8px;
+      padding: 0 var(--space-sm);
     }
 
     h1 {
@@ -682,15 +613,15 @@
     }
 
     .card-header {
-      padding: 8px;
+      padding: var(--space-sm);
     }
 
     .card-header h2 {
-      font-size: 16px;
+      font-size: var(--text-md);
     }
 
     .card-content {
-      padding: 8px;
+      padding: var(--space-sm);
     }
 
     .total-bond, .transaction-counts, .signers-container {
@@ -701,7 +632,7 @@
   .clickable {
     cursor: pointer;
     user-select: none;
-    transition: opacity 0.2s ease;
+    transition: var(--transition-base);
   }
 
   .clickable:hover {
@@ -712,24 +643,6 @@
     opacity: 0.6;
   }
 
-  .toast {
-    position: fixed;
-    bottom: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(135deg, #4A90E2 0%, #357abd 100%);
-    color: #ffffff;
-    padding: 12px 24px;
-    border-radius: 10px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    font-weight: 600;
-    z-index: 1000;
-    font-size: 14px;
-    max-width: 80%;
-    text-align: center;
-  }
-
   /* Make text selectable only when copying */
   .address, .amount, .usd-value {
     user-select: none;
@@ -737,19 +650,19 @@
 
   .total-bond {
     font-size: 13px;
-    color: #ffffff;
-    margin-bottom: 8px;
-    padding: 8px;
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
+    padding: var(--space-sm);
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
   }
 
   .bond-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-xs);
   }
 
   .bond-row:last-child {
@@ -758,19 +671,19 @@
 
   .transaction-counts {
     font-size: 13px;
-    color: #ffffff;
-    margin-bottom: 8px;
-    padding: 8px;
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
+    padding: var(--space-sm);
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
   }
 
   .tx-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-xs);
   }
 
   .tx-row:last-child {
@@ -780,7 +693,7 @@
   .amount-with-icon {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-sm);
   }
 
   .rune-icon {
@@ -791,7 +704,7 @@
   .expand-section {
     display: flex;
     justify-content: center;
-    margin-top: 0.5rem;
+    margin-top: var(--space-sm);
   }
 
   .expand-button {
@@ -799,9 +712,9 @@
     border: none;
     cursor: pointer;
     padding: 6px;
-    color: #ffffff;
+    color: var(--text-primary);
     opacity: 0.7;
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
   }
 
   .expand-button:hover {
@@ -814,13 +727,13 @@
   }
 
   .expand-button svg {
-    transition: transform 0.3s ease;
+    transition: var(--transition-smooth);
   }
 
   .asset-info {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-sm);
   }
 
   .asset-info .logo-container {
@@ -835,7 +748,7 @@
     height: 24px;
     object-fit: contain;
     position: relative;
-    z-index: 1;
+    z-index: var(--z-base);
   }
 
   .asset-info .chain-logo-container {
@@ -869,19 +782,19 @@
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px;
-    color: #c0c0c0;
+    padding: var(--space-xs);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
     margin-left: auto;
     flex-shrink: 0;
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
     opacity: 0.7;
   }
 
   .explorer-link:hover {
-    color: #ffffff;
+    color: var(--text-primary);
     opacity: 1;
     transform: scale(1.1);
   }
@@ -895,25 +808,23 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 4px;
-    padding: 8px;
+    margin-top: var(--space-xs);
+    padding: var(--space-sm);
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
   }
-
-
 
   .signer-tag {
     background: rgba(255, 255, 255, 0.1);
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
     font-family: inherit;
     font-size: 11px;
-    font-weight: 600;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    transition: all 0.2s ease;
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+    transition: var(--transition-base);
   }
 
   .signer-tag:hover {

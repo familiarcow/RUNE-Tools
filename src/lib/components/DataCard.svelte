@@ -8,6 +8,7 @@
    * @prop {string} error - Error message to display
    * @prop {string} height - Card height (default: '120px')
    * @prop {boolean} compact - Use compact padding (default: false)
+   * @prop {boolean} noHover - Disable hover effects (default: false)
    */
   import LoadingBar from './LoadingBar.svelte';
 
@@ -16,11 +17,13 @@
   export let error = null;
   export let height = '120px';
   export let compact = false;
+  export let noHover = false;
 </script>
 
 <div
   class="data-card"
   class:compact
+  class:no-hover={noHover}
   style="height: {height};"
 >
   {#if title}
@@ -45,33 +48,36 @@
 </div>
 
 <style>
+  /* Import CSS variables */
+  @import '$lib/styles/variables.css';
+
   .data-card {
-    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--gradient-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-default);
     position: relative;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: var(--transition-smooth);
   }
 
   .data-card.compact {
-    padding: 12px;
+    padding: var(--space-md);
   }
 
-  .data-card:hover {
+  .data-card:not(.no-hover):hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-    border-color: rgba(99, 102, 241, 0.6);
-    background: linear-gradient(145deg, #323232 0%, #424242 100%);
+    box-shadow: var(--shadow-card-hover), var(--shadow-glow);
+    border-color: var(--border-hover);
+    background: var(--gradient-card-hover);
   }
 
   .card-title {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #a0a0a0;
+    letter-spacing: var(--tracking-wider);
+    color: var(--text-muted);
     margin: 0 0 12px 0;
   }
 
@@ -83,20 +89,20 @@
   .loading-state {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding-top: 8px;
+    gap: var(--space-sm);
+    padding-top: var(--space-sm);
   }
 
   .error-state {
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: #dc3545;
-    font-size: 14px;
+    gap: var(--space-sm);
+    color: var(--color-error);
+    font-size: var(--text-base);
   }
 
   .error-icon {
-    font-size: 18px;
+    font-size: var(--text-lg);
   }
 
   .error-message {
@@ -105,12 +111,12 @@
 
   @media (max-width: 600px) {
     .data-card {
-      padding: 14px;
+      padding: var(--space-base, 14px);
       min-height: 100px;
     }
 
     .data-card.compact {
-      padding: 10px;
+      padding: var(--space-md, 10px);
     }
   }
 </style>

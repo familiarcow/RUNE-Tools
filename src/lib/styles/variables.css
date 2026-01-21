@@ -1,0 +1,213 @@
+/**
+ * RUNE Tools CSS Variables
+ *
+ * Centralized design tokens for consistent styling across all components.
+ * Import this file in your global styles or individual components.
+ *
+ * Usage:
+ *   @import '$lib/styles/variables.css';
+ *
+ *   .my-element {
+ *     background: var(--bg-card);
+ *     color: var(--text-primary);
+ *   }
+ */
+
+:root {
+  /* ========================================
+     COLORS - Backgrounds
+     ======================================== */
+  --bg-main: #1a1a1a;
+  --bg-card: #2c2c2c;
+  --bg-card-secondary: #3a3a3a;
+  --bg-card-hover: #333333;
+  --bg-elevated: #262626;
+  --bg-input: #181818;
+
+  /* ========================================
+     COLORS - Text
+     ======================================== */
+  --text-primary: #ffffff;
+  --text-secondary: #c0c0c0;
+  --text-muted: #a0a0a0;
+  --text-dimmed: #888888;
+  --text-placeholder: #666666;
+
+  /* ========================================
+     COLORS - Accent (Primary)
+     ======================================== */
+  --accent-primary: #667eea;
+  --accent-secondary: #764ba2;
+  --accent-link: #4A90E2;
+  --accent-link-hover: #5a9ee8;
+  --accent-highlight: #31FD9D;
+
+  /* ========================================
+     COLORS - Status
+     ======================================== */
+  --color-success: #28a745;
+  --color-success-light: #69db7c;
+  --color-warning: #ff9800;
+  --color-warning-light: #ffa94d;
+  --color-error: #dc3545;
+  --color-info: #6366f1;
+  --color-currency: #ffc107;
+
+  /* ========================================
+     COLORS - TCY Theme (alternate accent)
+     ======================================== */
+  --tcy-accent: #28f4af;
+  --tcy-accent-rgb: 40, 244, 175;
+  --tcy-gradient: linear-gradient(90deg, #28f4af 0%, #1eebeb 100%);
+
+  /* ========================================
+     GRADIENTS
+     ======================================== */
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-card: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+  --gradient-card-hover: linear-gradient(145deg, #333333 0%, #404040 100%);
+  --gradient-success: linear-gradient(135deg, #69db7c 0%, #51cf66 100%);
+  --gradient-error: linear-gradient(135deg, #ff6b6b 0%, #dc3545 100%);
+  --gradient-shimmer: linear-gradient(90deg, #3a3a3a 25%, #5a5a5a 50%, #3a3a3a 75%);
+
+  /* ========================================
+     BORDERS
+     ======================================== */
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-default: rgba(255, 255, 255, 0.15);
+  --border-hover: rgba(99, 102, 241, 0.6);
+  --border-focus: rgba(99, 102, 241, 0.6);
+  --border-input: rgba(255, 255, 255, 0.2);
+
+  /* ========================================
+     SHADOWS
+     ======================================== */
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --shadow-card-hover: 0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --shadow-elevated: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  --shadow-button: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+  --shadow-input-focus: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(99, 102, 241, 0.2), 0 0 20px rgba(99, 102, 241, 0.3);
+
+  /* ========================================
+     SPACING
+     ======================================== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+
+  /* ========================================
+     BORDER RADIUS
+     ======================================== */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ========================================
+     TYPOGRAPHY - Font Family
+     ======================================== */
+  --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  --font-mono: 'SF Mono', 'Monaco', 'Menlo', monospace;
+
+  /* ========================================
+     TYPOGRAPHY - Font Sizes
+     ======================================== */
+  --text-xs: 10px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 26px;
+
+  /* ========================================
+     TYPOGRAPHY - Font Weights
+     ======================================== */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+
+  /* ========================================
+     TYPOGRAPHY - Letter Spacing
+     ======================================== */
+  --tracking-tight: -0.5px;
+  --tracking-normal: 0;
+  --tracking-wide: 0.3px;
+  --tracking-wider: 0.5px;
+
+  /* ========================================
+     LAYOUT - Container Widths
+     ======================================== */
+  --container-sm: 600px;
+  --container-md: 650px;
+  --container-lg: 900px;
+  --container-xl: 1200px;
+  --container-2xl: 1400px;
+
+  /* ========================================
+     LAYOUT - Card Heights
+     ======================================== */
+  --card-height: 120px;
+  --card-height-mobile: 110px;
+
+  /* ========================================
+     TRANSITIONS
+     ======================================== */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* ========================================
+     ANIMATIONS
+     ======================================== */
+  --animation-shimmer: shimmer 1.5s infinite ease-in-out;
+  --animation-shimmer-slow: shimmer 5s infinite;
+  --animation-fade-in: fadeIn 0.3s ease-out 0.1s forwards;
+
+  /* ========================================
+     Z-INDEX
+     ======================================== */
+  --z-base: 1;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-modal: 100;
+  --z-toast: 1000;
+}
+
+/* ========================================
+   ANIMATIONS (Keyframes)
+   ======================================== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes shimmerSlide {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

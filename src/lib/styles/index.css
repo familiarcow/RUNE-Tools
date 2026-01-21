@@ -1,0 +1,17 @@
+/**
+ * RUNE Tools Styles
+ *
+ * Main entry point for the style library.
+ * Import this file to get all CSS variables and base styles.
+ *
+ * Usage in Svelte component:
+ *   <style>
+ *     @import '$lib/styles/index.css';
+ *   </style>
+ *
+ * Or in a global stylesheet:
+ *   @import '$lib/styles/index.css';
+ */
+
+@import './variables.css';
+@import './base.css';
