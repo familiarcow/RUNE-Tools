@@ -4,13 +4,13 @@
   import { cubicOut } from 'svelte/easing';
   import ipInfoData from '../../public/ip-info.json';
   import { formatNumber as formatNumberUtil, formatCountdown, copyToClipboard } from '$lib/utils/formatting';
-  import { fromBaseUnit, blocksToSeconds } from '$lib/utils/blockchain';
+  import { fromBaseUnit } from '$lib/utils/blockchain';
   import { calculateAPR as calcAPR, calculateAPY as calcAPY } from '$lib/utils/calculations';
   import { fetchWithFallback, fetchMimirValue } from '$lib/utils/api';
   import { CopyIcon, ClockIcon, PlayIcon, PauseIcon } from '$lib/components';
   import {
     getNodes,
-    getLastChurn,
+    getChurnState,
     filterNodesByStatus,
     NODE_STATUS,
     getLeaveStatus,
@@ -50,6 +50,7 @@
   let countdown = "";
   let churnInterval = 0;
   let recentChurnTimestamp = 0;
+  let isChurningHalted = false;
 
   // Country code to emoji mapping
   const countryToEmoji = {
@@ -490,17 +491,22 @@
 
     try {
       isLoading = true;
-      const [nodesData, lastChurnData] = await Promise.all([
+      const [nodesData, churnState] = await Promise.all([
         getNodes({ cache: false }),
-        getLastChurn(),
+        getChurnState({ cache: false }),
         fetchLatestBlock(),
         fetchMimirValuesLocal()
       ]);
 
       nodes = nodesData;
-      lastChurnHeight = lastChurnData?.timestampSec || 0;
-      recentChurnTimestamp = lastChurnHeight;
-      updateNextChurnTime();
+
+      // Get churn state from unified function
+      lastChurnHeight = churnState.lastChurnTimestamp;
+      recentChurnTimestamp = churnState.lastChurnTimestamp;
+      isChurningHalted = churnState.isHalted;
+      nextChurnTime = churnState.nextChurnTimestamp;
+      churnInterval = churnState.churnIntervalBlocks;
+      updateCountdown();
 
       // Apply any stored IP info immediately
       nodes.forEach(node => {
@@ -602,38 +608,28 @@
     return vaultColorMap.get(vaultId);
   };
 
-  // Fetch mimir values using shared utility
+  // Fetch mimir values using shared utility (churn info is fetched separately via getChurnInfo)
   const fetchMimirValuesLocal = async () => {
     try {
-      const [newNodes, minBond, churnIntervalValue, maxValidator] = await Promise.all([
+      const [newNodes, minBond, maxValidator] = await Promise.all([
         fetchMimirValue('NUMBEROFNEWNODESPERCHURN'),
         fetchMimirValue('MinimumBondInRune'),
-        fetchMimirValue('CHURNINTERVAL'),
         fetchMimirValue('DESIREDVALIDATORSET')
       ]);
 
       newNodesPerChurn = newNodes || 4;
       minimumBondInRune = fromBaseUnit(minBond);
-      churnInterval = churnIntervalValue;
       maxValidatorSet = maxValidator || 120;
-
-      if (churnInterval) {
-        updateNextChurnTime();
-      }
     } catch (error) {
       console.error('Error fetching mimir values:', error);
     }
   };
 
-  const updateNextChurnTime = () => {
-    if (churnInterval && recentChurnTimestamp) {
-      const churnIntervalSeconds = blocksToSeconds(churnInterval);
-      nextChurnTime = recentChurnTimestamp + churnIntervalSeconds;
-      updateCountdown();
-    }
-  };
-
   const updateCountdown = () => {
+    if (isChurningHalted) {
+      countdown = 'Churn Paused';
+      return;
+    }
     const now = Date.now() / 1000;
     const secondsLeft = nextChurnTime - now;
     countdown = formatCountdown(secondsLeft, { zeroText: 'Churning...' });
@@ -684,7 +680,7 @@
         <img src="assets/chains/THOR.svg" alt="THOR" class="chain-header-icon" />
         <span class="block-number">{formatNumber(currentBlockHeight)}</span>
       </div>
-      <div class="churn-countdown-display" title="Time until next churn">
+      <div class="churn-countdown-display" class:halted={isChurningHalted} title={isChurningHalted ? "Churning is paused by mimir" : "Time until next churn"}>
         <ClockIcon size={16} />
         <span class="countdown">{countdown}</span>
       </div>
@@ -3230,6 +3226,15 @@ Reason: ${node.preflight_status.reason}` : ''}` :
 
   .churn-countdown-display svg {
     color: #4A90E2;
+  }
+
+  .churn-countdown-display.halted {
+    color: #ff9800;
+    border-color: rgba(255, 152, 0, 0.4);
+  }
+
+  .churn-countdown-display.halted svg {
+    color: #ff9800;
   }
 
   .churn-countdown-display .countdown {

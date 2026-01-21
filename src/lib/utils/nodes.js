@@ -27,6 +27,7 @@ import { thornode } from '../api/thornode.js';
 import { midgard } from '../api/midgard.js';
 import { fromBaseUnit } from './blockchain.js';
 import { getAddressSuffix } from './formatting.js';
+import { getCurrentBlock, getSecondsPerBlock } from './network.js';
 
 // ============================================
 // Node Status Types
@@ -558,6 +559,177 @@ export async function getRecentChurns(limit = 10, options = {}) {
 export async function getLastChurn(options = {}) {
   const churns = await getRecentChurns(1, options);
   return churns[0] || null;
+}
+
+/**
+ * Get the next churn block height
+ *
+ * Tries to fetch from /thorchain/network endpoint first (most accurate),
+ * falls back to computing from last churn height + churn interval.
+ *
+ * @param {Object} [options={}] - Fetch options
+ * @returns {Promise<Object>} Object containing:
+ *   - nextChurnHeight: Block height of next churn
+ *   - lastChurnHeight: Block height of last churn
+ *   - churnIntervalBlocks: Churn interval in blocks
+ *   - source: 'network' or 'computed'
+ *
+ * @example
+ * const { nextChurnHeight, source } = await getNextChurnHeight();
+ * console.log(`Next churn at block ${nextChurnHeight} (${source})`);
+ */
+export async function getNextChurnHeight(options = {}) {
+  // Get last churn and churn interval
+  const lastChurn = await getLastChurn(options);
+  const churnIntervalText = await thornode.getMimir('CHURNINTERVAL', options).catch(() => '43200');
+  const churnIntervalBlocks = Number(churnIntervalText);
+  const lastChurnHeight = lastChurn?.height || 0;
+
+  // Try to get next churn height from network endpoint
+  try {
+    const networkData = await thornode.fetch('/thorchain/network', options);
+    const candidates = ['next_churn_height', 'churn_height', 'churnHeight', 'nextChurnHeight'];
+
+    for (const key of candidates) {
+      if (networkData && networkData[key] != null) {
+        const val = Number(networkData[key]);
+        if (Number.isFinite(val) && val > 0) {
+          return {
+            nextChurnHeight: val,
+            lastChurnHeight,
+            churnIntervalBlocks,
+            source: 'network'
+          };
+        }
+      }
+    }
+  } catch (e) {
+    // Fall through to computed value
+  }
+
+  // Compute from last churn + interval
+  const computedNext = lastChurnHeight && churnIntervalBlocks
+    ? lastChurnHeight + churnIntervalBlocks
+    : 0;
+
+  return {
+    nextChurnHeight: computedNext,
+    lastChurnHeight,
+    churnIntervalBlocks,
+    source: 'computed'
+  };
+}
+
+/**
+ * Get complete churn state with all calculated values
+ *
+ * This is the recommended function for components that need churn information.
+ * It fetches all data and calculates derived values in one call.
+ *
+ * @param {Object} [options={}] - Fetch options
+ * @param {number} [options.recentChurnsLimit=0] - If > 0, include recent churns array (avoids separate request)
+ * @returns {Promise<Object>} Complete churn state:
+ *   - isHalted: Whether churning is paused by mimir
+ *   - lastChurnHeight: Block height of last churn
+ *   - lastChurnTimestamp: Unix timestamp of last churn (seconds)
+ *   - nextChurnHeight: Block height of next churn
+ *   - nextChurnTimestamp: Unix timestamp of next churn (seconds)
+ *   - churnIntervalBlocks: Churn interval in blocks
+ *   - currentHeight: Current block height
+ *   - blocksRemaining: Blocks until next churn
+ *   - secondsRemaining: Estimated seconds until next churn
+ *   - percentComplete: Progress percentage (0-100)
+ *   - secondsPerBlock: Estimated seconds per block
+ *   - isOverdue: Whether churn is overdue (past expected time and not halted)
+ *   - recentChurns: Array of recent churns (empty if recentChurnsLimit not set)
+ *
+ * @example
+ * // Basic usage
+ * const state = await getChurnState();
+ * if (state.isHalted) {
+ *   console.log('Churning is paused');
+ * } else {
+ *   console.log(`Next churn in ${state.blocksRemaining} blocks`);
+ * }
+ *
+ * @example
+ * // Include recent churns in single request
+ * const state = await getChurnState({ recentChurnsLimit: 10 });
+ * state.recentChurns.forEach(c => console.log(`Churn at ${c.height}`));
+ */
+export async function getChurnState(options = {}) {
+  const { recentChurnsLimit = 0, ...fetchOptions } = options;
+
+  // Fetch most data in parallel (avoiding duplicate churns and status calls)
+  const [churnsData, networkData, churnIntervalText, haltChurningText, currentHeight] = await Promise.all([
+    recentChurnsLimit > 0 ? getRecentChurns(recentChurnsLimit, fetchOptions) : getLastChurn(fetchOptions),
+    thornode.fetch('/thorchain/network', fetchOptions).catch(() => null),
+    thornode.getMimir('CHURNINTERVAL', fetchOptions).catch(() => '43200'),
+    thornode.getMimir('HALTCHURNING', fetchOptions).catch(() => '0'),
+    getCurrentBlock()
+  ]);
+
+  // Get seconds per block, passing the currentHeight we already have
+  const secondsPerBlock = await getSecondsPerBlock(10, { ...fetchOptions, currentHeight });
+
+  const isHalted = Number(haltChurningText) === 1;
+  const churnIntervalBlocks = Number(churnIntervalText);
+
+  // Extract values - handle both array (recent churns) and single object (last churn)
+  const recentChurns = Array.isArray(churnsData) ? churnsData : [];
+  const lastChurn = Array.isArray(churnsData) ? churnsData[0] : churnsData;
+  const lastChurnHeight = lastChurn?.height || 0;
+  const lastChurnTimestamp = lastChurn?.timestampSec || 0;
+
+  // Get next churn height from network or compute from last churn + interval
+  let nextChurnHeight = 0;
+  if (networkData) {
+    const candidates = ['next_churn_height', 'churn_height', 'churnHeight', 'nextChurnHeight'];
+    for (const key of candidates) {
+      if (networkData[key] != null) {
+        const val = Number(networkData[key]);
+        if (Number.isFinite(val) && val > 0) {
+          nextChurnHeight = val;
+          break;
+        }
+      }
+    }
+  }
+  if (!nextChurnHeight && lastChurnHeight && churnIntervalBlocks) {
+    nextChurnHeight = lastChurnHeight + churnIntervalBlocks;
+  }
+
+  // Calculate derived values
+  const totalBlocks = Math.max(1, nextChurnHeight - lastChurnHeight);
+  const progressedBlocks = Math.max(0, Math.min(totalBlocks, currentHeight - lastChurnHeight));
+  const blocksRemaining = Math.max(0, nextChurnHeight - currentHeight);
+  const percentComplete = Math.round((progressedBlocks / totalBlocks) * 100);
+
+  // Calculate next churn timestamp
+  const nextChurnTimestamp = lastChurnTimestamp + (totalBlocks * secondsPerBlock);
+
+  // Calculate seconds remaining
+  const now = Date.now() / 1000;
+  const secondsRemaining = Math.max(0, nextChurnTimestamp - now);
+
+  // Determine if overdue
+  const isOverdue = secondsRemaining === 0 && blocksRemaining > 0 && !isHalted;
+
+  return {
+    isHalted,
+    lastChurnHeight,
+    lastChurnTimestamp,
+    nextChurnHeight,
+    nextChurnTimestamp,
+    churnIntervalBlocks,
+    currentHeight,
+    blocksRemaining,
+    secondsRemaining,
+    percentComplete,
+    secondsPerBlock,
+    isOverdue,
+    recentChurns
+  };
 }
 
 // ============================================

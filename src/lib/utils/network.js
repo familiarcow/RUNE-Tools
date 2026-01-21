@@ -941,6 +941,68 @@ export async function getCurrentBlock() {
   return 0;
 }
 
+/**
+ * Estimate seconds-per-block from recent block history
+ *
+ * Fetches timestamps from block N and block (N - sampleSize) to calculate
+ * the average time between blocks. This is more accurate than assuming
+ * a fixed 6-second block time.
+ *
+ * @param {number} [sampleSize=10] - Number of blocks to sample
+ * @param {Object} [options={}] - Fetch options
+ * @param {number} [options.currentHeight] - If provided, skip fetching current block height
+ * @returns {Promise<number>} Estimated seconds per block (defaults to 6 on error)
+ *
+ * @example
+ * const spb = await getSecondsPerBlock();
+ * console.log(`Current block time: ${spb.toFixed(2)}s`);
+ *
+ * @example
+ * // Pass existing height to avoid duplicate fetch
+ * const height = await getCurrentBlock();
+ * const spb = await getSecondsPerBlock(10, { currentHeight: height });
+ */
+export async function getSecondsPerBlock(sampleSize = 10, options = {}) {
+  const DEFAULT_SPB = 6;
+  const { currentHeight: providedHeight, ...fetchOptions } = options;
+
+  try {
+    // Use provided height or fetch it
+    const currentHeight = providedHeight || await getCurrentBlock();
+    if (!currentHeight || currentHeight <= sampleSize + 1) {
+      return DEFAULT_SPB;
+    }
+
+    // Fetch block timestamps for current and (current - sampleSize)
+    const [newestBlock, oldestBlock] = await Promise.all([
+      fetchJSONWithFallback(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight}`, fetchOptions),
+      fetchJSONWithFallback(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight - sampleSize}`, fetchOptions)
+    ]);
+
+    const newestTime = newestBlock?.block?.header?.time;
+    const oldestTime = oldestBlock?.block?.header?.time;
+
+    if (!newestTime || !oldestTime) {
+      return DEFAULT_SPB;
+    }
+
+    const newestTimestamp = new Date(newestTime).getTime() / 1000;
+    const oldestTimestamp = new Date(oldestTime).getTime() / 1000;
+    const timeDiff = newestTimestamp - oldestTimestamp;
+    const spb = timeDiff / sampleSize;
+
+    // Validate result is reasonable (between 0.5s and 60s)
+    if (Number.isFinite(spb) && spb > 0.5 && spb < 60) {
+      return spb;
+    }
+
+    return DEFAULT_SPB;
+  } catch (e) {
+    console.warn('getSecondsPerBlock failed, using default:', e);
+    return DEFAULT_SPB;
+  }
+}
+
 // ============================================
 // RUNE Price Utilities
 // ============================================

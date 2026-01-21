@@ -1,9 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { thornode } from '$lib/api';
-  import { getRecentChurns, getChurnInfo } from '$lib/utils/nodes';
-  import { getCurrentBlock } from '$lib/utils/network';
+  import { getChurnState } from '$lib/utils/nodes';
   import { CopyIcon, CheckIcon, ChevronDownIcon } from '$lib/components';
 
   // State
@@ -74,102 +72,33 @@
   let metadataTimer;    // refreshes churn interval and network hints
 
   // Data loaders
-  async function loadChurnData() {
-    // Fetch recent churns from shared utility
-    const churns = await getRecentChurns(10, { cache: false });
-    if (churns.length === 0) throw new Error('No churns returned');
+  async function loadChurnStateData(includeRecentChurns = false) {
+    // Use unified getChurnState() for all churn data
+    // Pass recentChurnsLimit to include recent churns in the same request
+    const state = await getChurnState({
+      cache: false,
+      recentChurnsLimit: includeRecentChurns ? 10 : 0
+    });
 
-    const latest = churns[0];
-    lastChurnHeight = latest.height;
-    lastChurnTimestampSec = latest.timestampSec;
+    isChurningHalted = state.isHalted;
+    lastChurnHeight = state.lastChurnHeight;
+    lastChurnTimestampSec = state.lastChurnTimestamp;
+    nextChurnHeight = state.nextChurnHeight;
+    churnIntervalBlocks = state.churnIntervalBlocks;
+    currentHeight = state.currentHeight;
+    spbEst = state.secondsPerBlock;
 
-    // Keep a small list of recent churns for expandable view
-    recentChurns = churns.map((c) => ({
-      height: c.height,
-      tsSec: c.timestampSec,
-      delta: c.deltaBlocks
-    }));
-
-    // Get churn interval and halt status from shared utility
-    const churnInfo = await getChurnInfo(lastChurnTimestampSec, { cache: false });
-    churnIntervalBlocks = churnInfo.churnIntervalBlocks;
-    isChurningHalted = churnInfo.isHalted;
-  }
-
-  async function loadNetworkNextChurnHint() {
-    const data = await thornode.fetch('/thorchain/network', { cache: false });
-    // Try a few common field names used over time
-    const candidates = ['next_churn_height', 'churn_height', 'churnHeight', 'nextChurnHeight'];
-    for (const key of candidates) {
-      if (data && data[key] != null) {
-        const val = Number(data[key]);
-        if (Number.isFinite(val) && val > 0) {
-          nextChurnHeight = val;
-          return;
-        }
-      }
+    // Populate recent churns if included
+    if (includeRecentChurns && state.recentChurns?.length) {
+      recentChurns = state.recentChurns.map((c) => ({
+        height: c.height,
+        tsSec: c.timestampSec,
+        delta: c.deltaBlocks
+      }));
     }
-    // If network does not expose next churn height, compute from last churn + interval
-    if (lastChurnHeight && churnIntervalBlocks) {
-      nextChurnHeight = lastChurnHeight + churnIntervalBlocks;
-    }
-  }
 
-  async function loadCurrentHeight() {
-    // Use shared utility with fallback endpoints
-    const height = await getCurrentBlock();
-    if (height > 0) {
-      currentHeight = height;
-    } else {
+    if (!currentHeight) {
       throw new Error('Could not resolve current block height');
-    }
-  }
-
-  // Estimate seconds-per-block using the average over last N blocks (default 10)
-  async function updateSpbFromLastN(n = 10) {
-    if (!currentHeight || currentHeight <= n + 1) return;
-    try {
-      const [newest, oldest] = await Promise.all([
-        thornode.fetch(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight}`, { cache: false }),
-        thornode.fetch(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight - n}`, { cache: false })
-      ]);
-      const tNewStr = newest?.block?.header?.time;
-      const tOldStr = oldest?.block?.header?.time;
-      if (!tNewStr || !tOldStr) return;
-      const tNew = new Date(tNewStr).getTime() / 1000;
-      const tOld = new Date(tOldStr).getTime() / 1000;
-      const dSec = tNew - tOld;
-      const spb = dSec / n;
-      if (Number.isFinite(spb) && spb > 0.5 && spb < 60) {
-        spbEst = spb;
-      }
-    } catch (e) {
-      console.warn('SPB lastN update failed', e);
-    }
-  }
-
-  async function seedSpbFromHistory(lookback = 120) {
-    if (!currentHeight || currentHeight <= lookback + 1) return; // not enough history
-    try {
-      const [newest, oldest] = await Promise.all([
-        thornode.fetch(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight}`, { cache: false }),
-        thornode.fetch(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight - lookback}`, { cache: false })
-      ]);
-      const tNewStr = newest?.block?.header?.time;
-      const tOldStr = oldest?.block?.header?.time;
-      if (!tNewStr || !tOldStr) return;
-      const tNew = new Date(tNewStr).getTime() / 1000;
-      const tOld = new Date(tOldStr).getTime() / 1000;
-      const dSec = tNew - tOld;
-      const spb = dSec / lookback;
-      if (Number.isFinite(spb) && spb > 0.5 && spb < 60) {
-        // seed samples with this baseline
-        spbSamples.length = 0;
-        const seedCount = Math.min(maxSamples, 4);
-        for (let i = 0; i < seedCount; i++) spbSamples.push(spb);
-      }
-    } catch (e) {
-      console.warn('SPB seed failed', e);
     }
   }
 
@@ -264,19 +193,15 @@
     isLoading = true;
     errorMessage = '';
     try {
-      // Load churn data (recent churns, interval, halt status) using shared utilities
-      await loadChurnData();
-      await loadNetworkNextChurnHint();
-      await loadCurrentHeight();
-      await updateSpbFromLastN(10);
+      // Load all churn state including recent churns in a single request
+      await loadChurnStateData(true);
       sampleSecondsPerBlock(currentHeight);
       updateComputed(true);
 
       // Sample height every 5 seconds to refine SPB and progress
       sampleTimer = setInterval(async () => {
         try {
-          await loadCurrentHeight();
-          await updateSpbFromLastN(10);
+          await loadChurnStateData(false);
           sampleSecondsPerBlock(currentHeight);
           updateComputed(false);
         } catch (e) {
@@ -289,14 +214,12 @@
         updateComputed(true);
       }, 1000);
 
-      // Refresh churn data periodically (in case of parameter change or churn)
+      // Refresh recent churns periodically (in case of new churn)
       metadataTimer = setInterval(async () => {
         try {
-          await loadChurnData();
-          await loadNetworkNextChurnHint();
-          updateComputed(false);
+          await loadChurnStateData(true);
         } catch (e) {
-          console.error('Metadata refresh failed', e);
+          console.error('Recent churns refresh failed', e);
         }
       }, 60_000);
     } catch (e) {
