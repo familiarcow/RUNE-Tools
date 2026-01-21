@@ -4,7 +4,7 @@
   import { thornode } from '$lib/api';
   import { getRecentChurns, getChurnInfo } from '$lib/utils/nodes';
   import { getCurrentBlock } from '$lib/utils/network';
-  import { CopyIcon, CheckIcon } from '$lib/components';
+  import { CopyIcon, CheckIcon, ChevronDownIcon } from '$lib/components';
 
   // State
   let isLoading = true;
@@ -444,7 +444,7 @@
       <div class="recent">
         <button class="recent-toggle" on:click={() => showChurns = !showChurns} aria-expanded={showChurns}>
           <span>Recent churns</span>
-          <svg class:rotated={showChurns} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          <ChevronDownIcon size={16} class={showChurns ? 'rotated' : ''} />
         </button>
         {#if showChurns}
           <div class="recent-list">
@@ -588,8 +588,8 @@
     background: #262b31; color: #c7d2de; border: 1px solid rgba(255,255,255,0.08);
     border-radius: 10px; padding: 8px 12px; cursor: pointer;
   }
-  .recent-toggle svg { transition: transform .2s ease; }
-  .recent-toggle svg.rotated { transform: rotate(180deg); }
+  .recent-toggle :global(svg) { transition: transform .2s ease; }
+  .recent-toggle :global(svg.rotated) { transform: rotate(180deg); }
   .recent-list { display: grid; gap: 10px; margin-top: 12px; }
   .recent-item { background: #23272d; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px; }
   .row { display: flex; justify-content: space-between; gap: 12px; font-size: 0.95rem; }

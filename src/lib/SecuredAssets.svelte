@@ -1,8 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
-  import SettingsIcon from '../../public/assets/Settings.svelte';
-  import { RefreshIcon } from '$lib/components';
+  import { RefreshIcon, SettingsIcon } from '$lib/components';
   import { fetchJSONWithFallback } from '$lib/utils/api';
 
   const showInUSD = writable(false);

@@ -7,7 +7,7 @@
   import { fromBaseUnit, blocksToSeconds } from '$lib/utils/blockchain';
   import { calculateAPR as calcAPR, calculateAPY as calcAPY } from '$lib/utils/calculations';
   import { fetchWithFallback, fetchMimirValue } from '$lib/utils/api';
-  import { CopyIcon } from '$lib/components';
+  import { CopyIcon, ClockIcon, PlayIcon, PauseIcon } from '$lib/components';
   import {
     getNodes,
     getLastChurn,
@@ -663,10 +663,7 @@
         <span class="block-number">{formatNumber(currentBlockHeight)}</span>
       </div>
       <div class="churn-countdown-display" title="Time until next churn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
+        <ClockIcon size={16} />
         <span class="countdown">{countdown}</span>
       </div>
       <div class="active-nodes-display" title="Number of Active Nodes">
@@ -683,13 +680,9 @@
       </div>
       <button class="pause-button" on:click={togglePause} title={isPaused ? "Resume Updates" : "Pause Updates"}>
         {#if isPaused}
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
+          <PlayIcon size={16} />
         {:else}
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-          </svg>
+          <PauseIcon size={16} />
         {/if}
       </button>
     </div>

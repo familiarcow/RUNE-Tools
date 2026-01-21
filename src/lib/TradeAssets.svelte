@@ -1,8 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
-  import SettingsIcon from '../../public/assets/Settings.svelte';
-  import { RefreshIcon } from '$lib/components';
+  import { RefreshIcon, SettingsIcon } from '$lib/components';
   import { getPoolsWithTradeData } from '$lib/utils/liquidity';
   import { getVaultBalanceMap } from '$lib/utils/network';
   import { fromBaseUnit } from '$lib/utils/blockchain';

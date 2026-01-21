@@ -7,7 +7,7 @@
     formatThorAmount,
     formatUSD
   } from '$lib/utils/formatting';
-  import { Toast, LoadingBar } from '$lib/components';
+  import { Toast, LoadingBar, ChevronDownIcon } from '$lib/components';
   import {
     CHAIN_ICONS,
     CHAIN_EXPLORERS,
@@ -271,18 +271,7 @@
                   class:expanded={showAssetBalances}
                   on:click={toggleAllVaults}
                 >
-                  <svg 
-                    width="24" 
-                    height="24" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    stroke-width="2" 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round"
-                  >
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
+                  <ChevronDownIcon size={24} />
                 </button>
               </div>
 
@@ -722,11 +711,11 @@
     transform: scale(1.1);
   }
 
-  .expand-button.expanded svg {
+  .expand-button.expanded :global(svg) {
     transform: rotate(180deg);
   }
 
-  .expand-button svg {
+  .expand-button :global(svg) {
     transition: var(--transition-smooth);
   }
 

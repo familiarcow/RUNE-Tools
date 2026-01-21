@@ -1,0 +1,19 @@
+<script>
+  /**
+   * PauseIcon - Pause icon component
+   * @prop {number} size - Icon size in pixels (default: 16)
+   * @prop {string} color - Icon fill color (default: "currentColor")
+   */
+  export let size = 16;
+  export let color = "currentColor";
+</script>
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill={color}
+>
+  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+</svg>

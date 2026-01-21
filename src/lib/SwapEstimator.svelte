@@ -4,7 +4,7 @@
     
         import { onMount } from 'svelte';
         import { slide } from 'svelte/transition';
-        import Settings from '../../public/assets/Settings.svelte';
+        import { SettingsIcon } from '$lib/components';
         import AssetDropdown from './SwapEstimator/AssetDropdown.svelte';
   
           
@@ -868,7 +868,7 @@
       
     <div class="app-container">
         <div class="settings-icon" on:click={toggleSettings}>
-            <Settings />
+            <SettingsIcon />
         </div>
 
         {#if showSettings}
