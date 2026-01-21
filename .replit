@@ -1,7 +1,13 @@
 run = "vite"
 entrypoint = "src/App.svelte"
 
-hidden = [".config", "tsconfig.json", "tsconfig.node.json", "vite.config.js", ".gitignore"]
+hidden = [
+  ".config",
+  "tsconfig.json",
+  "tsconfig.node.json",
+  "vite.config.js",
+  ".gitignore",
+]
 modules = ["nodejs-20"]
 
 [nix]
@@ -18,10 +24,10 @@ requiredFiles = [".replit", "replit.nix", ".config"]
 [packager]
 language = "nodejs"
 
-  [packager.features]
-  packageSearch = true
-  guessImports = true
-  enabledForHosting = false
+[packager.features]
+packageSearch = true
+guessImports = true
+enabledForHosting = false
 
 [languages]
 
@@ -53,3 +59,6 @@ externalPort = 80
 [[ports]]
 localPort = 5174
 externalPort = 3000
+
+[agent]
+disabled = true
