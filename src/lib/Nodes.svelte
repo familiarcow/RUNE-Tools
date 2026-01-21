@@ -7,6 +7,7 @@
   import { fromBaseUnit, blocksToSeconds } from '$lib/utils/blockchain';
   import { calculateAPR as calcAPR, calculateAPY as calcAPY } from '$lib/utils/calculations';
   import { fetchWithFallback, fetchMimirValue } from '$lib/utils/api';
+  import { CopyIcon } from '$lib/components';
   import {
     getNodes,
     getLastChurn,
@@ -1011,10 +1012,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             title="Copy IP address"
                             on:click={() => copyToClipboard(node.ip_address)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                            </svg>
+                            <CopyIcon size={14} />
                           </button>
                         </span>
                       </div>
@@ -1038,10 +1036,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             title="Copy status since block height"
                             on:click={() => copyToClipboard(node.status_since.toString())}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                            </svg>
+                            <CopyIcon size={14} />
                           </button>
                         </span>
                       </div>
@@ -1054,10 +1049,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             title="Copy node address"
                             on:click={() => copyToClipboard(node.node_address)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                            </svg>
+                            <CopyIcon size={14} />
                           </button>
                           <a href="https://runescan.io/address/{node.node_address}" target="_blank" rel="noopener noreferrer" class="outlink">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1084,10 +1076,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             title="Copy node operator address"
                             on:click={() => copyToClipboard(node.node_operator_address)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                            </svg>
+                            <CopyIcon size={14} />
                           </button>
                           <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1145,10 +1134,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                                     title="Copy full address"
                                     on:click={() => copyToClipboard(provider.bond_address)}
                                   >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                                    </svg>
+                                    <CopyIcon size={14} />
                                   </button>
                                 </div>
                               </td>
@@ -1478,10 +1464,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             title="Copy status since block height"
                             on:click={() => copyToClipboard(node.status_since.toString())}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                            </svg>
+                            <CopyIcon size={14} />
                           </button>
                         </span>
                       </div>
@@ -1494,10 +1477,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             title="Copy node address"
                             on:click={() => copyToClipboard(node.node_address)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                            </svg>
+                            <CopyIcon size={14} />
                           </button>
                           <a href="https://runescan.io/address/{node.node_address}" target="_blank" rel="noopener noreferrer" class="outlink">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1524,10 +1504,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             title="Copy node operator address"
                             on:click={() => copyToClipboard(node.node_operator_address)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                            </svg>
+                            <CopyIcon size={14} />
                           </button>
                           <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1585,10 +1562,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                                     title="Copy full address"
                                     on:click={() => copyToClipboard(provider.bond_address)}
                                   >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                                    </svg>
+                                    <CopyIcon size={14} />
                                   </button>
                                 </div>
                               </td>

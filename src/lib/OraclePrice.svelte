@@ -5,6 +5,7 @@
   import { fetchJSONWithFallback } from '$lib/utils/api';
   import { getAllPools } from '$lib/utils/liquidity';
   import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { RefreshIcon } from '$lib/components';
 
   const oraclePrices = writable({});
   const poolPrices = writable({});
@@ -351,11 +352,7 @@
         <p>Compare THORChain oracle prices with pool prices</p>
       </div>
       <button class="refresh-btn" on:click={loadData} disabled={$loading}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <polyline points="1 20 1 14 7 14"></polyline>
-          <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-        </svg>
+        <RefreshIcon size={20} />
       </button>
     </div>
 

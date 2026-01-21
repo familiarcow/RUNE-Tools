@@ -542,7 +542,7 @@ src/lib/components/
 | Component | LoadingBar | StatusIndicator | ActionButton | PageHeader | Toast | CSS Vars | Shared Utils |
 |-----------|:----------:|:---------------:|:------------:|:----------:|:-----:|:--------:|:------------:|
 | BondTracker | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
-| Version | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Version | ✅ | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ |
 | **Vaults** | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
 | TCY | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Nodes | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
@@ -556,12 +556,15 @@ src/lib/components/
 | 2024-01 | Vaults.svelte | Migrated inline toast to Toast component | ✅ Tested |
 | 2025-01 | Vaults.svelte | Full migration: CSS variables, LoadingBar, shared utils (formatting.js), shared constants (assets.js), removed ~70 lines of duplicate code | ✅ Tested |
 | 2025-01 | BondTracker.svelte | Full migration: CSS variables, Toast component (was inline), simplified toast logic | ✅ Tested |
+| 2025-01 | Version.svelte | CSS variables migration (already had LoadingBar, PageHeader, shared utils) | ✅ Tested |
+| 2025-01 | LinkOutIcon.svelte | Moved from lib root to components folder, updated imports in Version, Feed, WhaleWatching | ✅ Tested |
 
 ### Migration Priority
 
-1. **High Priority**: Create shared Toast component, migrate BondTracker & Vaults
+1. ~~**High Priority**: Create shared Toast component, migrate BondTracker & Vaults~~ ✅ DONE
 2. **Medium Priority**: Migrate TCY to use shared components
-3. **Low Priority**: Nodes (complex, requires careful handling)
+3. **Medium Priority**: Migrate Feed & WhaleWatching (have local assetIcons mappings)
+4. **Low Priority**: Nodes (complex, requires careful handling)
 
 ---
 
@@ -580,7 +583,7 @@ src/lib/components/
 
 3. **TCY has unique accent color (#28f4af)** - This appears intentional for TCY product branding. Consider keeping this as a theme variant rather than standardizing.
 
-4. **Toast notifications are duplicated** in BondTracker and Vaults. Should extract to shared component.
+4. ~~**Toast notifications are duplicated** in BondTracker and Vaults. Should extract to shared component.~~ ✅ DONE - Toast component created, both now use it.
 
 5. **Nodes.svelte is delicate** - It has:
    - Complex table with 14+ columns
@@ -602,6 +605,73 @@ src/lib/components/
 - **Testing browser**: Google Chrome (Claude Code Chrome Extension is installed here)
 - **Dev URL**: `http://localhost:5173` (or similar from `npm run dev`)
 - **Prod URL**: `https://rune.tools`
+
+### Migration Checklist
+
+When migrating a component, check ALL of the following:
+
+#### 1. CSS Variables
+- [ ] Add `@import '$lib/styles/variables.css';` at top of `<style>` block
+- [ ] Replace hardcoded colors with variables (`#1a1a1a` → `var(--bg-main)`)
+- [ ] Replace hardcoded spacing with variables (`16px` → `var(--space-lg)`)
+- [ ] Replace font-family with `var(--font-system)`
+- [ ] Replace font sizes/weights with variables (`--text-lg`, `--font-semibold`)
+- [ ] Replace shadows with variables (`--shadow-card`, `--shadow-elevated`)
+- [ ] Replace transitions with variables (`--transition-smooth`)
+- [ ] Replace gradients with variables (`--gradient-card`, `--gradient-primary`)
+
+#### 2. Shared Components (from `$lib/components`)
+- [ ] `LoadingBar` - Replace "Loading..." text or custom loading bars
+- [ ] `Toast` - Replace inline toast notifications
+- [ ] `ActionButton` - Replace custom icon buttons
+- [ ] `StatusIndicator` - Replace custom status dots
+- [ ] `PageHeader` - Replace custom section headers
+- [ ] `DataCard` - Replace custom card containers
+- [ ] `LinkOutIcon` - Replace inline external link SVGs
+- [ ] `CopyIcon` - Replace inline copy/clipboard SVGs (12+ occurrences in codebase)
+- [ ] `RefreshIcon` - Replace inline refresh/reload SVGs
+- [ ] `BookmarkIcon` - Replace inline bookmark SVGs
+- [ ] Other common SVGs - Check for any repeated inline SVG patterns
+
+#### 3. Shared Utilities (from `$lib/utils/formatting`)
+- [ ] `formatNumber()` - Replace custom number formatting
+- [ ] `formatUSD()` - Replace custom USD formatting
+- [ ] `formatThorAmount()` - Replace custom RUNE amount formatting
+- [ ] `shortenAddress()` - Replace custom address truncation
+- [ ] `copyToClipboard()` - Replace custom clipboard logic
+
+#### 4. Shared Constants (from `$lib/constants`)
+- [ ] `getAssetLogo()` - Replace local `assetLogos` or `assetIcons` mappings
+- [ ] `getAssetDisplayName()` - Replace local `formatAssetName()` functions
+- [ ] `ASSET_LOGOS` - Remove duplicate logo path definitions
+
+#### 5. Blockchain Utilities (from `$lib/utils/blockchain`)
+- [ ] `fromBaseUnit()` - Replace `/ 1e8` divisions
+- [ ] `BLOCK_TIME_SECONDS` - Replace hardcoded block times
+
+#### 6. Component Consolidation
+- [ ] Move any local reusable components to `$lib/components/`
+- [ ] Add new shared components to `$lib/components/index.js`
+- [ ] Update all files that import the moved component
+- [ ] Delete the old local component file
+
+#### 7. API & Data
+- [ ] Use `thornode` from `$lib/api` instead of raw fetch calls
+- [ ] Use `midgard` from `$lib/api/midgard` for Midgard endpoints
+- [ ] Use shared node utilities from `$lib/utils/nodes`
+- [ ] Use shared network utilities from `$lib/utils/network`
+
+#### 8. Stores
+- [ ] Use currency store from `$lib/stores/currency` for multi-currency support
+- [ ] Check for local state that could be shared across components
+
+#### 9. Cleanup
+- [ ] Remove unused imports
+- [ ] Remove migration breadcrumb comments before committing
+- [ ] Remove duplicate CSS that's now handled by variables
+- [ ] Remove local helper functions that duplicate shared utilities
+- [ ] Run `npm run build` to verify no errors
+- [ ] Test visually on dev server
 
 ### Migration Best Practices
 

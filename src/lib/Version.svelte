@@ -1,8 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { thornode } from '$lib/api';
-  import { PageHeader, LoadingBar } from '$lib/components';
-  import LinkOutIcon from './LinkOutIcon.svelte';
+  import { PageHeader, LoadingBar, LinkOutIcon } from '$lib/components';
   import { getNodes, filterNodesByStatus, NODE_STATUS } from '$lib/utils/nodes';
   import { getCurrentBlock } from '$lib/utils/network';
   import { BLOCK_TIME_SECONDS } from '$lib/utils/blockchain';
@@ -311,14 +310,16 @@
 </div>
 
 <style>
+  @import '$lib/styles/variables.css';
+
   .version-checker {
-    max-width: 900px;
+    max-width: var(--container-lg);
     margin: 0 auto;
-    padding: 16px;
-    color: #FFFFFF;
-    background-color: #1a1a1a;
+    padding: var(--space-lg);
+    color: var(--text-primary);
+    background-color: var(--bg-main);
     min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-family: var(--font-system);
   }
 
   .container {
@@ -328,11 +329,11 @@
   }
 
   section {
-    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
-    border-radius: 16px;
+    background: var(--gradient-card);
+    border-radius: var(--radius-xl);
     padding: 1.25rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-default);
   }
 
   /* ===== UPGRADE INFO GRID ===== */
@@ -345,8 +346,8 @@
 
   .info-card {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 1rem;
     text-align: center;
     display: flex;
@@ -355,23 +356,23 @@
   }
 
   .card-label {
-    color: #a0a0a0;
+    color: var(--text-muted);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--tracking-wider);
     margin-bottom: 0.5rem;
   }
 
   .card-value {
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 22px;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     letter-spacing: -0.3px;
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -393,7 +394,7 @@
     border-radius: 6px;
     background: rgba(74, 144, 226, 0.1);
     border: 1px solid rgba(74, 144, 226, 0.2);
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
   }
 
   .release-link:hover {
@@ -415,11 +416,11 @@
   }
 
   .percentage-badge {
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
     background: rgba(99, 102, 241, 0.2);
-    padding: 4px 10px;
+    padding: var(--space-xs) var(--space-md);
     border-radius: 6px;
     border: 1px solid rgba(99, 102, 241, 0.3);
   }
@@ -430,18 +431,18 @@
   }
 
   .status-text {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: var(--tracking-wide);
   }
 
   .status-text.approved {
-    color: #69db7c;
+    color: var(--color-success-light);
   }
 
   .status-text.pending {
-    color: #ffa94d;
+    color: var(--color-warning-light);
   }
 
   /* ===== PROGRESS BAR ===== */
@@ -449,7 +450,7 @@
     position: relative;
     width: 100%;
     height: 6px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--border-subtle);
     border-radius: 3px;
     overflow: visible;
     margin: 0.5rem 0;
@@ -457,13 +458,13 @@
 
   .progress {
     height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gradient-primary);
     border-radius: 3px;
     transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .approval-progress {
-    background: linear-gradient(135deg, #69db7c 0%, #51cf66 100%) !important;
+    background: var(--gradient-success) !important;
   }
 
   .threshold-marker {
@@ -472,7 +473,7 @@
     right: 34%;
     width: 2px;
     height: calc(100% + 8px);
-    background-color: #ffffff;
+    background-color: var(--text-primary);
     opacity: 0.8;
   }
 
@@ -483,8 +484,8 @@
     right: -3px;
     width: 8px;
     height: 8px;
-    background-color: #ffffff;
-    border-radius: 50%;
+    background-color: var(--text-primary);
+    border-radius: var(--radius-full);
     transform: translateY(-50%);
   }
 
@@ -498,33 +499,33 @@
 
   .stat-card {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 0.75rem;
     text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--space-xs);
   }
 
   .stat-label {
-    color: #a0a0a0;
-    font-size: 10px;
-    font-weight: 600;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--tracking-wider);
   }
 
   .stat-value {
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     letter-spacing: -0.2px;
   }
 
   .stat-value.date-value {
-    font-size: 12px;
-    font-weight: 500;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
     white-space: pre-line;
     line-height: 1.4;
   }
@@ -533,23 +534,23 @@
   .block-stat {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 6px 12px;
-    border-radius: 8px;
+    gap: var(--space-sm);
+    background: var(--border-subtle);
+    padding: 6px var(--space-md);
+    border-radius: var(--radius-md);
   }
 
   .block-label {
-    color: #a0a0a0;
+    color: var(--text-muted);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     text-transform: uppercase;
   }
 
   .block-value {
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 700;
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    font-weight: var(--font-bold);
     letter-spacing: -0.3px;
   }
 
@@ -561,14 +562,14 @@
   }
 
   .version-card {
-    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    padding: 16px;
-    height: 120px;
+    background: var(--gradient-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    height: var(--card-height);
     position: relative;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: var(--transition-smooth);
   }
 
   .version-card:hover {
@@ -579,26 +580,26 @@
 
   .version-title {
     position: absolute;
-    top: 16px;
-    left: 16px;
+    top: var(--space-lg);
+    left: var(--space-lg);
     margin: 0;
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 700;
+    color: var(--text-primary);
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
     letter-spacing: -0.2px;
   }
 
   .version-card .percentage-badge {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: var(--space-lg);
+    right: var(--space-lg);
   }
 
   .version-card .progress-bar {
     position: absolute;
     top: 50%;
-    left: 16px;
-    right: 16px;
+    left: var(--space-lg);
+    right: var(--space-lg);
     width: calc(100% - 32px);
     transform: translateY(-50%);
     margin: 0;
@@ -606,30 +607,30 @@
 
   .card-footer {
     position: absolute;
-    bottom: 16px;
-    left: 16px;
-    right: 16px;
+    bottom: var(--space-lg);
+    left: var(--space-lg);
+    right: var(--space-lg);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
   .node-count {
-    color: #a0a0a0;
-    font-size: 12px;
-    font-weight: 500;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
   }
 
   .link-button {
-    color: #4A90E2;
-    font-size: 12px;
-    font-weight: 600;
+    color: var(--accent-link);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
     text-decoration: none;
-    transition: color 0.2s;
+    transition: var(--transition-base);
   }
 
   .link-button:hover {
-    color: #667eea;
+    color: var(--accent-primary);
     text-decoration: underline;
   }
 
@@ -639,35 +640,35 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
-    gap: 16px;
-    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 60px var(--space-xl);
+    gap: var(--space-lg);
+    background: var(--gradient-card);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
   }
 
   .loading-text {
-    color: #a0a0a0;
-    font-size: 14px;
-    font-weight: 500;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
     margin: 0;
   }
 
   .error {
     text-align: center;
     padding: 40px;
-    color: #dc3545;
-    font-size: 16px;
-    font-weight: 600;
+    color: var(--color-error);
+    font-size: var(--text-md);
+    font-weight: var(--font-semibold);
     background: rgba(220, 53, 69, 0.1);
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     border: 1px solid rgba(220, 53, 69, 0.2);
   }
 
   /* ===== MOBILE RESPONSIVE ===== */
   @media (max-width: 600px) {
     .version-checker {
-      padding: 12px;
+      padding: var(--space-md);
     }
 
     section {
@@ -689,52 +690,52 @@
     .version-card {
       height: auto;
       min-height: 100px;
-      padding: 16px;
+      padding: var(--space-lg);
     }
 
     .version-title {
       position: static;
-      margin-bottom: 8px;
+      margin-bottom: var(--space-sm);
     }
 
     .version-card .percentage-badge {
       position: static;
       display: inline-block;
-      margin-bottom: 8px;
+      margin-bottom: var(--space-sm);
     }
 
     .version-card .progress-bar {
       position: static;
       width: 100%;
       transform: none;
-      margin: 8px 0;
+      margin: var(--space-sm) 0;
     }
 
     .card-footer {
       position: static;
-      margin-top: 8px;
+      margin-top: var(--space-sm);
     }
 
     .card-value {
-      font-size: 20px;
+      font-size: var(--text-xl);
     }
 
     .stat-value {
-      font-size: 14px;
+      font-size: var(--text-base);
     }
 
     .block-stat {
-      padding: 4px 8px;
+      padding: var(--space-xs) var(--space-sm);
     }
 
     .block-value {
-      font-size: 12px;
+      font-size: var(--text-sm);
     }
   }
 
   @media (max-width: 400px) {
     .version-checker {
-      padding: 10px;
+      padding: var(--space-md);
     }
 
     section {
@@ -742,7 +743,7 @@
     }
 
     .card-value {
-      font-size: 18px;
+      font-size: var(--text-lg);
     }
 
     .stat-value {
@@ -754,8 +755,8 @@
     }
 
     .action-button {
-      font-size: 12px;
-      padding: 6px 12px;
+      font-size: var(--text-sm);
+      padding: 6px var(--space-md);
     }
   }
 </style>

@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
   import SettingsIcon from '../../public/assets/Settings.svelte';
-  import RefreshIcon from '../../public/assets/Refresh.svelte';
+  import { RefreshIcon } from '$lib/components';
   import { fetchJSONWithFallback } from '$lib/utils/api';
 
   const showInUSD = writable(false);

@@ -3,7 +3,7 @@
   import { fade, slide } from 'svelte/transition';
   import { flip } from 'svelte/animate';
   import { cubicOut } from 'svelte/easing';
-  import LinkOutIcon from './LinkOutIcon.svelte';
+  import { LinkOutIcon } from '$lib/components';
   import { formatUSD as formatUSDUtil, shortenAddress as shortenAddressUtil } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
 

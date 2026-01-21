@@ -6,7 +6,7 @@
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { getChurnInfo, getLastChurn } from '$lib/utils/nodes';
   import { calculateAPR, calculateAPY } from '$lib/utils/calculations';
-  import { LoadingBar, StatusIndicator, ActionButton, Toast } from '$lib/components';
+  import { LoadingBar, StatusIndicator, ActionButton, Toast, RefreshIcon, BookmarkIcon, CopyIcon } from '$lib/components';
   import {
     currentCurrency,
     exchangeRates,
@@ -563,22 +563,13 @@
       </div>
       <div class="button-container">
         <ActionButton variant="refresh" title="Refresh Data" on:click={fetchBondData}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
+          <RefreshIcon size={20} />
         </ActionButton>
         <ActionButton variant="bookmark" title={isMobile ? "Add to Home Screen" : "Bookmark"} on:click={addBookmark}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-          </svg>
+          <BookmarkIcon size={20} />
         </ActionButton>
         <ActionButton variant="copy" title="Copy Link" on:click={copyLink}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
+          <CopyIcon size={20} />
         </ActionButton>
         <ActionButton variant="external" title="Open in RuneScan" on:click={openRuneScan}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
