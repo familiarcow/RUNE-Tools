@@ -1,9 +1,9 @@
 name: Update IP Info
 
 on:
-  # Run daily at 6 AM UTC
+  # Run every 2 days at 12 PM UTC
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 12 */2 * *'
 
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
@@ -35,8 +35,8 @@ jobs:
       - name: Commit and push if changed
         if: steps.git-check.outputs.changes == 'true'
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
+          git config --local user.email "familiarcow@proton.me"
+          git config --local user.name "familiarcow"
           git add public/ip-info.json
-          git commit -m "chore: update node IP info [skip ci]"
+          git commit -m "chore: update node IP info"
           git push
