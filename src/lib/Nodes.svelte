@@ -7,7 +7,7 @@
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { calculateAPR as calcAPR, calculateAPY as calcAPY } from '$lib/utils/calculations';
   import { fetchWithFallback, fetchMimirValue } from '$lib/utils/api';
-  import { CopyIcon, ClockIcon, PlayIcon, PauseIcon } from '$lib/components';
+  import { CopyIcon, ClockIcon, PlayIcon, PauseIcon, LinkOutIcon } from '$lib/components';
   import {
     getNodes,
     getChurnState,
@@ -775,12 +775,14 @@
       </thead>
       <tbody>
         {#each filteredActiveNodes as node, i}
-          <tr class="main-row" 
+          {@const leaveStatus = getLeaveStatus(node, nodes)}
+          {@const nodeAPY = calculateAPY(node)}
+          <tr class="main-row"
             class:row-leaving={node.requested_to_leave || node.forced_to_leave}
-            class:row-oldest={getLeaveStatus(node, nodes)?.type === 'oldest'}
-            class:row-worst={getLeaveStatus(node, nodes)?.type === 'worst'}
-            class:row-lowest={getLeaveStatus(node, nodes)?.type === 'lowest'}
-            class:row-jailed={getLeaveStatus(node, nodes)?.type === 'jailed'}
+            class:row-oldest={leaveStatus?.type === 'oldest'}
+            class:row-worst={leaveStatus?.type === 'worst'}
+            class:row-lowest={leaveStatus?.type === 'lowest'}
+            class:row-jailed={leaveStatus?.type === 'jailed'}
             class:row-starred={starredNodes.has(node.node_address)}
           >
             <td class="number-cell">{i + 1}</td>
@@ -820,20 +822,15 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                   {#if node.forced_to_leave}
                     <span class="leave-emoji" title="Node is forced to leave">🧳</span>
                   {/if}
-                  {#key node}
-                  {#if true}
-                    {@const status = getLeaveStatus(node, nodes)}
-                    {#if status?.type === 'oldest'}
-                      <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
-                    {/if}
-                    {#if status?.type === 'worst'}
-                      <span class="leave-emoji" title="Highest slash points">😾</span>
-                    {/if}
-                    {#if status?.type === 'lowest'}
-                      <span class="leave-emoji" title="Lowest total bond">💸</span>
-                    {/if}
+                  {#if leaveStatus?.type === 'oldest'}
+                    <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
                   {/if}
-                  {/key}
+                  {#if leaveStatus?.type === 'worst'}
+                    <span class="leave-emoji" title="Highest slash points">😾</span>
+                  {/if}
+                  {#if leaveStatus?.type === 'lowest'}
+                    <span class="leave-emoji" title="Lowest total bond">💸</span>
+                  {/if}
                   {#if node.jail && node.jail.release_height > currentBlockHeight}
                     <span class="leave-emoji" title={`Jailed: ${node.jail.reason}`}>👮</span>
                   {/if}
@@ -890,11 +887,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
             </td>
             <td class="monospace">{node.node_operator_address.slice(-4)}
               <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
+                <LinkOutIcon size={12} />
               </a>
             </td>
             <td class:cell-update={node.hasUpdates?.bond}>
@@ -910,9 +903,9 @@ Reason: ${node.preflight_status.reason}` : ''}` :
               </span>
             </td>
             <td>
-              {#if calculateAPY(node) !== null}
+              {#if nodeAPY !== null}
                 <span class="apy-value">
-                  {(calculateAPY(node) * 100).toFixed(2)}%
+                  {(nodeAPY * 100).toFixed(2)}%
                 </span>
               {:else}
                 <span class="apy-value">-</span>
@@ -1016,11 +1009,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             <CopyIcon size={14} />
                           </button>
                           <a href="https://runescan.io/address/{node.node_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                              <polyline points="15 3 21 3 21 9"></polyline>
-                              <line x1="10" y1="14" x2="21" y2="3"></line>
-                            </svg>
+                            <LinkOutIcon size={16} />
                           </a>
                           <a href="/voting?key={node.node_address}" class="voting-link" title="View Node Voting">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1043,11 +1032,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             <CopyIcon size={14} />
                           </button>
                           <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                              <polyline points="15 3 21 3 21 9"></polyline>
-                              <line x1="10" y1="14" x2="21" y2="3"></line>
-                            </svg>
+                            <LinkOutIcon size={16} />
                           </a>
                         </span>
                       </div>
@@ -1128,11 +1113,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                                     rel="noopener noreferrer" 
                                     class="viewblock-btn"
                                     title="View in Viewblock">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                                      <polyline points="15 3 21 3 21 9"/>
-                                      <line x1="10" y1="14" x2="21" y2="3"/>
-                                    </svg>
+                                    <LinkOutIcon size={14} />
                                   </a>
                                 </div>
                               </td>
@@ -1268,6 +1249,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
       </thead>
       <tbody>
         {#each filteredStandbyNodes as node, i}
+          {@const leaveStatus = getLeaveStatus(node, nodes)}
           <tr class="main-row"
             class:row-starred={starredNodes.has(node.node_address)}
             class:row-jailed={node.jail && node.jail.release_height > currentBlockHeight}
@@ -1312,20 +1294,15 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                   {#if node.forced_to_leave}
                     <span class="leave-emoji" title="Node is forced to leave">🧳</span>
                   {/if}
-                  {#key node}
-                  {#if true}
-                    {@const status = getLeaveStatus(node, nodes)}
-                    {#if status?.type === 'oldest'}
-                      <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
-                    {/if}
-                    {#if status?.type === 'worst'}
-                      <span class="leave-emoji" title="Highest slash points">😾</span>
-                    {/if}
-                    {#if status?.type === 'lowest'}
-                      <span class="leave-emoji" title="Lowest total bond">💸</span>
-                    {/if}
+                  {#if leaveStatus?.type === 'oldest'}
+                    <span class="leave-emoji" title="Oldest active node by block height">🪦</span>
                   {/if}
-                  {/key}
+                  {#if leaveStatus?.type === 'worst'}
+                    <span class="leave-emoji" title="Highest slash points">😾</span>
+                  {/if}
+                  {#if leaveStatus?.type === 'lowest'}
+                    <span class="leave-emoji" title="Lowest total bond">💸</span>
+                  {/if}
                   {#if node.jail && node.jail.release_height > currentBlockHeight}
                     <span class="leave-emoji" title={`Jailed: ${node.jail.reason}`}>👮</span>
                   {/if}
@@ -1382,11 +1359,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
             </td>
             <td class="monospace">{node.node_operator_address.slice(-4)}
               <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
+                <LinkOutIcon size={12} />
               </a>
             </td>
             <td>
@@ -1444,11 +1417,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             <CopyIcon size={14} />
                           </button>
                           <a href="https://runescan.io/address/{node.node_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                              <polyline points="15 3 21 3 21 9"></polyline>
-                              <line x1="10" y1="14" x2="21" y2="3"></line>
-                            </svg>
+                            <LinkOutIcon size={16} />
                           </a>
                           <a href="/voting?key={node.node_address}" class="voting-link" title="View Node Voting">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1471,11 +1440,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                             <CopyIcon size={14} />
                           </button>
                           <a href="https://runescan.io/address/{node.node_operator_address}" target="_blank" rel="noopener noreferrer" class="outlink">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                              <polyline points="15 3 21 3 21 9"></polyline>
-                              <line x1="10" y1="14" x2="21" y2="3"></line>
-                            </svg>
+                            <LinkOutIcon size={16} />
                           </a>
                         </span>
                       </div>
@@ -1556,11 +1521,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                                     rel="noopener noreferrer" 
                                     class="viewblock-btn"
                                     title="View in Viewblock">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                                      <polyline points="15 3 21 3 21 9"/>
-                                      <line x1="10" y1="14" x2="21" y2="3"/>
-                                    </svg>
+                                    <LinkOutIcon size={14} />
                                   </a>
                                 </div>
                               </td>
@@ -1581,6 +1542,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
 </div>
 
 <style>
+  @import '$lib/styles/variables.css';
+
   /* Update container padding to double the bezels */
   .nodes-container {
     padding: 16px 128px;
@@ -2410,186 +2373,6 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     gap: 6px;
   }
 
-  .leave-status {
-    display: flex;
-    align-items: center;
-  }
-
-  .leave-emoji {
-    font-size: 14px;
-    margin-left: 4px;
-  }
-
-  .providers-count {
-    display: inline-block;
-    background-color: rgba(74, 144, 226, 0.2);
-    color: #4A90E2;
-    font-size: 0.6875rem;
-    padding: 1px 4px;
-    border-radius: 3px;
-    margin-left: 6px;
-    font-weight: 500;
-    min-width: 14px;
-    text-align: center;
-  }
-
-  .apy-value {
-    color: #2ecc71;
-    font-weight: 500;
-    font-size: 0.875rem;
-  }
-
-  .header-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    gap: 16px;
-  }
-
-  .search-container {
-    position: relative;
-    flex-grow: 1;
-    max-width: 600px;
-  }
-
-  .search-input {
-    width: 100%;
-    padding: 8px 32px 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #3a3a3c;
-    background-color: #1a1a1a;
-    color: #fff;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-  }
-
-  .search-input:focus {
-    outline: none;
-    border-color: #4A90E2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-  }
-
-  .search-input::placeholder {
-    color: #666;
-  }
-
-  .clear-search {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #666;
-    font-size: 18px;
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.2s ease;
-  }
-
-  .clear-search:hover {
-    color: #fff;
-  }
-
-  .pause-button {
-    background-color: #4A90E2;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-  }
-
-  .pause-button:hover {
-    background-color: #357ABD;
-  }
-
-  .cell-update {
-    animation: cell-flash 1s ease-out;
-  }
-
-  @keyframes cell-flash {
-    0% {
-      background-color: rgba(74, 144, 226, 0.3);
-    }
-    100% {
-      background-color: transparent;
-    }
-  }
-
-  .value-transition {
-    transition: color 0.3s ease;
-  }
-
-  .value-update {
-    color: #4A90E2;
-  }
-
-  td {
-    transition: background-color 0.3s ease;
-  }
-
-  .main-row:hover {
-    background-color: rgba(74, 144, 226, 0.05) !important;
-    transition: background-color 0.3s ease;
-  }
-
-  .rune-amount {
-    transition: all 0.3s ease;
-  }
-
-  .chain-status {
-    transition: all 0.3s ease;
-  }
-
-  .status {
-    transition: all 0.3s ease;
-  }
-
-  .apy-value {
-    transition: all 0.3s ease;
-  }
-
-  .signer-list {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-
-  .signer-pill {
-    background-color: rgba(74, 144, 226, 0.15);
-    color: #4A90E2;
-    padding: 2px 6px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-  }
-
-  .block-number {
-    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-    font-size: 0.8125rem;
-  }
-
-  .date-separator {
-    margin: 0 4px;
-    color: #666;
-  }
-
-  .block-date {
-    color: #888;
-    font-size: 0.8125rem;
-  }
-
   .status-circle {
     display: inline-block;
     width: 8px;
@@ -2697,49 +2480,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     opacity: 0.8;
   }
 
-  .action-buttons {
-    display: flex;
-    gap: 8px;
-    margin-left: 8px;
-    align-items: center;
-  }
-
-  .track-rewards-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border: 1px solid #4A90E2;
-    border-radius: 4px;
-    color: #4A90E2;
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    background: rgba(74, 144, 226, 0.1);
-  }
-
-  .track-rewards-btn:hover {
-    background: rgba(74, 144, 226, 0.2);
-    border-color: #5a9ee8;
-  }
-
-  .viewblock-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    color: #666;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-  }
-
-  .viewblock-btn:hover {
-    color: #4A90E2;
-    background: rgba(74, 144, 226, 0.1);
-  }
-
-  /* Restore star button styles */
+  /* Star button styles */
   .star-btn {
     background: none;
     border: none;
