@@ -6,6 +6,7 @@
   import { getAllPools } from '$lib/utils/liquidity';
   import { getRunePrice } from '$lib/utils/network';
   import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { ErrorDisplay } from '$lib/components';
 
   let activeTab = 'checker';
   let selectedPool = null;
@@ -179,7 +180,7 @@
     {#if loading}
       <p class="loading">Loading data...</p>
     {:else if error}
-      <p class="error">{error}</p>
+      <ErrorDisplay message={error} />
     {:else}
       <div class="tab-content">
         {#if activeTab === 'checker'}
@@ -378,13 +379,7 @@
     font-size: 18px;
   }
 
-  .error {
-    color: #f44336;
-    text-align: center;
-    padding: 20px;
-    font-weight: bold;
-  }
-
+  
   @media (max-width: 768px) {
     .liquidity-providers {
       padding: 10px;

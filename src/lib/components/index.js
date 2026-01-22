@@ -21,6 +21,7 @@ export { default as BookmarkIcon } from './BookmarkIcon.svelte';
 export { default as CheckIcon } from './CheckIcon.svelte';
 export { default as SettingsIcon } from './SettingsIcon.svelte';
 export { default as WarningIcon } from './WarningIcon.svelte';
+export { default as ErrorDisplay } from './ErrorDisplay.svelte';
 export { default as ChevronDownIcon } from './ChevronDownIcon.svelte';
 export { default as ClockIcon } from './ClockIcon.svelte';
 export { default as PlayIcon } from './PlayIcon.svelte';

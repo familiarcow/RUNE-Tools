@@ -5,6 +5,7 @@
   import { getAllPools } from '$lib/utils/liquidity';
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { ErrorDisplay } from '$lib/components';
 
   interface ThorNameResponse {
     name: string;
@@ -247,17 +248,17 @@
     <div class="container">
       <h2>Affiliates Tracker - {$thorNameInfo?.name}</h2>
       
-      <!-- Error messages -->
+      <!-- Warning messages -->
       {#if noPreferredAsset || noThorChainAlias || noPreferredAssetChainAlias}
         <div class="error-messages">
           {#if noPreferredAsset}
-            <p class="error">Warning: No preferred asset set for this THORName.</p>
+            <ErrorDisplay type="warning" message="No preferred asset set for this THORName." />
           {/if}
           {#if noThorChainAlias}
-            <p class="error">Warning: No THOR chain alias set for this THORName.</p>
+            <ErrorDisplay type="warning" message="No THOR chain alias set for this THORName." />
           {/if}
           {#if noPreferredAssetChainAlias}
-            <p class="error">Warning: No alias set for the preferred asset's chain.</p>
+            <ErrorDisplay type="warning" message="No alias set for the preferred asset's chain." />
           {/if}
         </div>
       {/if}
@@ -484,16 +485,10 @@
   }
 
   .error-messages {
-    background-color: #2c2c2c;
-    border-radius: 8px;
-    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     margin-bottom: 20px;
-  }
-
-  .error {
-    color: #ff4136;
-    margin: 5px 0;
-    font-size: 14px;
   }
 
   .chain-addresses {
