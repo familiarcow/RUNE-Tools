@@ -35,3 +35,14 @@ export {
   getAffiliateLogo,
   isKnownAffiliate
 } from './affiliates.js';
+
+export {
+  COUNTRY_EMOJI,
+  getCountryEmoji,
+  ISP_LOGOS,
+  getIspLogo,
+  getIspLogoPath,
+  hasIspLogo,
+  getSupportedIsps,
+  getSupportedCountries
+} from './isp.js';
