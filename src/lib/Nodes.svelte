@@ -22,6 +22,7 @@
     formatChainHeightDiff,
     searchNodes
   } from '$lib/utils/nodes';
+  import { COUNTRY_EMOJI, ISP_LOGOS } from '$lib/constants';
 
   let nodes = [];
   let activeNodes = [];
@@ -52,61 +53,6 @@
   let recentChurnTimestamp = 0;
   let isChurningHalted = false;
 
-  // Country code to emoji mapping
-  const countryToEmoji = {
-    'AT': '🇦🇹',
-    'AU': '🇦🇺',
-    'CA': '🇨🇦',
-    'DE': '🇩🇪',
-    'FI': '🇫🇮',
-    'FR': '🇫🇷',
-    'GB': '🇬🇧',
-    'IN': '🇮🇳',
-    'JP': '🇯🇵',
-    'NL': '🇳🇱',
-    'PL': '🇵🇱',
-    'SG': '🇸🇬',
-    'US': '🇺🇸'
-  };
-
-  // ISP to logo mapping
-  const ispToLogo = {
-    // Amazon variants
-    'Amazon Technologies Inc.': 'amazon.svg',
-    'Amazon.com': 'amazon.svg',
-    'Amazon.com, Inc.': 'amazon.svg',
-    
-    // Microsoft
-    'Microsoft Corporation': 'azure.svg',
-    
-    // Cloud providers
-    'RouterHosting LLC': 'cloud.svg',
-    'TIMEWARP IT Consulting GmbH': 'cloud.svg',
-    'IPAX GmbH': 'cloud.svg',
-    'MEVSPACE sp. z o.o': 'cloudzy.png',
-    'MEVSPACE sp. z o.o.': 'cloudzy.png',
-    
-    // Other specific providers
-    'Cogent Communications': 'cogent.svg',
-    'Comcast Cable Communications, LLC': 'comcast.svg',
-    'The Constant Company': 'datacamp.svg',
-    'The Constant Company, LLC': 'datacamp.svg',
-    'DIGITALOCEAN': 'digitalocean.svg',
-    'DigitalOcean, LLC': 'digitalocean.svg',
-    'Google LLC': 'google.svg',
-    'Hetzner Online GmbH': 'hetzner.svg',
-    'HOSTINGER': 'hostinger.svg',
-    'Hostinger International Limited': 'hostinger.svg',
-    'Level 3 Communications, Inc.': 'ionos.svg',
-    'Leaseweb DE': 'leaseweb.png',
-    'Leaseweb UK Limited': 'leaseweb.png',
-    'Leaseweb USA, Inc.': 'leaseweb.png',
-    'OVH SAS': 'ovh.svg',
-    'Online S.A.S.': 'ovh.svg',
-    'Zenlayer Inc': 'vultr.svg',
-    'Choopa': 'vultr.svg',
-    'Aussie Broadband': 'cloud.svg'
-  };
 
   // Add sort state
   let sortField = 'total_bond';
@@ -897,9 +843,9 @@ Reason: ${node.preflight_status.reason}` : ''}` :
             {#if node.isp}
               <td>
                 <span class="isp">
-                  {#if ispToLogo[node.isp]}
+                  {#if ISP_LOGOS[node.isp]}
                     <img 
-                      src={`assets/isp/${ispToLogo[node.isp]}`} 
+                      src={`assets/isp/${ISP_LOGOS[node.isp]}`} 
                       alt={node.isp}
                       class="isp-logo"
                       title={node.isp}
@@ -920,7 +866,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
             {#if node.countryCode}
               <td>
                 <span class="country-code" title={node.countryCode}>
-                  {countryToEmoji[node.countryCode] || node.countryCode}
+                  {COUNTRY_EMOJI[node.countryCode] || node.countryCode}
                 </span>
               </td>
             {:else}
@@ -1389,9 +1335,9 @@ Reason: ${node.preflight_status.reason}` : ''}` :
             {#if node.isp}
               <td>
                 <span class="isp">
-                  {#if ispToLogo[node.isp]}
+                  {#if ISP_LOGOS[node.isp]}
                     <img 
-                      src={`assets/isp/${ispToLogo[node.isp]}`} 
+                      src={`assets/isp/${ISP_LOGOS[node.isp]}`} 
                       alt={node.isp}
                       class="isp-logo"
                       title={node.isp}
@@ -1412,7 +1358,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
             {#if node.countryCode}
               <td>
                 <span class="country-code" title={node.countryCode}>
-                  {countryToEmoji[node.countryCode] || node.countryCode}
+                  {COUNTRY_EMOJI[node.countryCode] || node.countryCode}
                 </span>
               </td>
             {:else}
