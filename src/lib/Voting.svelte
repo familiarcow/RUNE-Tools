@@ -1,6 +1,5 @@
 <script>
   import { onMount } from 'svelte';
-  import { fetchJSONWithFallback } from '$lib/utils/api';
   import { getAddressSuffix } from '$lib/utils/formatting';
   import {
     getNodes,
@@ -8,6 +7,12 @@
     groupNodesByOperator,
     calculateConsensusThreshold
   } from '$lib/utils/nodes';
+  import {
+    fetchMimirNodeVotes,
+    getCurrentMimirValues,
+    getColorForVote,
+    MIMIR_KEY_BLACKLIST
+  } from '$lib/utils/voting';
 
   let mimirData = [];
   let activeKeys = {};
@@ -23,8 +28,8 @@
 
   let votesToPass = 0;
 
-  let keyBlacklist = ['HALTRADING', 'STOP-NEW-SAVERS', 'ADR012', 'ADR18', 'ADR013', 'ALTGAIACHAIN', 'BAREMETALBADASS', 'BSCREADY', 'DEPRECATEILP', 'ELROND', 'ENABLEAVAXCHAIN', 'ENABLEBSC', 'ENABLEDASHCHAIN', 'ENABLEDOFM', 'ENABLEUPDATEMEMOTERRA', 'FULLIMPLOSSPROTECTIONBLOCKS', 'KILLSWITCHSTART', 'L1MINSLIPBPS', 'MAXBONDPROVIDES', 'MAXRUNESUPPLY', 'MULTIPARTITEFORPRESIDENT', 'NEXTCHAIN', 'NEXTFEATUREPERPRS', 'NEXTFEATUREPERPS', 'RAGNAROK-BNB-AVA-645', 'RAGNAROK-BNB-BAT-07A', 'RAGNAROK-BNB-BNB', 'RAGNAROK-BNB-BTCB-1DE', 'RAGNAROK-BNB-BUSD-BD1', 'RAGNAROK-BNB-CAKE-435', 'RAGNAROK-BNB-EQL-586', 'RAGNAROK-BNB-ETH-1C9', 'RAGNAROK-BNB-ETHBULL-D33', 'RAGNAROK-BNB-NEXO-A84', 'RAGNAROK-BNB-RUNE', 'RAGNAROK-BNB-TWT-8C2', 'RAGNAROK-BNB-USDT-6D8', 'RAGNAROK-BNB-XRP-BF2', 'RAGNAROK-TERRA', 'RAGNAROK-TERRA-LUNA', 'RAGNAROK-TERRA-USD', 'RAGNAROK-TERRA-UST', 'RAGNAROK-BSC', 'REMOVESNXPOOL', 'SUPPORTTHORCHAINDOTNETWORK', 'TEST', 'THISISANEWMIMIR', 'VOTEDOFM', 'VOTELENDING', 'VOTEMAXBONDPROVIDERS', 'VOTEMAXSYNTHSFORSAVERSYIELD', 'VOTESTREAMINGSWAPS', 'ENABLEVAXCHAIN', 'MAXSYNTHPERASSETDEPTH', 'MINIMUM1OUTBOUNDFEEUSD', 'RAGNAROKBSC' , 'VALIDATORMAXREWARDRATIO', 'NODEOPERATORFEE' , 'MINBPAFFILIATEFEERATE', 'ENABLESAVINGSVAULTS', 'SYSTEMINCOMEBURNRATEBP',
-  '9RPROPOSAL', 'AALUXXFORPRESIDENT', 'ADD-CHAIN-BASE', 'LENDING-THOR-BTC', 'LENDING-THOR-ETH', 'LENDING-THOR-LTC', 'PROPOSAL2', 'PROPOSAL6', 'PROPOSAL8'];
+  // Use shared blacklist from voting utilities
+  let keyBlacklist = MIMIR_KEY_BLACKLIST;
 
   let activeNodeAddresses = [];
 
@@ -69,8 +74,7 @@
 
   async function fetchMimirData() {
     try {
-      const data = await fetchJSONWithFallback('/thorchain/mimir/nodes_all');
-      mimirData = data.mimirs;
+      mimirData = await fetchMimirNodeVotes();
       processData();
     } catch (error) {
       console.error('Error fetching mimir data:', error);
@@ -79,7 +83,7 @@
 
   async function fetchCurrentMimirValues() {
     try {
-      currentMimirValues = await fetchJSONWithFallback('/thorchain/mimir');
+      currentMimirValues = await getCurrentMimirValues();
     } catch (error) {
       console.error('Error fetching current mimir values:', error);
     }
@@ -304,38 +308,6 @@
     searchTerm = signer;
     filterKeys();
     updateURL();
-  }
-
-  function getColorForVote(isPassed, popularityRank, value) {
-    if (isPassed) return '#2ecc71'; // Green for passed votes
-    if (value === 'Not Voted') return '#95a5a6'; // Grey for not voted
-    
-    // Expanded color palette for different vote options
-    const colors = [
-      '#3498db', // Blue
-      '#9b59b6', // Purple
-      '#e84393', // Pink
-      '#e67e22', // Orange
-      '#e74c3c', // Red
-      '#f1c40f', // Yellow
-      '#1abc9c', // Turquoise
-      '#16a085', // Dark Turquoise
-      '#27ae60', // Dark Green
-      '#2980b9', // Dark Blue
-      '#8e44ad', // Dark Purple
-      '#c0392b', // Dark Red
-      '#d35400', // Dark Orange
-      '#00a8ff', // Light Blue
-      '#9c88ff', // Light Purple
-      '#ffa502', // Light Orange
-      '#ff6b6b', // Light Red
-      '#4cd137', // Lime
-      '#00d2d3', // Cyan
-      '#a8e6cf'  // Mint
-    ];
-
-    // Use modulo to cycle through colors if we have more ranks than colors
-    return colors[(popularityRank - 1) % colors.length];
   }
 
   function toggleMimirExplanation() {

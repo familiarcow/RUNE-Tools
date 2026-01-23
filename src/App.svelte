@@ -55,12 +55,19 @@
       path: "bond", 
       description: "Monitor your THORChain node rewards" 
     },
-    { 
-      name: "Voting", 
-      component: () => import("./lib/Voting.svelte"), 
-      icon: "🗳️", 
-      path: "voting", 
-      description: "Check THORChain's active mimir votes" 
+    {
+      name: "Voting",
+      component: () => import("./lib/Voting.svelte"),
+      icon: "🗳️",
+      path: "voting",
+      description: "Check THORChain's active mimir votes"
+    },
+    {
+      name: "Solana Providers",
+      component: () => import("./lib/SolanaProviders.svelte"),
+      icon: "/assets/chains/SOL.svg",
+      path: "solana",
+      description: "Track Solana RPC provider diversity among THORChain nodes"
     },
     { 
       name: "Nodes", 
