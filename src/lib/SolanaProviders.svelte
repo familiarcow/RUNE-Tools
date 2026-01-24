@@ -504,14 +504,6 @@
       <div class="chart-container">
         <canvas bind:this={chartCanvas}></canvas>
       </div>
-      <div class="chart-legend">
-        <span class="legend-item-inline">
-          <span class="legend-square solid"></span> Active Nodes
-        </span>
-        <span class="legend-item-inline">
-          <span class="legend-square ghost"></span> Eligible Standby (ghost)
-        </span>
-      </div>
     </div>
 
     <!-- Provider Breakdown Table -->
