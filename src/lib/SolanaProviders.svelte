@@ -196,8 +196,8 @@
   );
   $: hasWarning = warnings.length > 0;
 
-  // Vote threshold - need 2/3 of active nodes to have voted
-  const VOTE_THRESHOLD = 2 / 3;
+  // Vote threshold - need 80% of active nodes to have voted
+  const VOTE_THRESHOLD = 0.8;
   $: votesNeededForQuorum = Math.ceil(activeNodes.length * VOTE_THRESHOLD);
   $: hasEnoughVotes = voteStats.votedCount >= votesNeededForQuorum;
   $: votesRemaining = Math.max(0, votesNeededForQuorum - voteStats.votedCount);
