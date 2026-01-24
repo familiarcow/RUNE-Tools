@@ -244,6 +244,36 @@
       return `rgba(${r}, ${g}, ${b}, 0.3)`;
     });
 
+    // Calculate the threshold line position (25% of active nodes)
+    const thresholdValue = activeNodes.length * WARNING_THRESHOLD;
+
+    // Custom plugin for drawing the threshold line
+    const thresholdLinePlugin = {
+      id: 'thresholdLine',
+      afterDraw: (chart) => {
+        const ctx = chart.ctx;
+        const xAxis = chart.scales.x;
+        const yAxis = chart.scales.y;
+        const xPos = xAxis.getPixelForValue(thresholdValue);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#dc3545';
+        ctx.lineWidth = 2;
+        ctx.moveTo(xPos, yAxis.top);
+        ctx.lineTo(xPos, yAxis.bottom);
+        ctx.stroke();
+
+        // Draw label inside the chart area
+        ctx.fillStyle = '#dc3545';
+        ctx.font = '11px -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${WARNING_THRESHOLD * 100}% max`, xPos + 6, yAxis.top + 14);
+        ctx.restore();
+      }
+    };
+
     chartInstance = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -267,6 +297,7 @@
           }
         ]
       },
+      plugins: [thresholdLinePlugin],
       options: {
         indexAxis: 'y',
         responsive: true,
