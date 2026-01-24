@@ -705,7 +705,6 @@
     color: #FFFFFF;
     background-color: #1a1a1a;
     min-height: 100vh;
-    overflow-x: hidden;
   }
 
   .app-header {
