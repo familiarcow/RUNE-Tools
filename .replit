@@ -62,3 +62,4 @@ externalPort = 3000
 
 [agent]
 disabled = true
+expertMode = true
