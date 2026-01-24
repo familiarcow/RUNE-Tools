@@ -519,6 +519,7 @@
       <div class="section-header">
         <h3>Provider Breakdown</h3>
       </div>
+      <div class="table-scroll">
       <table class="provider-table">
         <thead>
           <tr>
@@ -569,6 +570,7 @@
           {/each}
         </tbody>
       </table>
+      </div>
     </div>
 
     <!-- Active Nodes Table -->
@@ -703,6 +705,7 @@
     color: #FFFFFF;
     background-color: #1a1a1a;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   .app-header {
@@ -981,6 +984,7 @@
     margin-bottom: 30px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.15);
+    overflow: hidden;
   }
 
   .search-container {
@@ -1043,11 +1047,14 @@
 
   .table-scroll {
     overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
   }
 
   .provider-table,
   .nodes-table {
     width: 100%;
+    min-width: 500px;
     border-collapse: collapse;
     font-size: 14px;
   }
