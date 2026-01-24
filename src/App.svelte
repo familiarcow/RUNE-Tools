@@ -1016,9 +1016,6 @@
 
   .content {
     flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
     padding-top: 10px;
     position: relative;
     z-index: 1;
