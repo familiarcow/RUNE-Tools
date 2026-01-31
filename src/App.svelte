@@ -779,9 +779,10 @@
     <div class="menu-overlay" on:click|self={toggleMenu} in:fade={{ duration: 200 }} out:fade={{ duration: 200 }}>
       <div class="menu-content" in:fly={{ x: 300, duration: 300, easing: cubicInOut }} out:fly={{ x: 300, duration: 300, easing: cubicInOut }}>
         {#each apps as app}
+          {@const isImageIcon = typeof app.icon === 'string' && (app.icon.endsWith('.svg') || app.icon.endsWith('.png'))}
           <button class="menu-item" on:click={() => selectApp(app)}>
             <span class="app-icon">
-              {#if typeof app.icon === 'string' && (app.icon.endsWith('.svg') || app.icon.endsWith('.png'))}
+              {#if isImageIcon}
                 <img src={app.icon} alt={app.name} class="menu-icon-img" />
               {:else}
                 {app.icon}
@@ -813,7 +814,9 @@
           {#each appRows as row}
             <div class="app-row">
               {#each row as app, i}
-                <button 
+                {@const isImageIcon = typeof app.icon === 'string' && (app.icon.endsWith('.svg') || app.icon.endsWith('.png'))}
+                {@const isStarred = $starredApps.has(app.path)}
+                <button
                   class="app-button"
                   class:gold-border={app.special === 'gold'}
                   on:click={() => handleAppClick(app)}
@@ -821,15 +824,15 @@
                   on:mouseleave={handleMouseLeave}
                   in:fly={{ y: 20, duration: 300, delay: 100 + i * 50, easing: quintOut }}
                 >
-                  <div 
-                    class="star-icon" 
-                    class:starred={$starredApps.has(app.path)} 
+                  <div
+                    class="star-icon"
+                    class:starred={isStarred}
                     on:click={(e) => toggleStar(app, e)}
                   >
-                    {@html $starredApps.has(app.path) ? starFilledIcon : starOutlineIcon}
+                    {@html isStarred ? starFilledIcon : starOutlineIcon}
                   </div>
                   <span class="app-icon">
-                    {#if typeof app.icon === 'string' && (app.icon.endsWith('.svg') || app.icon.endsWith('.png'))}
+                    {#if isImageIcon}
                       <img src={app.icon} alt={app.name} />
                     {:else}
                       {app.icon}
