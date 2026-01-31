@@ -531,9 +531,13 @@
   onMount(() => {
     checkDesktopAppMode();
     handlePopState();
+
     window.addEventListener('popstate', handlePopState);
+    window.addEventListener('resize', handleResize);
+
     return () => {
       window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('resize', handleResize);
     };
   });
 
@@ -602,19 +606,11 @@
     handleDescriptionChange();
   }
 
-  let isMobile = false;
+  let isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   function checkMobile() {
     isMobile = window.innerWidth <= 768;
   }
-
-  onMount(() => {
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
-  });
 
   function handleAppClick(app) {
     selectApp(app);
@@ -639,14 +635,6 @@
     checkMobile();
     updateItemsPerRow();
   }
-
-  onMount(() => {
-    checkMobile();
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  });
 
   $: if (containerWidth) {
     updateItemsPerRow();
