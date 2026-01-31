@@ -366,8 +366,9 @@
             },
             ticks: {
               color: '#fff',
-              callback: function(value, index) {
-                return getDisplayLabel(index);
+              autoSkip: false,
+              callback: function(value) {
+                return getDisplayLabel(value);
               }
             }
           }
@@ -480,12 +481,6 @@
     '#f1c40f', '#2ecc71', '#e74c3c', '#16a085', '#8e44ad'
   ];
 
-  // Self-hosted operator colors (distinct from OPERATOR_COLORS for chart visibility)
-  const SELF_HOSTED_COLORS = [
-    '#27ae60', '#1e8449', '#145a32', '#0b5345', '#117a65',
-    '#148f77', '#17a589', '#1abc9c', '#48c9b0', '#76d7c4',
-    '#a3e4d7', '#82e0aa', '#58d68d', '#2ecc71', '#239b56'
-  ];
 
   // Calculate self-hosted operators breakdown for chart
   function getSelfHostedOperatorBreakdown(nodeList, votes) {
@@ -512,7 +507,7 @@
         operator,
         count: data.count,
         nodes: data.nodes,
-        color: SELF_HOSTED_COLORS[index % SELF_HOSTED_COLORS.length],
+        color: OPERATOR_COLORS[index % OPERATOR_COLORS.length],
         percentage: nodeList.length > 0 ? (data.count / nodeList.length) * 100 : 0
       }));
 
@@ -561,9 +556,27 @@
   $: sortedStandbyNodes = sortByOperator(eligibleStandbyNodes);
   $: filteredStandbyNodes = filterNodesBySearch(sortedStandbyNodes, searchTerm, mimirVotes);
 
-  // Get color maps for multi-node operators
-  $: activeOperatorColors = getMultiNodeOperatorColors(filteredActiveNodes);
-  $: standbyOperatorColors = getMultiNodeOperatorColors(filteredStandbyNodes);
+  // Create color map from selfHostedBreakdown for consistency between chart and table
+  $: selfHostedColorMap = selfHostedBreakdown.reduce((map, op) => {
+    map[op.operator] = op.color;
+    return map;
+  }, {});
+
+  // Get color maps for multi-node operators (non-self-hosted only)
+  $: activeOperatorColors = {
+    ...getMultiNodeOperatorColors(filteredActiveNodes.filter(n => {
+      const vote = mimirVotes.get(n.node_address);
+      return vote !== '1' && vote !== 1;
+    })),
+    ...selfHostedColorMap
+  };
+  $: standbyOperatorColors = {
+    ...getMultiNodeOperatorColors(filteredStandbyNodes.filter(n => {
+      const vote = mimirVotes.get(n.node_address);
+      return vote !== '1' && vote !== 1;
+    })),
+    ...selfHostedColorMap
+  };
 
   function clearSearch() {
     searchTerm = '';
