@@ -8,6 +8,7 @@
   import Footer from './lib/Footer.svelte';
   import Snow from './lib/Snow.svelte';
   import TerminalText from './lib/TerminalText.svelte';
+  import LoadingBar from './lib/components/LoadingBar.svelte';
   import { writable } from 'svelte/store';
   import Banner from './lib/Banner.svelte';
   
@@ -30,6 +31,7 @@
   let addressParam = writable('');
   let votingSearchTerm = writable('');
   let loadedComponent = null;
+  let isLoadingApp = false;
 
   // Replace the existing apps array with dynamic imports
   const apps = [
@@ -386,6 +388,9 @@
     if (app.externalUrl) {
       window.open(app.externalUrl, '_blank');
     } else {
+      // Clear old component and show loading state immediately
+      loadedComponent = null;
+      isLoadingApp = true;
       selectedApp = app;
       const newUrl = `/${app.path}${getAppParams(app)}`;
       history.pushState(null, '', newUrl);
@@ -394,6 +399,7 @@
       try {
         const module = await app.component();
         loadedComponent = module.default;
+        isLoadingApp = false;
 
         // Track page view when app changes
         if (typeof gtag !== 'undefined') {
@@ -415,6 +421,7 @@
         }
       } catch (error) {
         console.error('Error loading component:', error);
+        isLoadingApp = false;
       }
 
       // Update addressParam if it's the SwapperClout component
@@ -466,15 +473,22 @@
   async function handlePopState() {
     // Re-check desktop app mode on navigation
     checkDesktopAppMode();
-    
+
     const path = window.location.pathname.slice(1).split('/')[0];
     const app = [...apps, ...hiddenApps].find(a => a.path === path);
+
+    // Clear old component and show loading state immediately
+    if (app) {
+      loadedComponent = null;
+      isLoadingApp = true;
+    }
     selectedApp = app || null;
 
     if (app) {
       try {
         const module = await app.component();
         loadedComponent = module.default;
+        isLoadingApp = false;
 
         // Track page view on browser navigation
         if (typeof gtag !== 'undefined') {
@@ -491,6 +505,7 @@
         }
       } catch (error) {
         console.error('Error loading component:', error);
+        isLoadingApp = false;
       }
 
       const urlParams = new URLSearchParams(window.location.search);
@@ -845,10 +860,29 @@
           {/each}
         </div>
       {:else}
-        {#if loadedComponent}
-          <svelte:component this={loadedComponent} address={$addressParam} searchTerm={votingSearchTerm} />
+        {#if loadedComponent && !isLoadingApp}
+          <div in:fade={{ duration: 300, delay: 100 }} out:fade={{ duration: 150 }}>
+            <svelte:component this={loadedComponent} address={$addressParam} searchTerm={votingSearchTerm} />
+          </div>
         {:else}
-          <div class="loading">Loading...</div>
+          <div class="app-loading-skeleton" in:fade={{ duration: 200 }} out:fade={{ duration: 150 }}>
+            <div class="skeleton-logo-container">
+              <img src={logo} alt="RUNE Tools" class="skeleton-logo" />
+              <div class="skeleton-logo-bar">
+                <LoadingBar variant="custom" width="100%" height="4px" />
+              </div>
+            </div>
+            <div class="skeleton-content">
+              <div class="skeleton-card">
+                <LoadingBar variant="main" />
+                <LoadingBar variant="sub" />
+              </div>
+              <div class="skeleton-card">
+                <LoadingBar variant="main" />
+                <LoadingBar variant="sub" />
+              </div>
+            </div>
+          </div>
         {/if}
       {/if}
     </div>
@@ -1275,13 +1309,66 @@
     z-index: 1;
   }
 
-  .loading {
+  .app-loading-skeleton {
+    padding: 1rem;
+    max-width: 650px;
+    margin: 0 auto;
+  }
+
+  .skeleton-logo-container {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    height: 200px;
-    color: var(--text-color);
-    font-size: 1.2rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+  }
+
+  .skeleton-logo {
+    height: 3rem;
+    width: auto;
+    opacity: 0.8;
+    animation: logoPulse 2s ease-in-out infinite;
+  }
+
+  .skeleton-logo-bar {
+    width: 120px;
+  }
+
+  @keyframes logoPulse {
+    0%, 100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.02);
+    }
+  }
+
+  .skeleton-content {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .skeleton-card {
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    border-radius: 12px;
+    padding: 16px;
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  @media (max-width: 600px) {
+    .skeleton-content {
+      grid-template-columns: 1fr;
+    }
   }
 
   .holiday-logo {
