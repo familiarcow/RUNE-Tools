@@ -616,39 +616,9 @@
     selectApp(app);
   }
 
-  let itemsPerRow = 5;
-  
-
-  function updateItemsPerRow() {
-    if (containerWidth <= 600) {
-      itemsPerRow = 2;
-    } else if (containerWidth <= 900) {
-      itemsPerRow = 3;
-    } else if (containerWidth <= 1200) {
-      itemsPerRow = 4;
-    } else {
-      itemsPerRow = 5;
-    }
-  }
-
   function handleResize() {
     checkMobile();
-    updateItemsPerRow();
   }
-
-  $: if (containerWidth) {
-    updateItemsPerRow();
-  }
-
-  function groupAppsIntoRows(apps, itemsPerRow) {
-    const rows = [];
-    for (let i = 0; i < apps.length; i += itemsPerRow) {
-      rows.push(apps.slice(i, i + itemsPerRow));
-    }
-    return rows;
-  }
-
-  $: rows = groupAppsIntoRows(apps, itemsPerRow);
 
   function calculateOptimalLayout(totalItems, containerWidth) {
     const minItemWidth = 120;
@@ -685,8 +655,6 @@
     }
     return rows;
   }
-
-  $: appRows = groupIntoRows(apps, optimalColumns);
 
   // Add star icon SVG
   const starOutlineIcon = `
