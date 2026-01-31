@@ -190,10 +190,21 @@
   $: activeAddresses = getActiveNodeAddresses(activeNodes);
   $: voteStats = calculateVoteStats(mimirVotes, activeAddresses);
 
-  // Warning calculations
-  $: warnings = Object.values(activeDistribution).filter(
-    p => p.percentage > WARNING_THRESHOLD * 100 && p.name !== 'Not Voted'
+  // Self-hosted operator breakdown
+  $: selfHostedBreakdown = getSelfHostedOperatorBreakdown(activeNodes, mimirVotes);
+  $: selfHostedStandbyBreakdown = getSelfHostedStandbyBreakdown(eligibleStandbyNodes, mimirVotes);
+
+  // Warning calculations - exclude "Self Hosted" category, check individual self-hosted operators
+  $: nonSelfHostedWarnings = Object.values(activeDistribution).filter(
+    p => p.percentage > WARNING_THRESHOLD * 100 && p.name !== 'Not Voted' && p.name !== 'Self Hosted'
   );
+  $: selfHostedOperatorWarnings = selfHostedBreakdown.filter(
+    op => op.percentage > WARNING_THRESHOLD * 100
+  );
+  $: warnings = [...nonSelfHostedWarnings, ...selfHostedOperatorWarnings.map(op => ({
+    name: `Self Hosted (${getAddressSuffix(op.operator, 4)})`,
+    percentage: op.percentage
+  }))];
   $: hasWarning = warnings.length > 0;
 
   // Vote threshold - need 80% of active nodes to have voted
@@ -221,28 +232,68 @@
 
     const ctx = chartCanvas.getContext('2d');
 
-    // Prepare data - exclude providers with 0 active votes
-    const chartProviders = sortedProviders.filter(p => p.count > 0);
+    // Prepare data - exclude providers with 0 active votes, and exclude Self Hosted (handled separately)
+    const chartProviders = sortedProviders.filter(p => p.count > 0 && p.name !== 'Self Hosted');
 
-    const labels = chartProviders.map(p => p.name);
-    const activeData = chartProviders.map(p => p.count);
-    const activeColors = chartProviders.map(p => p.color);
+    // Build unique internal labels (indices) - we'll customize display via tick callback
+    const hasSelfHosted = selfHostedBreakdown.length > 0;
+    const totalItems = selfHostedBreakdown.length + chartProviders.length;
+    const labels = Array.from({ length: totalItems }, (_, i) => i);
 
-    // Standby data (ghost overlay)
-    const standbyData = chartProviders.map(p => {
-      if (p.name === 'Not Voted') {
-        return standbyDistribution['notVoted']?.count || 0;
+    // Map index to display label
+    const getDisplayLabel = (index) => {
+      if (index < selfHostedBreakdown.length) {
+        return index === 0 ? 'Self Hosted' : '';
       }
-      return standbyDistribution[p.value]?.count || 0;
-    });
-    const standbyColors = chartProviders.map(p => {
-      const hex = p.color;
-      // Convert hex to rgba with 0.3 opacity
+      return chartProviders[index - selfHostedBreakdown.length]?.name || '';
+    };
+
+    // Build active data and colors
+    const activeData = [
+      ...selfHostedBreakdown.map(op => op.count),
+      ...chartProviders.map(p => p.count)
+    ];
+
+    const activeColors = [
+      ...selfHostedBreakdown.map(op => op.color),
+      ...chartProviders.map(p => p.color)
+    ];
+
+    // Build standby data - each self-hosted operator gets their own standby count
+    const standbyData = [
+      ...selfHostedBreakdown.map(op => selfHostedStandbyBreakdown[op.operator] || 0),
+      ...chartProviders.map(p => {
+        if (p.name === 'Not Voted') return standbyDistribution['notVoted']?.count || 0;
+        return standbyDistribution[p.value]?.count || 0;
+      })
+    ];
+
+    // Build standby colors (transparent versions)
+    const standbyColors = activeColors.map(hex => {
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
       return `rgba(${r}, ${g}, ${b}, 0.3)`;
     });
+
+    const datasets = [
+      {
+        label: 'Active Nodes',
+        data: activeData,
+        backgroundColor: activeColors,
+        borderRadius: 4,
+        borderSkipped: false
+      },
+      {
+        label: 'Eligible Standby',
+        data: standbyData,
+        backgroundColor: standbyColors,
+        borderWidth: 1,
+        borderColor: activeColors,
+        borderRadius: 4,
+        borderSkipped: false
+      }
+    ];
 
     // Calculate the threshold line position (25% of active nodes)
     const thresholdValue = activeNodes.length * WARNING_THRESHOLD;
@@ -278,24 +329,7 @@
       type: 'bar',
       data: {
         labels,
-        datasets: [
-          {
-            label: 'Active Nodes',
-            data: activeData,
-            backgroundColor: activeColors,
-            borderRadius: 4,
-            borderSkipped: false
-          },
-          {
-            label: 'Eligible Standby',
-            data: standbyData,
-            backgroundColor: standbyColors,
-            borderWidth: 1,
-            borderColor: activeColors,
-            borderRadius: 4,
-            borderSkipped: false
-          }
-        ]
+        datasets
       },
       plugins: [thresholdLinePlugin],
       options: {
@@ -318,7 +352,10 @@
               display: false
             },
             ticks: {
-              color: '#fff'
+              color: '#fff',
+              callback: function(value, index) {
+                return getDisplayLabel(index);
+              }
             }
           }
         },
@@ -328,18 +365,44 @@
             position: 'bottom',
             labels: {
               color: '#888',
-              padding: 20
+              padding: 20,
+              filter: (legendItem) => legendItem.text !== '' // Hide empty legend labels
             }
           },
           tooltip: {
             callbacks: {
-              label: (context) => {
-                const provider = chartProviders[context.dataIndex];
-                if (context.datasetIndex === 0) {
-                  return `Active: ${context.raw} nodes (${provider.percentage.toFixed(1)}%)`;
-                } else {
-                  return `+${context.raw} eligible standby`;
+              title: (tooltipItems) => {
+                const idx = tooltipItems[0].dataIndex;
+                if (idx < selfHostedBreakdown.length) {
+                  const op = selfHostedBreakdown[idx];
+                  return `Self Hosted (${getAddressSuffix(op.operator, 4)})`;
                 }
+                return chartProviders[idx - selfHostedBreakdown.length]?.name || '';
+              },
+              label: (context) => {
+                const idx = context.dataIndex;
+                const isSelfHosted = idx < selfHostedBreakdown.length;
+
+                if (context.dataset.label === 'Eligible Standby') {
+                  if (context.raw > 0) {
+                    return `+${context.raw} eligible standby`;
+                  }
+                  return null;
+                }
+
+                // Active nodes
+                if (context.dataset.label === 'Active Nodes') {
+                  if (isSelfHosted) {
+                    const op = selfHostedBreakdown[idx];
+                    return `Active: ${context.raw} nodes (${op.percentage.toFixed(1)}%)`;
+                  } else {
+                    const provider = chartProviders[idx - selfHostedBreakdown.length];
+                    if (provider) {
+                      return `Active: ${context.raw} nodes (${provider.percentage.toFixed(1)}%)`;
+                    }
+                  }
+                }
+                return null;
               }
             }
           }
@@ -349,7 +412,7 @@
   }
 
   // Re-render chart when data changes
-  $: if (dataLoaded && chartCanvas && sortedProviders) {
+  $: if (dataLoaded && chartCanvas && sortedProviders && selfHostedBreakdown) {
     renderChart();
   }
 
@@ -403,6 +466,61 @@
     '#9b59b6', '#3498db', '#e67e22', '#1abc9c', '#e84393',
     '#f1c40f', '#2ecc71', '#e74c3c', '#16a085', '#8e44ad'
   ];
+
+  // Self-hosted operator colors (distinct from OPERATOR_COLORS for chart visibility)
+  const SELF_HOSTED_COLORS = [
+    '#27ae60', '#1e8449', '#145a32', '#0b5345', '#117a65',
+    '#148f77', '#17a589', '#1abc9c', '#48c9b0', '#76d7c4',
+    '#a3e4d7', '#82e0aa', '#58d68d', '#2ecc71', '#239b56'
+  ];
+
+  // Calculate self-hosted operators breakdown for chart
+  function getSelfHostedOperatorBreakdown(nodeList, votes) {
+    // Vote value can be string or number, so check both
+    const selfHostedNodes = nodeList.filter(node => {
+      const vote = votes.get(node.node_address);
+      return vote === '1' || vote === 1;
+    });
+    const operatorCounts = {};
+
+    selfHostedNodes.forEach(node => {
+      const op = node.node_operator_address || 'unknown';
+      if (!operatorCounts[op]) {
+        operatorCounts[op] = { count: 0, nodes: [] };
+      }
+      operatorCounts[op].count++;
+      operatorCounts[op].nodes.push(node);
+    });
+
+    // Sort by count descending and assign colors
+    const sortedOperators = Object.entries(operatorCounts)
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([operator, data], index) => ({
+        operator,
+        count: data.count,
+        nodes: data.nodes,
+        color: SELF_HOSTED_COLORS[index % SELF_HOSTED_COLORS.length],
+        percentage: nodeList.length > 0 ? (data.count / nodeList.length) * 100 : 0
+      }));
+
+    return sortedOperators;
+  }
+
+  // Calculate self-hosted operator breakdown for standby nodes
+  function getSelfHostedStandbyBreakdown(standbyList, votes) {
+    const selfHostedNodes = standbyList.filter(node => {
+      const vote = votes.get(node.node_address);
+      return vote === '1' || vote === 1;
+    });
+    const operatorCounts = {};
+
+    selfHostedNodes.forEach(node => {
+      const op = node.node_operator_address || 'unknown';
+      operatorCounts[op] = (operatorCounts[op] || 0) + 1;
+    });
+
+    return operatorCounts;
+  }
 
   // Get operators with multiple nodes and assign colors
   function getMultiNodeOperatorColors(nodeList) {
@@ -555,7 +673,10 @@
         </thead>
         <tbody>
           {#each sortedProviders as provider}
-            <tr class:warning-row={provider.percentage > WARNING_THRESHOLD * 100 && provider.name !== 'Not Voted'}>
+            {@const isWarningRow = provider.name === 'Self Hosted'
+              ? selfHostedOperatorWarnings.length > 0
+              : provider.percentage > WARNING_THRESHOLD * 100 && provider.name !== 'Not Voted'}
+            <tr class:warning-row={isWarningRow}>
               <td>
                 <span class="provider-badge" style="background-color: {provider.color}">
                   {provider.name}
@@ -583,6 +704,12 @@
               <td>
                 {#if provider.name === 'Not Voted'}
                   <span class="status-badge neutral">-</span>
+                {:else if provider.name === 'Self Hosted'}
+                  {#if selfHostedOperatorWarnings.length > 0}
+                    <span class="status-badge danger">⚠️ {selfHostedOperatorWarnings.length} op{selfHostedOperatorWarnings.length > 1 ? 's' : ''} &gt;25%</span>
+                  {:else}
+                    <span class="status-badge success">✓</span>
+                  {/if}
                 {:else if provider.percentage > WARNING_THRESHOLD * 100}
                   <span class="status-badge danger">⚠️ &gt;25%</span>
                 {:else}
