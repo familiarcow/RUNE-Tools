@@ -276,12 +276,20 @@
       return `rgba(${r}, ${g}, ${b}, 0.3)`;
     });
 
+    // Dynamic borderRadius for active bars - flat right if standby exists, rounded if not
+    const activeBorderRadius = standbyData.map(standby => ({
+      topLeft: 4,
+      bottomLeft: 4,
+      topRight: standby > 0 ? 0 : 4,
+      bottomRight: standby > 0 ? 0 : 4
+    }));
+
     const datasets = [
       {
         label: 'Active Nodes',
         data: activeData,
         backgroundColor: activeColors,
-        borderRadius: 4,
+        borderRadius: activeBorderRadius,
         borderSkipped: false
       },
       {
@@ -290,7 +298,12 @@
         backgroundColor: standbyColors,
         borderWidth: 1,
         borderColor: activeColors,
-        borderRadius: 4,
+        borderRadius: {
+          topLeft: 0,
+          bottomLeft: 0,
+          topRight: 4,
+          bottomRight: 4
+        },
         borderSkipped: false
       }
     ];
