@@ -271,75 +271,12 @@
   ];
 
   const hiddenApps = [
-    { 
-      name: "Feed", 
-      component: () => import("./lib/Feed.svelte"), 
-      icon: "📰", 
-      path: "feed", 
-      description: "THORChain network transaction feed" 
-    },
-    { 
-      name: "Rune", 
-      component: () => import("./lib/Rune.svelte"), 
-      icon: "🌙", 
-      path: "rune", 
-      description: "Check RUNE price" 
-    },
-    { 
-      name: "Rune Pool", 
-      component: () => import("./lib/RunePool.svelte"), 
-      icon: "🏊", 
-      path: "pool", 
-      description: "Explore RUNEPool and track your position" 
-    },
-    { 
-      name: "Lending Position", 
-      component: () => import("./lib/LendingPosition.svelte"), 
-      icon: "⚡️", 
-      path: "lending", 
-      description: "View your current THORChain lending position" 
-    },
-    { 
-      name: "Debt", 
-      component: () => import("./lib/Debt.svelte"), 
-      icon: "🪣", 
-      path: "debt", 
-      description: "Check THORChain's debt" 
-    },
-    { 
-      name: "Growth", 
-      component: () => import("./lib/Growth.svelte"), 
-      icon: "🌱", 
-      path: "growth", 
-      description: "Track THORChain's growth metrics" 
-    },
-    { 
-      name: "Block Date", 
-      component: () => import("./lib/BlockDate.svelte"), 
-      icon: "📅", 
-      path: "blockdate", 
-      description: "Convert THORChain block height to date and vice versa" 
-    },
-    { 
-      name: "Savers", 
-      component: () => import("./lib/SaversTracker.svelte"), 
-      icon: "📈", 
-      path: "savers", 
-      description: "Track the Savers yield curve and Liquidity Provider rewards" 
-    },
-    { 
-      name: "Base", 
-      component: () => import("./lib/Base.svelte"), 
-      icon: "/assets/chains/BASE.svg", 
-      path: "base", 
-      description: "Track Base chain stats and pools on THORChain" 
-    },
-    { 
-      name: "cbBTC Exchange", 
-      icon: "/assets/cbtx-logo.png",
-      path: "cbtx", 
-      description: "Trade from Base to Bitcoin & more for the lowest fees",  
-      externalUrl: "https://cbbtc.exchange"
+    {
+      name: "Rune Pool",
+      component: () => import("./lib/RunePool.svelte"),
+      icon: "🏊",
+      path: "pool",
+      description: "Explore RUNEPool and track your position"
     }
   ];
 
