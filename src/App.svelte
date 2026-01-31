@@ -594,9 +594,11 @@
     }
   }
 
+  let typingTimeout;
   function handleDescriptionChange() {
     isTyping = true;
-    setTimeout(() => {
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
       isTyping = false;
     }, 100); // Small delay to trigger re-render
   }
