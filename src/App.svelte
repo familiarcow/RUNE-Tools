@@ -21,7 +21,7 @@
     localStorage.setItem(STARRED_APPS_KEY, JSON.stringify(Array.from(value)));
   });
 
-  const HOLIDAY_MODE = false; // Easy to toggle holiday features on/off
+  const HOLIDAY_MODE = new Date().getMonth() === 11; // Auto-enable in December
   const SHOW_BANNER = false; // Easy to toggle banner on/off
 
   // Check for desktop app iframe mode
