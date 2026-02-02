@@ -4,7 +4,7 @@
   import { midgard } from '$lib/api/midgard';
   import { formatNumber, simplifyNumber, formatCountdown, getAddressSuffix } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
-  import { getChurnInfo, getLastChurn } from '$lib/utils/nodes';
+  import { getChurnInfo, getLastChurn, getNodes, getLeaveStatus, LEAVE_STATUS } from '$lib/utils/nodes';
   import { calculateAPR, calculateAPY } from '$lib/utils/calculations';
   import { LoadingBar, StatusIndicator, ActionButton, Toast, RefreshIcon, BookmarkIcon, CopyIcon } from '$lib/components';
   import {
@@ -46,6 +46,11 @@
   let isLoading = false;
   let showContent = true; // Show content by default
 
+  // Churn indicator variables
+  let allNodes = []; // All nodes for churn comparison
+  let leaveStatus = null; // Single node leave status result
+  let forcedToLeave = false; // Single node forced_to_leave flag
+
   // Make these reactive (using currency store)
   $: formattedRunePrice = formatCurrencyWithDecimals($exchangeRates, runePriceUSD, $currentCurrency);
   $: formattedBondValue = formatCurrency($exchangeRates, (my_bond / 1e8) * runePriceUSD, $currentCurrency);
@@ -54,6 +59,19 @@
   $: nextAwardBtcValue = (my_award * bondvaluebtc) / my_bond;
 
   // Using shared formatNumber from $lib/utils/formatting
+
+  // Helper function for human-readable churn reason
+  const getChurnReason = (status, forcedToLeave = false) => {
+    if (forcedToLeave) return 'Forced';
+    if (!status) return '';
+    switch (status.type) {
+      case LEAVE_STATUS.LEAVING: return 'Requested';
+      case LEAVE_STATUS.OLDEST: return 'Oldest';
+      case LEAVE_STATUS.WORST: return 'Slash Pts';
+      case LEAVE_STATUS.LOWEST: return 'Low Bond';
+      default: return status.type;
+    }
+  };
 
   const updateAddressesFromURL = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -138,15 +156,17 @@
   const fetchMultiNodeData = async (nodes) => {
     try {
       // Fetch common data first
-      const [lastChurn, runePriceData, btcPoolData] = await Promise.all([
+      const [lastChurn, runePriceData, btcPoolData, allNodesData] = await Promise.all([
         getLastChurn(),
         thornode.getNetwork(),
-        thornode.getPool('BTC.BTC')
+        thornode.getPool('BTC.BTC'),
+        getNodes()
       ]);
 
+      allNodes = allNodesData;
       recentChurnTimestamp = lastChurn?.timestampSec || 0;
       runePriceUSD = fromBaseUnit(runePriceData.rune_price_in_tor);
-      
+
       const balanceAsset = btcPoolData.balance_asset;
       const balanceRune = btcPoolData.balance_rune;
       const btcruneprice = balanceAsset / balanceRune;
@@ -155,27 +175,32 @@
       const nodeDataPromises = nodes.map(async (node) => {
         const nodeData = await thornode.fetch(`/thorchain/node/${node.address}`);
         const bondProviders = nodeData.bond_providers.providers;
-        
+
         let userBond = 0;
         let totalBond = 0;
-        
+
         for (const provider of bondProviders) {
           if (provider.bond_address === my_bond_address) {
             userBond = Number(provider.bond);
           }
           totalBond += Number(provider.bond);
         }
-        
+
         const bondOwnershipPercentage = userBond / totalBond;
         const nodeOperatorFee = Number(nodeData.bond_providers.node_operator_fee) / 10000;
         const currentAward = Number(nodeData.current_award) * (1 - nodeOperatorFee);
         const userAward = bondOwnershipPercentage * currentAward;
-        
+
         // Calculate APY for this node
         const currentTime = Date.now() / 1000;
         const timeDiff = currentTime - recentChurnTimestamp;
         const apr = calculateAPR(userAward, userBond, timeDiff);
         const nodeAPY = calculateAPY(apr);
+
+        // Get leave status for churn indicator
+        const fullNodeData = allNodes.find(n => n.node_address === node.address);
+        const nodeLeaveStatus = fullNodeData ? getLeaveStatus(fullNodeData, allNodes) : null;
+        const nodeForcedToLeave = fullNodeData?.forced_to_leave || false;
 
         return {
           address: node.address,
@@ -187,7 +212,9 @@
           fee: nodeOperatorFee,
           bondFormatted: simplifyNumber(fromBaseUnit(userBond)),
           bondFullAmount: Math.round(userBond / 1e8),
-          btcValue: (userBond * btcruneprice) / 1e8
+          btcValue: (userBond * btcruneprice) / 1e8,
+          leaveStatus: nodeLeaveStatus,
+          forcedToLeave: nodeForcedToLeave
         };
       });
 
@@ -221,14 +248,27 @@
   const fetchData = async () => {
     try {
       // Parallelize independent API calls
-      const [nodeData, lastChurn, runePriceData] = await Promise.all([
+      const [nodeData, lastChurn, runePriceData, allNodesData] = await Promise.all([
         thornode.fetch(`/thorchain/node/${node_address}`),
         getLastChurn(),
-        thornode.getNetwork()
+        thornode.getNetwork(),
+        getNodes()
       ]);
+
+      allNodes = allNodesData;
 
       // Process node data
       nodeStatus = nodeData.status;
+
+      // Check leave status for churn indicator
+      const fullNodeData = allNodes.find(n => n.node_address === node_address);
+      if (fullNodeData) {
+        leaveStatus = getLeaveStatus(fullNodeData, allNodes);
+        forcedToLeave = fullNodeData.forced_to_leave || false;
+      } else {
+        leaveStatus = null;
+        forcedToLeave = false;
+      }
       const bondProviders = nodeData.bond_providers.providers;
       let total_bond = 0;
       for (const provider of bondProviders) {
@@ -337,25 +377,20 @@
       const bondProviders = randomNode.bond_providers.providers;
       const randomBondProvider = bondProviders[Math.floor(Math.random() * bondProviders.length)];
 
-      node_address = randomNode.node_address;
       my_bond_address = randomBondProvider.bond_address;
 
-      // Update suffixes
+      // Update suffix and URL
       bondAddressSuffix = getAddressSuffix(my_bond_address, 4);
-      nodeAddressSuffix = getAddressSuffix(node_address, 4);
-      
-      // Update the URL with the new addresses
       const url = new URL(window.location);
-      url.searchParams.set('node_address', node_address);
       url.searchParams.set('bond_address', my_bond_address);
+      url.searchParams.delete('node_address'); // Let fetchBondData determine the node
       window.history.pushState({}, '', url);
 
-      // Fetch data for the selected node and bond provider
-      await fetchData();
+      // Use the standard data flow which handles single/multi-node detection
       showData = true;
+      await fetchBondData();
     } catch (error) {
       console.error('Error picking random node:', error);
-      // You might want to show an error message to the user here
     }
   }
 
@@ -495,11 +530,16 @@
                 </div>
                 <div class="info-item">
                   {#if !isMultiNode}
-                    <span class="link-label">{nodeAddressSuffix || 'Node'} Fee</span>
-                    {#if isLoading}
-                      <LoadingBar variant="custom" width="100%" height="13px" />
+                    {#if leaveStatus || forcedToLeave}
+                      <span class="link-label churning-out">Churning Out</span>
+                      <span class="link-value churning-reason {showContent ? 'fade-in-content' : ''}">{getChurnReason(leaveStatus, forcedToLeave)}</span>
                     {:else}
-                      <span class="link-value {showContent ? 'fade-in-content' : ''}">{(nodeOperatorFee * 100).toFixed(2)}%</span>
+                      <span class="link-label">{nodeAddressSuffix || 'Node'} Fee</span>
+                      {#if isLoading}
+                        <LoadingBar variant="custom" width="100%" height="13px" />
+                      {:else}
+                        <span class="link-value {showContent ? 'fade-in-content' : ''}">{(nodeOperatorFee * 100).toFixed(2)}%</span>
+                      {/if}
                     {/if}
                   {:else}
                     <span class="link-label">Nodes</span>
@@ -538,6 +578,17 @@
                       <div class="node-status">
                         <StatusIndicator status={node.status === 'Active' ? 'active' : 'error'} pulse={node.status === 'Active'} />
                         <span class="node-suffix">{node.addressSuffix}</span>
+                        {#if node.forcedToLeave}
+                          <span class="churn-emoji" title="Forced to leave">🧳</span>
+                        {:else if node.leaveStatus?.type === LEAVE_STATUS.LEAVING}
+                          <span class="churn-emoji" title="Requested to leave">🧳</span>
+                        {:else if node.leaveStatus?.type === LEAVE_STATUS.OLDEST}
+                          <span class="churn-emoji" title="Oldest active node">🪦</span>
+                        {:else if node.leaveStatus?.type === LEAVE_STATUS.WORST}
+                          <span class="churn-emoji" title="Highest slash points">😾</span>
+                        {:else if node.leaveStatus?.type === LEAVE_STATUS.LOWEST}
+                          <span class="churn-emoji" title="Lowest bond">💸</span>
+                        {/if}
                         <button class="node-link" on:click={() => window.open(`https://thorchain.net/node/${node.address}`, '_blank')} title="View Node Info">
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -1204,5 +1255,21 @@
     width: 10px;
     height: 10px;
     border-radius: var(--radius-full);
+  }
+
+  /* Churn indicator styles */
+  .link-label.churning-out {
+    color: var(--color-warning);
+  }
+
+  .link-value.churning-reason {
+    color: var(--color-warning-light);
+    font-weight: var(--font-bold);
+  }
+
+  .churn-emoji {
+    font-size: 14px;
+    margin-left: 4px;
+    cursor: help;
   }
 </style>
