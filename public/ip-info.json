@@ -267,6 +267,10 @@
     "isp": "Google LLC",
     "countryCode": "US"
   },
+  "37.74.33.170": {
+    "isp": "KPN B.V",
+    "countryCode": "NL"
+  },
   "37.228.129.170": {
     "isp": "FlokiNET ehf",
     "countryCode": "FI"
@@ -416,6 +420,10 @@
     "countryCode": "PL"
   },
   "65.108.43.178": {
+    "isp": "Hetzner Online GmbH",
+    "countryCode": "FI"
+  },
+  "65.109.64.54": {
     "isp": "Hetzner Online GmbH",
     "countryCode": "FI"
   },
