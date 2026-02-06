@@ -308,9 +308,14 @@
   }
 
   async function fetchCoinGeckoData(assets) {
-    if (!assets || assets.length === 0) return;
+    if (!assets || assets.length === 0) {
+      console.warn('CoinGecko: No assets to fetch');
+      return;
+    }
+    console.log('CoinGecko: Fetching prices for', assets.length, 'assets');
     const prices = await getExternalPrices(assets);
     if (Object.keys(prices).length > 0) {
+      console.log('CoinGecko: Got prices for', Object.keys(prices).length, 'assets');
       externalPrices.set(prices);
     }
   }
@@ -342,17 +347,20 @@
     // Load starred/ignored preferences from localStorage
     loadPreferences();
 
-    // Initial fetch - force CoinGecko on first load
-    fetchData(true);
-    startTimer();
+    // Initial fetch - force CoinGecko on first load, then start timer
+    (async () => {
+      await fetchData(true);
 
-    dataInterval = setInterval(() => {
-      if (!isPaused) {
-        blockCount++;
-        fetchData();
-        progress = 0;
-      }
-    }, THORNODE_REFRESH_INTERVAL);
+      // Only start the refresh interval after initial data is loaded
+      startTimer();
+      dataInterval = setInterval(() => {
+        if (!isPaused) {
+          blockCount++;
+          fetchData();
+          progress = 0;
+        }
+      }, THORNODE_REFRESH_INTERVAL);
+    })();
   });
 
   onDestroy(() => {
