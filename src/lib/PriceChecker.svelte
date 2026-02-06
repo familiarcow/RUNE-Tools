@@ -1,18 +1,102 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { writable, derived } from 'svelte/store';
   import { cubicOut } from 'svelte/easing';
-  import { PageHeader, LoadingBar } from '$lib/components';
+  import { flip } from 'svelte/animate';
+  import { PageHeader, LoadingBar, Toast } from '$lib/components';
   import { formatNumber, formatUSD } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { getPoolsWithTradeData } from '$lib/utils/liquidity';
-  import { ASSET_LOGOS, getAssetLogo } from '$lib/constants/assets';
+  import { getAssetLogo, getChainLogo, getAssetDisplayName } from '$lib/constants/assets';
+
+  // Refresh intervals
+  const THORNODE_REFRESH_INTERVAL = 6000; // ~1 block
+  const COINGECKO_REFRESH_BLOCKS = 5; // Refresh CoinGecko every 5 blocks (30 seconds)
 
   const pools = writable([]);
   const currentTab = writable('prices');
   const externalPrices = writable({});
   const showPoolInfo = writable(false);
   const showTradeBalanceInUSD = writable(false);
+
+  // Auto-refresh state
+  let isPaused = false;
+  let dataInterval;
+  let timerInterval;
+  let progress = 0;
+  let blockCount = 0; // Track blocks for CoinGecko refresh timing
+
+  // CoinGecko rate limit handling
+  let rateLimitToast = false;
+  let rateLimitRetryCount = 0;
+  const MAX_RETRIES = 3;
+  const BASE_DELAY = 5000; // 5 seconds base delay for backoff
+
+  // Starred and ignored assets (persisted to localStorage)
+  const STORAGE_KEY = 'pricechecker-preferences';
+  const DEFAULT_IGNORED = [
+    'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C',
+    'ETH.YFI-0X0BC529C00C6401AEF6D220BE8C6EA1667F6AD93E',
+    'THOR.TCY',
+    'THOR.RUJI'
+  ];
+  let starredAssets = new Set();
+  let ignoredAssets = new Set(DEFAULT_IGNORED);
+
+  function loadPreferences() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const { starred = [], ignored = [] } = JSON.parse(saved);
+        starredAssets = new Set(starred);
+        ignoredAssets = new Set(ignored);
+      }
+      // ignoredAssets defaults to DEFAULT_IGNORED if nothing was saved
+    } catch (e) {
+      console.warn('Failed to load preferences:', e);
+    }
+  }
+
+  function savePreferences() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        starred: [...starredAssets],
+        ignored: [...ignoredAssets]
+      }));
+    } catch (e) {
+      console.warn('Failed to save preferences:', e);
+    }
+  }
+
+  function toggleStar(asset) {
+    if (starredAssets.has(asset)) {
+      starredAssets.delete(asset);
+    } else {
+      starredAssets.add(asset);
+      ignoredAssets.delete(asset); // Can't be both starred and ignored
+    }
+    starredAssets = starredAssets; // Trigger reactivity
+    ignoredAssets = ignoredAssets;
+    savePreferences();
+  }
+
+  function toggleIgnore(asset) {
+    if (ignoredAssets.has(asset)) {
+      ignoredAssets.delete(asset);
+    } else {
+      ignoredAssets.add(asset);
+      starredAssets.delete(asset); // Can't be both starred and ignored
+    }
+    starredAssets = starredAssets; // Trigger reactivity
+    ignoredAssets = ignoredAssets;
+    savePreferences();
+  }
+
+  function resetPreferences() {
+    starredAssets = new Set();
+    ignoredAssets = new Set();
+    savePreferences();
+  }
 
   const bitcoinAssets = [
     'BTC.BTC',
@@ -69,7 +153,12 @@
     'ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044': 'thorswap',
     'BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF': 'coinbase-wrapped-btc',
     'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': 'shapeshift-fox-token',
-    'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'thorstarter'
+    'ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C': 'thorstarter',
+    'TRON.TRX': 'tron',
+    'BSC.BUSD-0XE9E7CEA3DEDCA5984780BAFC599BD69ADD087D56': 'binance-usd',
+    'BSC.BTCB-0X7130D2A12B9BCBFAE4F2634D864A1EE1CE3EAD9C': 'bitcoin',
+    'BSC.ETH-0X2170ED0880AC9A755FD29B2688956BD959F933F8': 'ethereum',
+    'ETH.YFI-0X0BC529C00C6401AEF6D220BE8C6EA1667F6AD93E': 'yearn-finance'
   };
 
   async function getPools() {
@@ -91,16 +180,58 @@
     }
   }
 
-  async function getExternalPrices(assets) {
+  async function getExternalPrices(assets, retryCount = 0) {
     const uniqueAssets = [...new Set(assets.map(asset => assetToCoinGeckoMap[asset] || asset.split('.')[1].toLowerCase()))];
     const ids = uniqueAssets.join(',');
     try {
       const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+
+      // Check for rate limiting (429) or service unavailable (503)
+      if (response.status === 429 || response.status === 503 || !response.ok) {
+        // Rate limited - show toast and retry with exponential backoff
+        rateLimitToast = true;
+        rateLimitRetryCount = retryCount + 1;
+        console.warn(`CoinGecko returned status ${response.status}`);
+
+        if (retryCount < MAX_RETRIES) {
+          const delay = BASE_DELAY * Math.pow(2, retryCount);
+          console.warn(`CoinGecko rate limited. Retrying in ${delay/1000}s (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return getExternalPrices(assets, retryCount + 1);
+        } else {
+          console.error('CoinGecko rate limit: max retries exceeded');
+          return $externalPrices; // Return existing prices if we have them
+        }
+      }
+
+      // Success - clear toast and reset retry count
+      rateLimitToast = false;
+      rateLimitRetryCount = 0;
+
       const data = await response.json();
+
+      // Check if CoinGecko returned an error in the JSON response
+      if (data.status?.error_code) {
+        console.warn('CoinGecko API error:', data.status);
+        rateLimitToast = true;
+        return $externalPrices;
+      }
+
       return data;
     } catch (error) {
       console.error('Failed to fetch external prices:', error);
-      return {};
+      // Show toast on network errors too
+      rateLimitToast = true;
+      rateLimitRetryCount = retryCount + 1;
+
+      if (retryCount < MAX_RETRIES) {
+        const delay = BASE_DELAY * Math.pow(2, retryCount);
+        console.warn(`Network error. Retrying in ${delay/1000}s (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return getExternalPrices(assets, retryCount + 1);
+      }
+
+      return $externalPrices; // Return existing prices on error
     }
   }
 
@@ -114,55 +245,121 @@
       price = $externalPrices['usd-coin']?.usd || $externalPrices['tether']?.usd;
     }
 
-    console.log(`Asset: ${asset}, CoinGecko ID: ${coinGeckoId}, Price: ${price}`);
     return price || null;
   }
 
 
-  $: combinedPoolData = $pools.length > 0 && Object.keys($externalPrices).length > 0
-    ? $pools.map(pool => {
-        const externalPrice = getExternalPrice(pool.asset);
-        const difference = externalPrice ? ((pool.usd_price - externalPrice) / externalPrice) * 100 : null;
-        const tradeBalanceUSD = (pool.trade_asset_depth / 1e8) * pool.usd_price;
-        const totalPoolDepthUSD = (pool.balance_asset / 1e8) * 2 * pool.usd_price;
-        const tradePoolRatio = (pool.trade_asset_depth / (2 * pool.balance_asset)) * 100;
-        
-        return {
-          ...pool,
-          externalPrice,
-          difference,
-          tradeBalanceUSD,
-          totalPoolDepthUSD,
-          tradePoolRatio
-        };
-      }).sort((a, b) => Math.abs(b.difference || 0) - Math.abs(a.difference || 0))
+  // Show data even without external prices
+  // Filter ignored, sort starred to top, then by difference or rune depth
+  $: combinedPoolData = $pools.length > 0
+    ? $pools
+        .filter(pool => !ignoredAssets.has(pool.asset)) // Filter out ignored
+        .map(pool => {
+          const externalPrice = getExternalPrice(pool.asset);
+          const difference = externalPrice ? ((pool.usd_price - externalPrice) / externalPrice) * 100 : null;
+          const tradeBalanceUSD = (pool.trade_asset_depth / 1e8) * pool.usd_price;
+          const totalPoolDepthUSD = (pool.balance_asset / 1e8) * 2 * pool.usd_price;
+          const tradePoolRatio = (pool.trade_asset_depth / (2 * pool.balance_asset)) * 100;
+
+          return {
+            ...pool,
+            externalPrice,
+            difference,
+            tradeBalanceUSD,
+            totalPoolDepthUSD,
+            tradePoolRatio,
+            isStarred: starredAssets.has(pool.asset)
+          };
+        })
+        .sort((a, b) => {
+          // Starred assets always come first
+          if (a.isStarred && !b.isStarred) return -1;
+          if (!a.isStarred && b.isStarred) return 1;
+
+          // Then sort by absolute difference if available
+          if (a.difference !== null && b.difference !== null) {
+            return Math.abs(b.difference) - Math.abs(a.difference);
+          }
+          // Otherwise sort by rune depth
+          return b.rune_depth - a.rune_depth;
+        })
     : [];
 
-  async function fetchData() {
+  // Count of ignored assets for UI feedback
+  $: ignoredCount = ignoredAssets.size;
+
+  function startTimer() {
+    progress = 0;
+    if (timerInterval) clearInterval(timerInterval);
+
+    const INCREMENT = (100 / (THORNODE_REFRESH_INTERVAL / 100));
+
+    timerInterval = setInterval(() => {
+      if (!isPaused) {
+        progress = (progress + INCREMENT) % 100;
+      }
+    }, 100);
+  }
+
+  async function fetchThorNodeData() {
     const poolsData = await getPools();
-    console.log('Pools data:', poolsData);
     pools.set(poolsData);
-    const assets = poolsData.map(pool => pool.asset);
+    return poolsData;
+  }
+
+  async function fetchCoinGeckoData(assets) {
+    if (!assets || assets.length === 0) return;
     const prices = await getExternalPrices(assets);
-    console.log('External prices:', prices);
-    externalPrices.set(prices);
+    if (Object.keys(prices).length > 0) {
+      externalPrices.set(prices);
+    }
+  }
+
+  async function fetchData(forceCoinGecko = false) {
+    const poolsData = await fetchThorNodeData();
+    const assets = poolsData.map(pool => pool.asset);
+
+    // Only fetch CoinGecko on first load or every COINGECKO_REFRESH_BLOCKS
+    if (forceCoinGecko || blockCount % COINGECKO_REFRESH_BLOCKS === 0) {
+      if (forceCoinGecko) {
+        // Await on initial load so we have prices immediately
+        await fetchCoinGeckoData(assets);
+      } else {
+        // Run in background on subsequent refreshes
+        fetchCoinGeckoData(assets);
+      }
+    }
+  }
+
+  function togglePause() {
+    isPaused = !isPaused;
+    if (!isPaused) {
+      progress = 0;
+    }
   }
 
   onMount(() => {
-    fetchData();
+    // Load starred/ignored preferences from localStorage
+    loadPreferences();
+
+    // Initial fetch - force CoinGecko on first load
+    fetchData(true);
+    startTimer();
+
+    dataInterval = setInterval(() => {
+      if (!isPaused) {
+        blockCount++;
+        fetchData();
+        progress = 0;
+      }
+    }, THORNODE_REFRESH_INTERVAL);
   });
 
-  function formatCryptoName(cryptoName) {
-    const parts = cryptoName.split(/\.|-/);
-    const [chain, asset] = parts;
-    if (asset === 'ETH') {
-      return `${asset} (${chain})`;
-    } else if (["ETH", "BSC", "AVAX", "BASE"].includes(chain) && parts[2]) {
-      return `${asset} (${chain})`;
-    } else {
-      return asset;
-    }
-  }
+  onDestroy(() => {
+    if (dataInterval) clearInterval(dataInterval);
+    if (timerInterval) clearInterval(timerInterval);
+  });
+
 
   // Use shared formatUSD with 2 decimal places
   function formatNumberUSD(number) {
@@ -213,39 +410,109 @@
 </script>
 
 <main>
+  <Toast
+    message="CoinGecko unavailable. Using THORChain prices only.{rateLimitRetryCount > 0 ? ` (Retry ${rateLimitRetryCount}/${MAX_RETRIES})` : ''}"
+    visible={rateLimitToast}
+    duration={0}
+    variant="warning"
+    on:hide={() => rateLimitToast = false}
+  />
+
   <div class="container">
-    <PageHeader title="THORChain Price Checker">
+    <PageHeader title="Price Checker">
       <div slot="actions" class="header-actions">
-        <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo" class="header-logo">
-        <div class="info-icon" on:click={() => alert('Compare THORChain pool prices with external market prices from CoinGecko')}>ⓘ</div>
+        <div class="header-tabs">
+          <button
+            class="header-tab {$currentTab === 'prices' ? 'active' : ''}"
+            on:click={() => currentTab.set('prices')}
+          >
+            All Prices
+          </button>
+          <button
+            class="header-tab {$currentTab === 'likeAssetComparison' ? 'active' : ''}"
+            on:click={() => currentTab.set('likeAssetComparison')}
+          >
+            Compare
+          </button>
+        </div>
+
+        <div class="header-controls">
+          <button
+            class="icon-button"
+            class:active={$showPoolInfo}
+            on:click={() => showPoolInfo.update(v => !v)}
+            title={$showPoolInfo ? 'Hide pool info' : 'Show pool info'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+          </button>
+
+          {#if $showPoolInfo}
+            <button
+              class="icon-button"
+              class:active={$showTradeBalanceInUSD}
+              on:click={() => showTradeBalanceInUSD.update(v => !v)}
+              title={$showTradeBalanceInUSD ? 'Show in asset units' : 'Show in USD'}
+            >
+              <span class="icon-text">$</span>
+            </button>
+          {/if}
+
+          {#if starredAssets.size > 0 || ignoredAssets.size > 0}
+            <button
+              class="icon-button reset-button"
+              on:click={resetPreferences}
+              title="Reset starred and hidden assets"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+              </svg>
+            </button>
+          {/if}
+
+          <button
+            class="refresh-button"
+            class:paused={isPaused}
+            on:click={togglePause}
+            title={isPaused ? 'Resume auto-refresh' : 'Pause auto-refresh'}
+          >
+            <svg class="progress-ring" width="28" height="28">
+              <circle
+                class="progress-ring__circle-bg"
+                stroke-width="2"
+                fill="transparent"
+                r="12"
+                cx="14"
+                cy="14"
+              />
+              <circle
+                class="progress-ring__circle"
+                stroke-width="2"
+                fill="transparent"
+                r="12"
+                cx="14"
+                cy="14"
+                style="stroke-dashoffset: {(75.4 * (100 - progress)) / 100}"
+              />
+            </svg>
+            <span class="button-icon">
+              {#if isPaused}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              {:else}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                </svg>
+              {/if}
+            </span>
+          </button>
+        </div>
       </div>
     </PageHeader>
-
-    <div class="settings-bar">
-      <button class="settings-button" on:click={() => showPoolInfo.update(v => !v)}>
-        ⚙️ {$showPoolInfo ? 'Hide' : 'Show'} Pool Info
-      </button>
-      {#if $showPoolInfo}
-        <button class="settings-button" on:click={() => showTradeBalanceInUSD.update(v => !v)}>
-          💱 Show Trade Balance in {$showTradeBalanceInUSD ? 'Asset' : 'USD'}
-        </button>
-      {/if}
-    </div>
-
-    <div class="tabs">
-      <button
-        class="tab-button {$currentTab === 'prices' ? 'active' : ''}"
-        on:click={() => currentTab.set('prices')}
-      >
-        All Prices
-      </button>
-      <button
-        class="tab-button {$currentTab === 'likeAssetComparison' ? 'active' : ''}"
-        on:click={() => currentTab.set('likeAssetComparison')}
-      >
-        Like Asset Comparison
-      </button>
-    </div>
 
     {#key $currentTab}
       <div class="tab-content" in:flipScroll>
@@ -255,41 +522,65 @@
               <table>
                 <thead>
                   <tr>
+                    <th class="actions-col"></th>
                     <th>Asset</th>
-                    <th>THORChain Price</th>
-                    <th>External Price</th>
-                    <th>Difference</th>
+                    <th><span class="th-full">THORChain Price</span><span class="th-short">TC</span></th>
+                    <th><span class="th-full">External Price</span><span class="th-short">Ext</span></th>
+                    <th><span class="th-full">Difference</span><span class="th-short">Diff</span></th>
                     {#if $showPoolInfo}
-                      <th>Trade Balance {$showTradeBalanceInUSD ? '(USD)' : '(Asset)'}</th>
-                      <th>Total Pool Depth USD</th>
-                      <th>Trade/Pool Ratio</th>
+                      <th><span class="th-full">Trade Balance {$showTradeBalanceInUSD ? '(USD)' : '(Asset)'}</span><span class="th-short">Trade</span></th>
+                      <th><span class="th-full">Pool Depth USD</span><span class="th-short">Depth</span></th>
+                      <th><span class="th-full">Trade/Pool Ratio</span><span class="th-short">Ratio</span></th>
                     {/if}
                   </tr>
                 </thead>
                 <tbody>
-                  {#each combinedPoolData as pool}
+                  {#each combinedPoolData as pool (pool.asset)}
                     {@const difference = formatPriceDifference(pool.difference)}
-                    {@const balanceUSD = pool.balance_asset * pool.usd_price}
-                    {@const totalPoolDepthUSD = pool.balance_asset * 2 * pool.usd_price}
-                    <tr>
+                    {@const chain = pool.asset.split('.')[0]}
+                    {@const assetLogo = getAssetLogo(pool.asset)}
+                    {@const chainLogo = getChainLogo(chain)}
+                    {@const displayName = getAssetDisplayName(pool.asset)}
+                    <tr animate:flip={{ duration: 300 }} class:starred={pool.isStarred}>
+                      <td class="actions-cell">
+                        <button
+                          class="row-action star"
+                          class:active={pool.isStarred}
+                          on:click={() => toggleStar(pool.asset)}
+                          title={pool.isStarred ? 'Unstar' : 'Star to top'}
+                        >
+                          ★
+                        </button>
+                        <button
+                          class="row-action ignore"
+                          on:click={() => toggleIgnore(pool.asset)}
+                          title="Hide asset"
+                        >
+                          ✕
+                        </button>
+                      </td>
                       <td class="asset-cell">
                         <div class="logo-container">
-                          {#if getAssetLogo(pool.asset)}
-                            <img 
-                              src={getAssetLogo(pool.asset)} 
-                              alt={formatCryptoName(pool.asset)}
+                          {#if assetLogo}
+                            <img
+                              src={assetLogo}
+                              alt={displayName}
                               class="asset-icon"
+                              on:error={(e) => e.target.style.display = 'none'}
                             />
-                            <div class="chain-logo-container">
-                              <img 
-                                src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
-                                alt={pool.asset.split('.')[0]}
-                                class="chain-icon"
-                              />
-                            </div>
+                            {#if chainLogo}
+                              <div class="chain-logo-container">
+                                <img
+                                  src={chainLogo}
+                                  alt={chain}
+                                  class="chain-icon"
+                                  on:error={(e) => e.target.style.display = 'none'}
+                                />
+                              </div>
+                            {/if}
                           {/if}
                         </div>
-                        {formatCryptoName(pool.asset)}
+                        {displayName}
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                       <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
@@ -320,33 +611,41 @@
                 <thead>
                   <tr>
                     <th>Asset</th>
-                    <th>THORChain Price</th>
-                    <th>External Price</th>
-                    <th>Difference</th>
+                    <th><span class="th-full">THORChain Price</span><span class="th-short">TC</span></th>
+                    <th><span class="th-full">External Price</span><span class="th-short">Ext</span></th>
+                    <th><span class="th-full">Difference</span><span class="th-short">Diff</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {#each filterAssets(combinedPoolData, bitcoinAssets) as pool}
+                  {#each filterAssets(combinedPoolData, bitcoinAssets) as pool (pool.asset)}
                     {@const difference = formatPriceDifference(pool.difference)}
-                    <tr>
+                    {@const chain = pool.asset.split('.')[0]}
+                    {@const assetLogo = getAssetLogo(pool.asset)}
+                    {@const chainLogo = getChainLogo(chain)}
+                    {@const displayName = getAssetDisplayName(pool.asset)}
+                    <tr animate:flip={{ duration: 300 }}>
                       <td class="asset-cell">
                         <div class="logo-container">
-                          {#if getAssetLogo(pool.asset)}
-                            <img 
-                              src={getAssetLogo(pool.asset)} 
-                              alt={formatCryptoName(pool.asset)}
+                          {#if assetLogo}
+                            <img
+                              src={assetLogo}
+                              alt={displayName}
                               class="asset-icon"
+                              on:error={(e) => e.target.style.display = 'none'}
                             />
-                            <div class="chain-logo-container">
-                              <img 
-                                src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
-                                alt={pool.asset.split('.')[0]}
-                                class="chain-icon"
-                              />
-                            </div>
+                            {#if chainLogo}
+                              <div class="chain-logo-container">
+                                <img
+                                  src={chainLogo}
+                                  alt={chain}
+                                  class="chain-icon"
+                                  on:error={(e) => e.target.style.display = 'none'}
+                                />
+                              </div>
+                            {/if}
                           {/if}
                         </div>
-                        {formatCryptoName(pool.asset)}
+                        {displayName}
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                       <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
@@ -365,33 +664,41 @@
                 <thead>
                   <tr>
                     <th>Asset</th>
-                    <th>THORChain Price</th>
-                    <th>External Price</th>
-                    <th>Difference</th>
+                    <th><span class="th-full">THORChain Price</span><span class="th-short">TC</span></th>
+                    <th><span class="th-full">External Price</span><span class="th-short">Ext</span></th>
+                    <th><span class="th-full">Difference</span><span class="th-short">Diff</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {#each filterAssets(combinedPoolData, stablecoinAssets) as pool}
+                  {#each filterAssets(combinedPoolData, stablecoinAssets) as pool (pool.asset)}
                     {@const difference = formatPriceDifference(pool.difference)}
-                    <tr>
+                    {@const chain = pool.asset.split('.')[0]}
+                    {@const assetLogo = getAssetLogo(pool.asset)}
+                    {@const chainLogo = getChainLogo(chain)}
+                    {@const displayName = getAssetDisplayName(pool.asset)}
+                    <tr animate:flip={{ duration: 300 }}>
                       <td class="asset-cell">
                         <div class="logo-container">
-                          {#if getAssetLogo(pool.asset)}
-                            <img 
-                              src={getAssetLogo(pool.asset)} 
-                              alt={formatCryptoName(pool.asset)}
+                          {#if assetLogo}
+                            <img
+                              src={assetLogo}
+                              alt={displayName}
                               class="asset-icon"
+                              on:error={(e) => e.target.style.display = 'none'}
                             />
-                            <div class="chain-logo-container">
-                              <img 
-                                src={`assets/chains/${pool.asset.split('.')[0]}.svg`}
-                                alt={pool.asset.split('.')[0]}
-                                class="chain-icon"
-                              />
-                            </div>
+                            {#if chainLogo}
+                              <div class="chain-logo-container">
+                                <img
+                                  src={chainLogo}
+                                  alt={chain}
+                                  class="chain-icon"
+                                  on:error={(e) => e.target.style.display = 'none'}
+                                />
+                              </div>
+                            {/if}
                           {/if}
                         </div>
-                        {formatCryptoName(pool.asset)}
+                        {displayName}
                       </td>
                       <td class="price-cell">{formatNumberUSD(pool.usd_price)}</td>
                       <td class="price-cell">{pool.externalPrice ? formatNumberUSD(pool.externalPrice) : 'N/A'}</td>
@@ -430,94 +737,210 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
   }
 
-  .header-logo {
+  .header-tabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .header-tab {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .header-tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .header-tab.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 32px;
     height: 32px;
-  }
-
-  .info-icon {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 18px;
-    transition: opacity 0.2s;
+    color: rgba(255, 255, 255, 0.6);
+    transition: all 0.2s ease;
   }
 
-  .info-icon:hover {
-    color: #ffffff;
-  }
-
-  .settings-bar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .settings-button {
-    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #4A90E2;
-    padding: 10px 16px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: inherit;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-
-  .settings-button:hover {
-    border-color: rgba(99, 102, 241, 0.6);
-    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-
-  .settings-toggle, .balance-toggle {
-    display: none;
-  }
-
-  .tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 30px;
-    justify-content: center;
-  }
-
-  .tab-button {
-    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #a0a0a0;
-    padding: 12px 24px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    font-family: inherit;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-
-  .tab-button:hover {
-    border-color: rgba(99, 102, 241, 0.6);
-    color: #4A90E2;
-    background: linear-gradient(145deg, #3a3a3a 0%, #4a4a4a 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-
-  .tab-button.active {
-    background: linear-gradient(145deg, #4A90E2 0%, #357abd 100%);
+  .icon-button:hover {
+    background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
     border-color: rgba(255, 255, 255, 0.2);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .icon-button.active {
+    background: rgba(74, 144, 226, 0.2);
+    color: #4A90E2;
+    border-color: rgba(74, 144, 226, 0.4);
+  }
+
+  .icon-text {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .refresh-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .refresh-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(74, 144, 226, 0.4);
+  }
+
+  .refresh-button.paused {
+    border-color: rgba(49, 253, 157, 0.3);
+  }
+
+  .refresh-button.paused:hover {
+    border-color: rgba(49, 253, 157, 0.6);
+  }
+
+  .button-icon {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4A90E2;
+    z-index: 1;
+  }
+
+  .refresh-button.paused .button-icon {
+    color: #31FD9D;
+  }
+
+  .progress-ring {
+    position: absolute;
+    transform: rotate(-90deg);
+  }
+
+  .progress-ring__circle-bg {
+    stroke: rgba(255, 255, 255, 0.1);
+  }
+
+  .progress-ring__circle {
+    stroke: #4A90E2;
+    stroke-linecap: round;
+    stroke-dasharray: 75.4;
+    transition: stroke-dashoffset 0.1s ease-out;
+  }
+
+  .refresh-button.paused .progress-ring__circle {
+    stroke: rgba(255, 255, 255, 0.3);
+  }
+
+  .reset-button {
+    color: #ff6b6b !important;
+  }
+
+  .reset-button:hover {
+    background: rgba(255, 107, 107, 0.15) !important;
+    border-color: rgba(255, 107, 107, 0.4) !important;
+  }
+
+  /* Actions column */
+  .actions-col {
+    width: 50px;
+    padding: 0 !important;
+  }
+
+  .actions-cell {
+    width: 50px;
+    padding: 8px 4px !important;
+    text-align: center;
+  }
+
+  .row-action {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 14px;
+    opacity: 0.3;
+    transition: all 0.2s ease;
+    color: #a0a0a0;
+  }
+
+  .row-action:hover {
+    opacity: 1;
+  }
+
+  .row-action.star {
+    color: #ffc107;
+  }
+
+  .row-action.star.active {
+    opacity: 1;
+    color: #ffc107;
+    text-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+  }
+
+  .row-action.ignore:hover {
+    color: #ff6b6b;
+  }
+
+  tr.starred {
+    background: rgba(255, 193, 7, 0.08) !important;
+  }
+
+  tr.starred:hover {
+    background: rgba(255, 193, 7, 0.12) !important;
+  }
+
+  /* Mobile: Stack header controls */
+  @media (max-width: 500px) {
+    .header-actions {
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .header-tabs {
+      order: 2;
+    }
+
+    .header-controls {
+      order: 1;
+    }
   }
 
   .table-wrapper {
@@ -676,39 +1099,86 @@
     padding: 40px;
   }
 
+  /* Responsive column headers */
+  .th-full {
+    display: inline;
+  }
+
+  .th-short {
+    display: none;
+  }
+
   @media (max-width: 600px) {
+    .th-full {
+      display: none;
+    }
+
+    .th-short {
+      display: inline;
+    }
+
     .container {
-      padding: 16px;
-    }
-
-    .settings-bar {
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .settings-button {
-      width: 100%;
-    }
-
-    .tabs {
-      flex-direction: column;
-    }
-
-    .tab-button {
-      width: 100%;
+      padding: 12px;
     }
 
     table {
       table-layout: auto;
     }
 
-    td, th {
-      padding: 12px;
-      font-size: 14px;
+    th {
+      padding: 10px 6px;
+      font-size: 11px;
+      letter-spacing: 0;
+    }
+
+    td {
+      padding: 8px 6px;
+      font-size: 12px;
+    }
+
+    .actions-col {
+      width: 36px;
+    }
+
+    .actions-cell {
+      width: 36px;
+      padding: 6px 2px !important;
+    }
+
+    .row-action {
+      padding: 2px;
+      font-size: 12px;
+    }
+
+    .asset-cell {
+      gap: 4px;
+    }
+
+    .logo-container {
+      height: 24px;
+    }
+
+    .asset-icon {
+      width: 24px;
+      height: 24px;
+    }
+
+    .chain-logo-container {
+      width: 12px;
+      height: 12px;
+    }
+
+    .chain-icon {
+      width: 12px;
+      height: 12px;
     }
 
     .price-cell {
-      font-size: 12px;
+      font-size: 11px;
+    }
+
+    .difference-cell {
+      font-size: 11px;
     }
   }
 

@@ -19,6 +19,8 @@ export const ASSET_LOGOS = {
   'DOGE.DOGE': '/assets/coins/dogecoin-doge-logo.svg',
   'THOR.RUNE': '/assets/coins/RUNE-ICON.svg',
   'BASE.ETH': '/assets/coins/ethereum-eth-logo.svg',
+  'TRON.TRX': '/assets/coins/TRON.svg',
+  'XRP.XRP': '/assets/chains/XRP.svg',
 
   // Stablecoins - Ethereum
   'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': '/assets/coins/usd-coin-usdc-logo.svg',
@@ -35,6 +37,7 @@ export const ASSET_LOGOS = {
   // Stablecoins - BSC
   'BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D': '/assets/coins/usd-coin-usdc-logo.svg',
   'BSC.USDT-0X55D398326F99059FF775485246999027B3197955': '/assets/coins/tether-usdt-logo.svg',
+  'BSC.BUSD-0XE9E7CEA3DEDCA5984780BAFC599BD69ADD087D56': '/assets/coins/binance-usd-busd-logo.svg',
 
   // Stablecoins - Base
   'BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913': '/assets/coins/usd-coin-usdc-logo.svg',
@@ -51,7 +54,7 @@ export const ASSET_LOGOS = {
   'ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F': '/assets/coins/synthetix-snx-logo.svg',
   'ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D': '/assets/coins/fox-token-fox-logo.svg',
   'ETH.DPI-0X1494CA1F11D487C2BBE4543E90080AEBA4BA3C2B': '/assets/coins/dpi-logo.png',
-  'ETH.YFI-0X0BC529C00C6401AEF6D220BE8C6EA1667F6AD93E': '/assets/coins/yearn-finance-yfi-logo.svg',
+  'ETH.YFI-0X0BC529C00C6401AEF6D220BE8C6EA1667F6AD93E': '/assets/coins/YFI.svg',
 
   // THORSwap ecosystem
   'ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044': '/assets/coins/thorswap-logo.png',
@@ -146,6 +149,8 @@ export const COINGECKO_IDS = {
   'DOGE.DOGE': 'dogecoin',
   'THOR.RUNE': 'thorchain',
   'BASE.ETH': 'ethereum',
+  'TRON.TRX': 'tron',
+  'XRP.XRP': 'ripple',
 
   // Wrapped assets
   'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': 'wrapped-bitcoin',
@@ -187,6 +192,8 @@ export const ASSET_DISPLAY_NAMES = {
   'AVAX.AVAX': 'AVAX',
   'GAIA.ATOM': 'ATOM',
   'DOGE.DOGE': 'DOGE',
+  'TRON.TRX': 'TRX',
+  'XRP.XRP': 'XRP',
   'THOR.RUNE': 'RUNE',
   'THOR.TCY': 'TCY',
   'THOR.RUJI': 'RUJI',
