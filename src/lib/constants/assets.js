@@ -21,6 +21,7 @@ export const ASSET_LOGOS = {
   'BASE.ETH': '/assets/coins/ethereum-eth-logo.svg',
   'TRON.TRX': '/assets/coins/TRON.svg',
   'XRP.XRP': '/assets/chains/XRP.svg',
+  'SOL.SOL': '/assets/coins/solana-sol-logo.svg',
 
   // Stablecoins - Ethereum
   'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48': '/assets/coins/usd-coin-usdc-logo.svg',
@@ -151,6 +152,7 @@ export const COINGECKO_IDS = {
   'BASE.ETH': 'ethereum',
   'TRON.TRX': 'tron',
   'XRP.XRP': 'ripple',
+  'SOL.SOL': 'solana',
 
   // Wrapped assets
   'ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599': 'wrapped-bitcoin',
@@ -194,6 +196,7 @@ export const ASSET_DISPLAY_NAMES = {
   'DOGE.DOGE': 'DOGE',
   'TRON.TRX': 'TRX',
   'XRP.XRP': 'XRP',
+  'SOL.SOL': 'SOL',
   'THOR.RUNE': 'RUNE',
   'THOR.TCY': 'TCY',
   'THOR.RUJI': 'RUJI',

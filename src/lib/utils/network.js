@@ -51,7 +51,8 @@ export const CHAIN_EXPLORERS = {
   BSC: 'https://bscscan.com/address/',
   BASE: 'https://basescan.org/address/',
   XRP: 'https://xrpscan.com/account/',
-  TRON: 'https://tronscan.org/#/address/'
+  TRON: 'https://tronscan.org/#/address/',
+  SOL: 'https://solscan.io/account/'
 };
 
 /**
@@ -70,7 +71,8 @@ export const CHAIN_NATIVE_TOKENS = {
   BSC: 'BNB',
   BASE: 'ETH',
   XRP: 'XRP',
-  TRON: 'TRX'
+  TRON: 'TRX',
+  SOL: 'SOL'
 };
 
 /**
@@ -89,7 +91,8 @@ export const CHAIN_ICONS = {
   THOR: '/assets/chains/THOR.svg',
   BASE: '/assets/chains/BASE.svg',
   XRP: '/assets/chains/XRP.svg',
-  TRON: '/assets/chains/TRON.svg'
+  TRON: '/assets/chains/TRON.svg',
+  SOL: '/assets/chains/SOL.svg'
 };
 
 // ============================================
@@ -619,7 +622,8 @@ export function getExplorerTxUrl(chain, txHash) {
     BSC: 'https://bscscan.com/tx/',
     BASE: 'https://basescan.org/tx/',
     XRP: 'https://xrpscan.com/tx/',
-    TRON: 'https://tronscan.org/#/transaction/'
+    TRON: 'https://tronscan.org/#/transaction/',
+    SOL: 'https://solscan.io/tx/'
   };
 
   const baseUrl = txExplorers[chain];

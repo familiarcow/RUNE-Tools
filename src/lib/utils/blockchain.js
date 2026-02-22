@@ -103,7 +103,8 @@ export function getAssetShortName(fullName) {
     'GAIA.ATOM': 'ATOM',
     'DOGE.DOGE': 'DOGE',
     'THOR.RUNE': 'RUNE',
-    'BASE.ETH': 'ETH (Base)'
+    'BASE.ETH': 'ETH (Base)',
+    'SOL.SOL': 'SOL'
   };
 
   if (knownNames[fullName]) return knownNames[fullName];
@@ -223,7 +224,8 @@ export const CHAINS = {
   AVAX: 'AVAX',
   GAIA: 'GAIA',
   DOGE: 'DOGE',
-  BASE: 'BASE'
+  BASE: 'BASE',
+  SOL: 'SOL'
 };
 
 /**

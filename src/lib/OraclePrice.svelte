@@ -27,6 +27,7 @@
       'GAIA.ATOM': 'ATOM',
       'DOGE.DOGE': 'DOGE',
       'XRP.XRP': 'XRP',
+      'SOL.SOL': 'SOL',
       'TRX.TRX': 'TRX'
     };
     
@@ -109,9 +110,10 @@
       'DOGE.DOGE': 'assets/coins/dogecoin-doge-logo.svg',
       'THOR.RUNE': 'assets/coins/RUNE-ICON.svg',
       'XRP.XRP': 'assets/chains/XRP.svg',
+      'SOL.SOL': 'assets/coins/solana-sol-logo.svg',
       'TRX.TRX': 'assets/coins/fallback-logo.svg'
     };
-    
+
     if (exactLogos[upperAsset]) {
       return exactLogos[upperAsset];
     }
