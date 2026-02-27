@@ -433,7 +433,7 @@
                 `+${latestBurn.toFixed(2)}`}
               in:fly={{ y: 10, duration: 400 }}
               out:fly={{ y: -10, duration: 400 }}
-            />
+            ></span>
           {/if}
         </div>
         <div class="sub-values">

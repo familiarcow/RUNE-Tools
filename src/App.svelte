@@ -776,14 +776,17 @@
                   on:mouseleave={handleMouseLeave}
                   in:fly={{ y: 20, duration: 300, delay: 100 + i * 50, easing: quintOut }}
                 >
-                  <button
+                  <span
                     class="star-icon"
                     class:starred={isStarred}
+                    role="button"
+                    tabindex="0"
                     on:click={(e) => toggleStar(app, e)}
+                    on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleStar(app, e)}
                     aria-label={isStarred ? "Unstar app" : "Star app"}
                   >
                     {@html isStarred ? starFilledIcon : starOutlineIcon}
-                  </button>
+                  </span>
                   <span class="app-icon">
                     {#if isImageIcon}
                       <img src={app.icon} alt={app.name} />

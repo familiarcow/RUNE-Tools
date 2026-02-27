@@ -27,7 +27,7 @@
 <div
   class="loading-bar"
   style="height: {styleHeight}; width: {styleWidth};"
-/>
+></div>
 
 <style>
   .loading-bar {

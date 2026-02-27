@@ -224,8 +224,10 @@
 </script>
 
 <footer>
-  <button
+  <div
     class="page-container"
+    role="button"
+    tabindex="0"
     on:touchstart={handleTouchStart}
     on:touchmove={handleTouchMove}
     on:touchend={handleTouchEnd}
@@ -301,7 +303,7 @@
         {/if}
       </div>
     {/key}
-  </button>
+  </div>
 </footer>
 
 <style>

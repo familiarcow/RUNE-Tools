@@ -2462,10 +2462,6 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     transform: scale(1.15);
   }
 
-  tr:has(.star-btn:has(★)) {
-    background-color: rgba(255, 215, 0, 0.03);
-  }
-
   /* Restore expand button styles */
   .expand-btn {
     background: none;
