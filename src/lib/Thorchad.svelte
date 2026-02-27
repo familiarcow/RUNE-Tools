@@ -443,13 +443,15 @@
   }
 </script>
 
-<div 
+<div
   class="thorchad-container"
   class:drag-over={dragOver}
   class:image-loaded={canAdjustImage}
   on:dragover={handleDragOver}
   on:dragleave={handleDragLeave}
   on:drop={handleDrop}
+  role="region"
+  aria-label="Image drop zone"
   style="transform: {canAdjustImage ? '' : `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`};"
   bind:this={container}
 >

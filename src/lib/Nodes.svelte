@@ -1558,15 +1558,6 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     }
   }
 
-  /* Add styles for ISP info */
-  .isp-info {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    min-height: 24px;
-  }
-
   .isp {
     display: flex;
     align-items: center;
@@ -2074,11 +2065,6 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     gap: 8px;
   }
 
-  .leave-status {
-    display: flex;
-    align-items: center;
-  }
-
   .leave-emoji {
     font-size: 14px;
     margin-left: 4px;
@@ -2212,14 +2198,6 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     transition: all 0.3s ease;
   }
 
-  .chain-status {
-    transition: all 0.3s ease;
-  }
-
-  .status {
-    transition: all 0.3s ease;
-  }
-
   .apy-value {
     transition: all 0.3s ease;
   }
@@ -2241,16 +2219,6 @@ Reason: ${node.preflight_status.reason}` : ''}` :
 
   .block-number {
     font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-    font-size: 0.8125rem;
-  }
-
-  .date-separator {
-    margin: 0 4px;
-    color: #666;
-  }
-
-  .block-date {
-    color: #888;
     font-size: 0.8125rem;
   }
 
@@ -2301,12 +2269,6 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     width: 14px;
     height: 14px;
     object-fit: contain;
-  }
-
-  .chain-more {
-    font-size: 10px;
-    color: #888;
-    margin-left: 4px;
   }
 
   .sync-badge {
@@ -2676,10 +2638,6 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     font-size: 0.875rem;
   }
 
-  .block-height-display svg {
-    color: #4A90E2;
-  }
-
   .block-height-display .block-number {
     font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   }
@@ -2911,17 +2869,9 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     font-size: 0.875rem;
   }
 
-  .churn-countdown-display svg {
-    color: #4A90E2;
-  }
-
   .churn-countdown-display.halted {
     color: #ff9800;
     border-color: rgba(255, 152, 0, 0.4);
-  }
-
-  .churn-countdown-display.halted svg {
-    color: #ff9800;
   }
 
   .churn-countdown-display .countdown {

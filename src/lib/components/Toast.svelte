@@ -41,11 +41,11 @@
 </script>
 
 {#if visible && message}
-  <div
+  <button
     class="toast toast-{variant}"
     transition:fade={{ duration: 200 }}
     on:click={handleClick}
-    role="alert"
+    aria-label="Dismiss notification"
   >
     {#if variant === 'success'}
       <span class="toast-icon">✓</span>
@@ -55,7 +55,7 @@
       <span class="toast-icon">✕</span>
     {/if}
     <span class="toast-message">{message}</span>
-  </div>
+  </button>
 {/if}
 
 <style>
@@ -71,6 +71,7 @@
     box-shadow: var(--shadow-card);
     border: 1px solid var(--border-default);
     font-weight: var(--font-semibold);
+    font-family: inherit;
     z-index: var(--z-toast);
     font-size: var(--text-base);
     max-width: 80%;

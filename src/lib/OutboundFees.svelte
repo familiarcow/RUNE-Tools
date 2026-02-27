@@ -244,7 +244,7 @@
   {:else if error}
     <div class="error-container">
       <div class="error-text">{error}</div>
-      <button class="retry-button" on:click={fetchOutboundFees}>Retry</button>
+      <button class="retry-button" on:click={fetchOutboundFeesData}>Retry</button>
     </div>
   {:else}
     <div class="table-container">

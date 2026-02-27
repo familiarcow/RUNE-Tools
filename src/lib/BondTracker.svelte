@@ -636,7 +636,7 @@
   </div>
 
   {#if !showData}
-    <div class="random-button" on:click={pickRandomNode} title="Pick Random Node">
+    <button class="random-button" on:click={pickRandomNode} title="Pick Random Node" aria-label="Pick Random Node">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
         <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -644,7 +644,7 @@
         <circle cx="15.5" cy="15.5" r="1.5"></circle>
         <circle cx="8.5" cy="15.5" r="1.5"></circle>
       </svg>
-    </div>
+    </button>
   {/if}
 </div>
 
@@ -936,14 +936,6 @@
     gap: var(--space-md);
   }
 
-  .random-node {
-    background-color: #6c757d;
-  }
-
-  .random-node:hover {
-    background-color: #5a6268;
-  }
-
   form {
     display: flex;
     flex-direction: column;
@@ -1022,30 +1014,6 @@
     vertical-align: middle;
   }
 
-  .button-group {
-    display: flex;
-    gap: var(--space-md);
-  }
-
-  .button-group button {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    padding: var(--space-md);
-    border: none;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: var(--transition-smooth);
-    font-size: var(--text-md);
-    font-weight: var(--font-semibold);
-  }
-
-  .button-group button:hover {
-    background-color: #3A7BC8;
-  }
-
   @media (max-width: 600px) {
     .bond-tracker {
       padding: var(--space-md);
@@ -1086,11 +1054,6 @@
 
     .link-list {
       padding: 2px 0;
-    }
-
-    .link-list a {
-      padding: 1px 3px;
-      font-size: 9px;
     }
 
     .button-container {
@@ -1239,10 +1202,6 @@
     animation: var(--animation-shimmer);
     opacity: 1;
     transition: var(--transition-base);
-  }
-
-  .loading-bar.fade-out {
-    opacity: 0;
   }
 
   .fade-in-content {

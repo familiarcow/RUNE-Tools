@@ -589,18 +589,6 @@
         background: var(--surface-color-dark);
     }
 
-    .balance-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .balance-row:last-child {
-        border-bottom: none;
-    }
-
     .asset-info {
         display: flex;
         align-items: center;
@@ -635,27 +623,6 @@
         color: var(--error-color);
         text-align: center;
         padding: 2rem;
-    }
-
-    .rune-price {
-        text-align: center;
-        margin-bottom: 2rem;
-        font-size: 1.1rem;
-        color: var(--text-color);
-        background: var(--surface-color);
-        padding: 0.5rem;
-        border-radius: 4px;
-        display: inline-block;
-        position: relative;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-
-    .amount-group {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 0.25rem;
     }
 
     .usd-value {
@@ -726,19 +693,6 @@
         display: flex;
         flex-direction: column;
         gap: 0.1rem;
-    }
-
-    .asset-address {
-        font-family: monospace;
-        font-size: 0.75rem;
-        color: var(--secondary-text-color);
-        opacity: 0.8;
-    }
-
-    .label {
-        color: var(--secondary-text-color);
-        font-size: 0.9rem;
-        min-width: 3.5rem;
     }
 
     .amount {
@@ -812,33 +766,6 @@
         justify-content: center;
         z-index: 2;
         pointer-events: none;
-    }
-
-    .bond-box {
-        background: var(--surface-color);
-        border-radius: 8px;
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        border: 1px solid var(--border-color);
-    }
-
-    .bond-header {
-        font-size: 0.9rem;
-        color: var(--text-color-secondary);
-        margin-bottom: 0.5rem;
-    }
-
-    .bond-amount {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        font-size: 1.1rem;
-        font-weight: 500;
-    }
-
-    .bond-amount .usd-value {
-        font-size: 0.9rem;
-        font-weight: normal;
     }
 
     @media (max-width: 600px) {

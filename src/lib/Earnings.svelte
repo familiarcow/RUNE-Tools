@@ -1190,12 +1190,6 @@
     margin-bottom: 40px;
   }
 
-  .toggle-container {
-    display: flex;
-    justify-content: center;
-    margin: 20px 0;
-  }
-
   .toggle {
     display: flex;
     align-items: center;
@@ -1280,10 +1274,6 @@
     margin-top: 20px;
   }
 
-  .chart-container + .chart-container {
-    margin-top: 40px;
-  }
-
   h2 {
     text-align: center;
     margin: 0;
@@ -1345,22 +1335,6 @@
   .timeframe-select select option {
     background-color: #2c2c2c;
     color: #fff;
-  }
-
-  .view-toggle {
-    display: flex;
-    justify-content: center;
-    margin: 10px 0;
-  }
-
-  .view-toggle .toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .view-toggle .label-text {
-    font-size: 12px;
   }
 
   .section-header {
@@ -1431,20 +1405,6 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 5px;
-    }
-
-    .pool-depth {
-      font-size: 12px;
-      width: 100%;
-      text-align: left;
-    }
-
-    .pool-depth span {
-      display: inline-block;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
   }
 

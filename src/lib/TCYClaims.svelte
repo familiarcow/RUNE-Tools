@@ -264,7 +264,7 @@
           <img src="/assets/coins/TCY.svg" alt="TCY" class="tcy-icon" />
           {tcyPriceUSD ? `$${tcyPriceUSD.toFixed(2)}` : '...'}
         </div>
-        <div class="info-icon" on:click={() => showMethodology.update(v => !v)}>ⓘ</div>
+        <button class="info-icon" on:click={() => showMethodology.update(v => !v)} aria-label="Show methodology">ⓘ</button>
       </div>
     </div>
 

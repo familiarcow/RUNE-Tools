@@ -223,20 +223,20 @@
   });
 </script>
 
-<footer
-  on:touchstart={handleTouchStart}
-  on:touchmove={handleTouchMove}
-  on:touchend={handleTouchEnd}
-  on:wheel={handleWheel}
-  on:mouseenter={handleUserInteraction}
-  on:keydown={handleKeydown}
->
-  <div 
+<footer>
+  <button
     class="page-container"
+    on:touchstart={handleTouchStart}
+    on:touchmove={handleTouchMove}
+    on:touchend={handleTouchEnd}
+    on:wheel={handleWheel}
+    on:mouseenter={handleUserInteraction}
+    on:keydown={handleKeydown}
     on:click={() => {
       currentPage = (currentPage + 1) % totalPages;
       handleUserInteraction();
     }}
+    aria-label="Navigate footer pages"
   >
     {#key currentPage}
       <div 
@@ -277,12 +277,12 @@
                   {getRandomEmoji()}
                 </span>
               {:else if element.onClick}
-                <span 
+                <button
                   class="clickable-text"
-                  on:click={element.onClick}
+                  on:click|stopPropagation={element.onClick}
                 >
                   {element.text}
-                </span>
+                </button>
               {:else}
                 {element.text}
               {/if}
@@ -301,7 +301,7 @@
         {/if}
       </div>
     {/key}
-  </div>
+  </button>
 </footer>
 
 <style>
@@ -333,6 +333,11 @@
     height: 24px;
     margin-top: 0;
     cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
   }
 
   .page {
@@ -453,6 +458,10 @@
     font-weight: 600;
     transition: all 0.2s ease;
     opacity: 0.95;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
   }
 
   .clickable-text:hover {

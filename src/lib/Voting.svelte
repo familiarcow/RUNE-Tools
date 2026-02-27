@@ -319,7 +319,7 @@
   <div class="app-header">
     <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo">
     <h2>THORChain Node Voting</h2>
-    <div class="info-icon" on:click={toggleMimirExplanation}>ⓘ</div>
+    <button class="info-icon" on:click={toggleMimirExplanation} aria-label="Toggle Mimir explanation">ⓘ</button>
   </div>
 
   {#if dataLoaded}
@@ -416,13 +416,13 @@
                             {:else}
                               {#each signers
                                 .slice(0, calculateVisibleBubbles(signersContainerWidth, signers, signers.length > 3)) as signer}
-                                <span 
-                                  class="signer-bubble" 
+                                <button
+                                  class="signer-bubble"
                                   style="background-color: {getColorForVote(isPassed, popularityRank, value)}"
                                   on:click|stopPropagation={() => handleSignerClick(signer)}
                                 >
                                   {signer}
-                                </span>
+                                </button>
                               {/each}
                             {/if}
                             {#if signers.length > calculateVisibleBubbles(signersContainerWidth, signers, true)}
@@ -457,13 +457,13 @@
                                 {/each}
                               {:else}
                                 {#each signers as signer}
-                                  <span 
-                                    class="signer-bubble" 
+                                  <button
+                                    class="signer-bubble"
                                     style="background-color: {getColorForVote(isPassed, popularityRank, value)}"
                                     on:click|stopPropagation={() => handleSignerClick(signer)}
                                   >
                                     {signer}
-                                  </span>
+                                  </button>
                                 {/each}
                               {/if}
                               <button 
@@ -540,13 +540,13 @@
                         {:else}
                           {#each signers
                             .slice(0, calculateVisibleBubbles(signersContainerWidth, signers, signers.length > 3)) as signer}
-                            <span 
-                              class="mobile-signer-bubble" 
+                            <button
+                              class="mobile-signer-bubble"
                               style="background-color: {getColorForVote(isPassed, popularityRank, value)}"
                               on:click={() => handleSignerClick(signer)}
                             >
                               {signer}
-                            </span>
+                            </button>
                           {/each}
                         {/if}
                         {#if signers.length > calculateVisibleBubbles(signersContainerWidth, signers, true)}
@@ -581,13 +581,13 @@
                             {/each}
                           {:else}
                             {#each signers as signer}
-                              <span 
-                                class="mobile-signer-bubble" 
+                              <button
+                                class="mobile-signer-bubble"
                                 style="background-color: {getColorForVote(isPassed, popularityRank, value)}"
                                 on:click={() => handleSignerClick(signer)}
                               >
                                 {signer}
-                              </span>
+                              </button>
                             {/each}
                           {/if}
                           <button 
@@ -849,13 +849,6 @@
     margin-bottom: 0;
   }
 
-  .value-group {
-    background-color: #1a1a1a;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 10px;
-  }
-
   .passed {
     background-color: rgba(46, 204, 113, 0.1);
     color: #2cbe8c;
@@ -872,25 +865,12 @@
     margin: 2px;
     cursor: pointer;
     transition: transform 0.2s;
+    border: none;
+    font: inherit;
   }
 
   .signer-bubble:hover {
     transform: scale(1.05);
-  }
-
-  .toggle-btn {
-    background-color: #4A90E2;
-    color: #fff;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
-  }
-
-  .toggle-btn:hover {
-    background-color: #357abd;
   }
 
   .loading {
@@ -1064,23 +1044,6 @@
     font-weight: 600;
   }
 
-  .toggle-btn {
-    align-self: flex-start;
-    background: #2c2c2c;
-    border: 1px solid #3a3a3c;
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.2s;
-  }
-
-  .toggle-btn:hover {
-    background: #3a3a3c;
-    border-color: #4A90E2;
-  }
-
   .expand-btn {
     background: none;
     border: none;
@@ -1194,29 +1157,6 @@
     gap: 10px;
   }
 
-  .mobile-toggle-btn {
-    align-self: flex-start;
-    background: #2c2c2c;
-    border: 1px solid #3a3a3c;
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.2s;
-  }
-
-  .mobile-toggle-btn:hover {
-    background: #3a3a3c;
-    border-color: #4A90E2;
-  }
-
-  .mobile-signers-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
   .mobile-signer-bubble {
     padding: 4px 8px;
     border-radius: 4px;
@@ -1224,6 +1164,8 @@
     color: #fff;
     cursor: pointer;
     transition: transform 0.2s, opacity 0.2s;
+    border: none;
+    font: inherit;
   }
 
   .mobile-operator-bubble {

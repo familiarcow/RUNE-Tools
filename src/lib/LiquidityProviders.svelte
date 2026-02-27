@@ -256,10 +256,6 @@
     overflow: hidden;
   }
 
-  h2 {
-    display: none;  /* Remove the title */
-  }
-
   .tabs {
     display: flex;
     gap: 2px;

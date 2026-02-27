@@ -753,10 +753,5 @@
     .stat-label {
       font-size: 9px;
     }
-
-    .action-button {
-      font-size: var(--text-sm);
-      padding: 6px var(--space-md);
-    }
   }
 </style>

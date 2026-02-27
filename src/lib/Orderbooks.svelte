@@ -1483,7 +1483,7 @@
     flex-wrap: wrap;
   }
 
-  .swaps-section h2, .swaps-section h3 {
+  .swaps-section h3 {
     margin-bottom: 24px;
     color: #ffffff;
     font-weight: 700;

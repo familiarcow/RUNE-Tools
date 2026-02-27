@@ -13,8 +13,6 @@
   export let goBack;
   export let runePrice;
   export let assetPrices;
-  export let viewRandomLP;
-
   let lpData = null;
   let loading = true;
   let error = null;
@@ -698,11 +696,6 @@
 
   .copy-url-button:hover {
     color: #357abd;
-  }
-
-  .copy-url-button svg {
-    width: 20px;
-    height: 20px;
   }
 
   @media (max-width: 768px) {

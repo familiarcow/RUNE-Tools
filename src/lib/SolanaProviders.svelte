@@ -1120,38 +1120,6 @@
     position: relative;
   }
 
-  .chart-legend {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .legend-item-inline {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #888;
-  }
-
-  .legend-square {
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-  }
-
-  .legend-square.solid {
-    background-color: #3498db;
-  }
-
-  .legend-square.ghost {
-    background-color: rgba(52, 152, 219, 0.3);
-    border: 1px dashed #3498db;
-  }
-
   .table-section {
     background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
     border-radius: 12px;
@@ -1320,22 +1288,6 @@
 
   .status-badge.neutral {
     background: rgba(149, 165, 166, 0.2);
-    color: #95a5a6;
-  }
-
-  .status-indicator {
-    font-size: 14px;
-  }
-
-  .status-indicator.success {
-    color: #2ecc71;
-  }
-
-  .status-indicator.warning {
-    color: #e74c3c;
-  }
-
-  .status-indicator.neutral {
     color: #95a5a6;
   }
 

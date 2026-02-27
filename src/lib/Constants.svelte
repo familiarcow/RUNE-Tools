@@ -95,7 +95,7 @@
   <PageHeader title="THORChain Constants">
     <div slot="actions" class="header-actions">
       <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo" class="header-logo">
-      <div class="info-icon" on:click={() => showToast('Constants are the core parameters that govern the THORChain protocol.')}>ⓘ</div>
+      <button class="info-icon" on:click={() => showToast('Constants are the core parameters that govern the THORChain protocol.')} aria-label="Show info">ⓘ</button>
     </div>
   </PageHeader>
 

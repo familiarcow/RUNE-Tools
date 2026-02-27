@@ -241,7 +241,7 @@
             </span>
           </span>
         </label>
-        <div class="info-icon" on:click={() => alert('Track THORChain protocol-owned liquidity positions across all pools, including treasury holdings and synthetic asset positions.')}>ⓘ</div>
+        <button class="info-icon" on:click={() => alert('Track THORChain protocol-owned liquidity positions across all pools, including treasury holdings and synthetic asset positions.')} aria-label="Show info">ⓘ</button>
       </div>
     </div>
 
@@ -462,6 +462,9 @@
   }
 
   .info-icon {
+    background: none;
+    border: none;
+    padding: 0;
     color: #FFFFFF;
     cursor: pointer;
     font-size: 18px;

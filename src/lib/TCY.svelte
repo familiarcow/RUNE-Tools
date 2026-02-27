@@ -1033,14 +1033,6 @@
     }
   }
 
-  .text-center {
-    text-align: center;
-  }
-
-  .text-right {
-    text-align: right;
-  }
-
   .next-distribution, .estimated-reward, .staked, .apy {
     background: linear-gradient(145deg, #1a1a1a, #232323);
     border-radius: 16px;
@@ -1267,12 +1259,6 @@
     box-shadow: 0 0 0 2px rgba(40,244,175,0.12);
   }
 
-  .button-group {
-    display: flex;
-    gap: 12px;
-    width: 100%;
-  }
-
   .address-form-btn {
     margin-top: 0.5rem;
     width: 100%;
@@ -1373,10 +1359,5 @@
 
   .alert-item:not(:last-child) {
     margin-bottom: 8px;
-  }
-
-  .warning-icon {
-    flex-shrink: 0;
-    color: #ffc107;
   }
 </style>

@@ -1,7 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   export let text = '';
-  export let typingSpeed = 35; // Controls overall animation speed
   export let charSetName = 'tech'; // Default character set
   
   let displayElement;

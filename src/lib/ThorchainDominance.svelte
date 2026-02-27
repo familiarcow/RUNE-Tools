@@ -767,8 +767,8 @@
     <div class="controls">
       <div class="timeframe-controls">
         <div class="preset-controls" class:disabled={useCustomRange}>
-          <label>Preset Ranges:</label>
-          <select value={days} on:change={handleTimeframeChange} disabled={useCustomRange}>
+          <label for="preset-timeframe">Preset Ranges:</label>
+          <select id="preset-timeframe" value={days} on:change={handleTimeframeChange} disabled={useCustomRange}>
             {#each timeframes as timeframe}
               <option value={timeframe.value}>{timeframe.label}</option>
             {/each}
@@ -784,12 +784,12 @@
           {#if useCustomRange}
             <div class="date-inputs">
               <div class="date-input">
-                <label>From:</label>
-                <input type="date" bind:value={startDate} max={endDate}>
+                <label for="start-date">From:</label>
+                <input id="start-date" type="date" bind:value={startDate} max={endDate}>
               </div>
               <div class="date-input">
-                <label>To:</label>
-                <input type="date" bind:value={endDate} min={startDate}>
+                <label for="end-date">To:</label>
+                <input id="end-date" type="date" bind:value={endDate} min={startDate}>
               </div>
               <button class="apply-button" on:click={handleCustomDateRange}>
                 Apply Range

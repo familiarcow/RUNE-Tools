@@ -605,10 +605,6 @@
     color: var(--primary-color);
   }
 
-  .icon-button svg {
-    margin-right: 8px;
-  }
-
   .controls {
     display: flex;
     justify-content: space-between;

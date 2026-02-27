@@ -1013,12 +1013,6 @@
     font-weight: 500;
   }
 
-  .chain-cell {
-    width: 40px;
-    padding: 12px 0;
-    text-align: center;
-  }
-
   .chain-icon {
     width: 20px;
     height: 20px;

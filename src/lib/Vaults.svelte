@@ -163,13 +163,13 @@
           <div class="vault-card" transition:fade>
             <div class="card-header" class:retiring={vault.status === 'RetiringVault'}>
               <h2>Vault {formatVaultName(vault.pub_key)}{vault.status === 'RetiringVault' ? ' (Retiring)' : ''}</h2>
-              <div class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key, 'vault ECDSA pubkey')}>
+              <button class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key, 'vault ECDSA pubkey')}>
                 ECDSA: {shortenAddress(vault.pub_key)}
-              </div>
+              </button>
               {#if vault.pub_key_eddsa}
-                <div class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key_eddsa, 'vault EdDSA pubkey')}>
+                <button class="pubkey clickable" on:click={() => copyToClipboard(vault.pub_key_eddsa, 'vault EdDSA pubkey')}>
                   EdDSA: {shortenAddress(vault.pub_key_eddsa)}
-                </div>
+                </button>
               {/if}
             </div>
 
@@ -187,10 +187,10 @@
                     }}
                   />
                   <span class="chain-name">{address.chain}</span>
-                  <span 
-                    class="address clickable" 
+                  <button
+                    class="address clickable"
                     on:click={() => copyToClipboard(address.address, `${address.chain} address`)}
-                  >{shortenAddress(address.address)}</span>
+                  >{shortenAddress(address.address)}</button>
                   {#if chainExplorers[address.chain]}
                     <button 
                       class="explorer-link" 
@@ -222,15 +222,15 @@
                 <div class="transaction-counts">
                   <div class="tx-row">
                     <span>Transactions In:</span>
-                    <span class="clickable" on:click={() => copyToClipboard(vault.inbound_tx_count?.toLocaleString() || '0', 'inbound transaction count')}>
+                    <button class="clickable" on:click={() => copyToClipboard(vault.inbound_tx_count?.toLocaleString() || '0', 'inbound transaction count')}>
                       {(vault.inbound_tx_count || 0).toLocaleString()}
-                    </span>
+                    </button>
                   </div>
                   <div class="tx-row">
                     <span>Transactions Out:</span>
-                    <span class="clickable" on:click={() => copyToClipboard(vault.outbound_tx_count?.toLocaleString() || '0', 'outbound transaction count')}>
+                    <button class="clickable" on:click={() => copyToClipboard(vault.outbound_tx_count?.toLocaleString() || '0', 'outbound transaction count')}>
                       {(vault.outbound_tx_count || 0).toLocaleString()}
-                    </span>
+                    </button>
                   </div>
                 </div>
               {/if}
@@ -238,10 +238,10 @@
               <div class="total-bond">
                 <div class="bond-row">
                   <span>Total Bond:</span>
-                  <span class="clickable amount-with-icon" on:click={() => copyToClipboard(Math.floor(calculateVaultBond(vault, nodesData)).toLocaleString(), 'bond amount')}>
+                  <button class="clickable amount-with-icon" on:click={() => copyToClipboard(Math.floor(calculateVaultBond(vault, nodesData)).toLocaleString(), 'bond amount')}>
                     {Math.floor(calculateVaultBond(vault, nodesData)).toLocaleString()}
-                    <img 
-                      src="/assets/coins/RUNE-ICON.svg" 
+                    <img
+                      src="/assets/coins/RUNE-ICON.svg"
                       alt="RUNE"
                       class="rune-icon"
                       on:error={(e) => {
@@ -249,19 +249,19 @@
                         e.target.src = '/assets/coins/fallback-logo.svg';
                       }}
                     />
-                  </span>
+                  </button>
                 </div>
                 <div class="bond-row">
                   <span> Total Bond Value:</span>
-                  <span class="clickable" on:click={() => copyToClipboard(formatUSD(calculateVaultBondUSD(calculateVaultBond(vault, nodesData))), 'bond value')}>
+                  <button class="clickable" on:click={() => copyToClipboard(formatUSD(calculateVaultBondUSD(calculateVaultBond(vault, nodesData))), 'bond value')}>
                     {formatUSD(calculateVaultBondUSD(calculateVaultBond(vault, nodesData)))}
-                  </span>
+                  </button>
                 </div>
                 <div class="bond-row">
                   <span>Total Asset Value:</span>
-                  <span class="clickable" on:click={() => copyToClipboard(formatUSD(calculateVaultAssetValue(vault.coins, prices)), 'total asset value')}>
+                  <button class="clickable" on:click={() => copyToClipboard(formatUSD(calculateVaultAssetValue(vault.coins, prices)), 'total asset value')}>
                     {formatUSD(calculateVaultAssetValue(vault.coins, prices))}
-                  </span>
+                  </button>
                 </div>
               </div>
 
@@ -313,14 +313,14 @@
                         <span class="asset-name">{assetName}</span>
                       </div>
                       <div class="amount-group">
-                        <span
+                        <button
                           class="amount clickable"
                           on:click={() => copyToClipboard(formatThorAmount(fromBaseUnit(coin.amount)), `${assetName} amount`)}
-                        >{formatThorAmount(fromBaseUnit(coin.amount))}</span>
-                        <span
+                        >{formatThorAmount(fromBaseUnit(coin.amount))}</button>
+                        <button
                           class="usd-value clickable"
                           on:click={() => copyToClipboard(formatUSD(fromBaseUnit(coin.amount) * prices[coin.asset]), `${assetName} USD value`)}
-                        >{formatUSD(fromBaseUnit(coin.amount) * prices[coin.asset])}</span>
+                        >{formatUSD(fromBaseUnit(coin.amount) * prices[coin.asset])}</button>
                       </div>
                     </div>
                   {/each}
@@ -331,9 +331,9 @@
                     <h4>Signers ({vault.membership.length})</h4>
                     <div class="signers-container">
                       {#each vault.membership as signer}
-                        <div class="signer-tag clickable" on:click={() => copyToClipboard(signer, 'signer pubkey')}>
+                        <button class="signer-tag clickable" on:click={() => copyToClipboard(signer, 'signer pubkey')}>
                           {signer.slice(-4).toUpperCase()}
-                        </div>
+                        </button>
                       {/each}
                     </div>
                   </div>
@@ -622,6 +622,12 @@
     cursor: pointer;
     user-select: none;
     transition: var(--transition-base);
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
   }
 
   .clickable:hover {

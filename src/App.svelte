@@ -678,14 +678,14 @@
     <div class="header-content">
       {#if !isDesktopApp}
       <div class="logo-container">
-        <div class="logo-wrapper" on:click={goHome}>
+        <button class="logo-wrapper" on:click={goHome} aria-label="Go to home page">
           {#if HOLIDAY_MODE}
             <img src={santaLogo} alt="THORChain Holiday Logo" class="logo holiday-logo" />
           {:else}
             <img src={logo} alt="THORChain Logo" class="logo original-logo" />
             <img src={laserLogo} alt="THORChain Laser Logo" class="logo laser-logo" />
           {/if}
-        </div>
+        </button>
       </div>
       {:else}
       <div class="logo-container desktop-mode">
@@ -728,7 +728,7 @@
   {/if}
 
   {#if menuOpen}
-    <div class="menu-overlay" on:click|self={toggleMenu} in:fade={{ duration: 200 }} out:fade={{ duration: 200 }}>
+    <div class="menu-overlay" role="button" tabindex="0" on:click|self={toggleMenu} on:keydown={(e) => e.key === 'Escape' && toggleMenu()} in:fade={{ duration: 200 }} out:fade={{ duration: 200 }}>
       <div class="menu-content" in:fly={{ x: 300, duration: 300, easing: cubicInOut }} out:fly={{ x: 300, duration: 300, easing: cubicInOut }}>
         {#each apps as app}
           {@const isImageIcon = typeof app.icon === 'string' && (app.icon.endsWith('.svg') || app.icon.endsWith('.png'))}
@@ -776,13 +776,14 @@
                   on:mouseleave={handleMouseLeave}
                   in:fly={{ y: 20, duration: 300, delay: 100 + i * 50, easing: quintOut }}
                 >
-                  <div
+                  <button
                     class="star-icon"
                     class:starred={isStarred}
                     on:click={(e) => toggleStar(app, e)}
+                    aria-label={isStarred ? "Unstar app" : "Star app"}
                   >
                     {@html isStarred ? starFilledIcon : starOutlineIcon}
-                  </div>
+                  </button>
                   <span class="app-icon">
                     {#if isImageIcon}
                       <img src={app.icon} alt={app.name} />
@@ -896,6 +897,9 @@
     display: inline-block;
     cursor: pointer;
     transform: scale(1.05);
+    background: none;
+    border: none;
+    padding: 0;
   }
 
   .logo {
@@ -930,14 +934,6 @@
     color: var(--text-color);
     font-size: 1.25rem;
     font-weight: 600;
-    margin: 0;
-    line-height: 1.2;
-  }
-
-  .app-title {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    font-weight: 400;
     margin: 0;
     line-height: 1.2;
   }
@@ -1076,6 +1072,10 @@
     transition: opacity 0.2s ease;
     z-index: 2;
     opacity: 0;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
   }
 
   /* Show star on hover for desktop */
@@ -1113,7 +1113,7 @@
     line-height: 1.2;
   }
 
-  .home-button, .menu-button, .back-button {
+  .menu-button, .back-button {
     background: none;
     border: none;
     cursor: pointer;
@@ -1122,7 +1122,7 @@
     transition: color 0.3s ease;
   }
 
-  .home-button:hover, .menu-button:hover, .back-button:hover {
+  .menu-button:hover, .back-button:hover {
     color: var(--primary-color);
   }
 
@@ -1195,15 +1195,6 @@
     font-size: 1rem;
   }
 
-  .clickable-logo {
-    cursor: pointer;
-    transition: opacity 0.3s ease;
-  }
-
-  .clickable-logo:hover {
-    opacity: 0.8;
-  }
-
   @media (max-width: 1200px) {
     .app-grid-container {
       max-width: 1000px;
@@ -1220,30 +1211,11 @@
     .app-row {
       gap: 1rem;
     }
-    
+
     .app-button {
       width: 100px;
       height: 100px;
     }
-  }
-
-  .category-section {
-    margin-bottom: 2rem;
-    padding: 0 1rem;
-  }
-
-  .category-title {
-    text-align: left;
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    font-weight: 500;
-    margin: 0.5rem 0;
-    padding-left: 0.5rem;
-  }
-
-  .footer {
-    position: relative;
-    z-index: 1;
   }
 
   .app-loading-skeleton {

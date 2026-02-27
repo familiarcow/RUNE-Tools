@@ -430,13 +430,13 @@
                 </div>
               </div>
               <p class="symbol">{token.symbol || 'Unknown Symbol'}</p>
-              <p 
-                class="address" 
+              <button
+                class="address"
                 title="Click to copy address"
                 on:click={() => copyToClipboard(token.address)}
               >
                 {truncateAddress(token.address)}
-              </p>
+              </button>
             </div>
           </div>
         {/each}
@@ -602,6 +602,10 @@
     cursor: pointer;
     transition: color 0.2s;
     user-select: none;
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: left;
   }
 
   .address:hover {

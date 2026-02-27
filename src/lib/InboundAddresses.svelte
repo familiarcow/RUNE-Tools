@@ -445,10 +445,6 @@
       padding: 0.4rem 0.6rem;
     }
 
-    .copy-icon {
-      padding: 0.3rem;
-    }
-
     .address {
       font-size: 0.85rem;
     }

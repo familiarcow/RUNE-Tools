@@ -514,10 +514,6 @@
       padding: 0 0.5rem;
     }
 
-    .gauge-labels {
-      font-size: 0.7rem;
-    }
-
     .logo-container {
       width: 24px;
       height: 24px;

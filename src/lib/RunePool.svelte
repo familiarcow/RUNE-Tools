@@ -1056,10 +1056,6 @@
   }
 
   @media (max-width: 480px) {
-    .app-header h2 {
-      font-size: 20px;
-    }
-
     .stat-box {
       padding: 15px;
     }

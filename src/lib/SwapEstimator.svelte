@@ -493,8 +493,7 @@
         margin-bottom: 5px;
       }
       
-      input,
-      select {
+      input {
         width: 100%;
         padding: 8px;
         margin-bottom: 15px;
@@ -503,9 +502,8 @@
         background-color: rgba(255, 255, 255, 0.1);
         color: #fff;
       }
-      
-      input:focus,
-      select:focus {
+
+      input:focus {
         outline: none;
         box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.1);
       }
@@ -525,44 +523,7 @@
       button:hover {
         background-color: #3DA17E;
       }
-      
-      .result {
-        margin-top: 20px;
-        font-size: 18px;
-      }
-      
-      .info-icon {
-        display: inline-block;
-        margin-left: 5px;
-        cursor: pointer;
-        position: relative;
-      }
-      
-      .tooltip {
-      display: none;
-      position: absolute;
-      background-color: rgba(0, 0, 0, 0.8);
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 14px;
-      left: 50%;
-      transform: translateX(-85%); 
-      top: 25px; 
-      opacity: 100; 
-      }
-      
-      .info-icon:hover .tooltip {
-        display: block;
-      }
-      
-      .result {
-        display: flex;
-        align-items: center;
-        margin-top: 20px;
-        font-size: 18px;
-        transition: opacity 0.5s ease-in-out;
-      }
-      
+
       .result-content {
         display: flex;
         align-items: center;
@@ -606,58 +567,19 @@
       margin-top: 8px;
       margin-bottom: 4px;
     }
-    
-    .custom-select {
-      position: relative;
-      display: inline-block;
-    }
-    
-    .selected,
-    .options div {
-      display: flex;
-      align-items: center;
-      padding: 8px 16px;
-      cursor: pointer;
-      user-select: none;
-    }
-    
-    .selected {
-      background-color: #2e2e2e;
-      border: 1px solid #444;
-      border-radius: 4px;
-    }
-    
-    .options {
-      position: absolute;
-      background-color: #2e2e2e;
-      border: 1px solid #444;
-      border-radius: 4px;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-      z-index: 1;
-      max-height: 384px;
-      overflow-y: auto;
-    }
-    
-    .options div:hover {
-      background-color: #3c3c3c;
-    }
-    
+
     img {
       width: 24px;
       height: 24px;
       margin-right: 8px;
     }
-    
+
     input[type="number"] {
       background-color: #3c3c3c;
       color: #ffffff;
       border: 1px solid #444;
     }
-    
-    .hidden {
-      display: none;
-    }
-    
+
     .asset-selection {
       display: flex;
       flex-direction: column;
@@ -700,16 +622,7 @@
     .asset-label {
       margin-right: 10px;
     }
-    
-    .custom-select {
-      flex: 1;
-      margin-right: 10px;
-    }
-    
-    .custom-select:last-child {
-      margin-right: 0;
-    }
-    
+
     .loader {
         display: inline-block;
         border: 2px solid #f3f3f3;
@@ -741,6 +654,9 @@
         line-height: 1;
         padding: 10px;
         margin-top: 20px;
+        background: none;
+        border: none;
+        width: auto;
     }
 
     .affiliate-settings {
@@ -836,12 +752,6 @@
       display: flex;
     }
 
-    .usd-value {
-      color: #888;
-      font-size: 0.9em;
-      white-space: nowrap;
-    }
-
     .input-with-usd {
       width: 100%;
       padding-right: 100px;
@@ -871,9 +781,9 @@
     
       
     <div class="app-container">
-        <div class="settings-icon" on:click={toggleSettings}>
+        <button class="settings-icon" on:click={toggleSettings} aria-label="Toggle settings">
             <SettingsIcon />
-        </div>
+        </button>
 
         {#if showSettings}
             <div class="settings-modal" transition:slide>
@@ -968,14 +878,15 @@
         
             <!-- swap amount input and display -->
             <div class="expand" in:slide={{ duration: 1000 }} out:slide={{ duration: 333 }}>
-              <label>Swap Amount ({from_asset.split('.')[1].split('-')[0]}):</label>
+              <label for="swap-amount">Swap Amount ({from_asset.split('.')[1].split('-')[0]}):</label>
               <div class="amount-input-container">
                 <div class="amount-input-wrapper">
-                  <input 
-                    type="number" 
-                    class="input-with-usd" 
-                    bind:value={amount} 
-                    use:handleFocus 
+                  <input
+                    id="swap-amount"
+                    type="number"
+                    class="input-with-usd"
+                    bind:value={amount}
+                    use:handleFocus
                     placeholder="Enter amount"
                   />
                   {#if estimatedValueUSD}
@@ -987,11 +898,12 @@
 
             {#if showHeightField}
                 <div class="expand" in:slide={{ duration: 500 }} out:slide={{ duration: 500 }}>
-                    <label>Block Height:</label>
-                    <input 
-                        type="number" 
-                        style="width: 50%;" 
-                        bind:value={height} 
+                    <label for="block-height">Block Height:</label>
+                    <input
+                        id="block-height"
+                        type="number"
+                        style="width: 50%;"
+                        bind:value={height}
                         placeholder="Optional block height"
                     />
                 </div>

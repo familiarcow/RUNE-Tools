@@ -9,8 +9,7 @@
   export let assets;
   export let assetNames;
   export let assetLogos;
-  export let label;
-  
+
   let isOpen = false;
 
   // Helper function to get chain logo path
@@ -39,7 +38,7 @@
   }
 
   .selected,
-  .options div {
+  .option-item {
     display: flex;
     align-items: center;
     padding: 8px 16px;
@@ -51,6 +50,10 @@
     background-color: #2e2e2e;
     border: 1px solid #444;
     border-radius: 4px;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    width: 100%;
   }
 
   .options {
@@ -85,10 +88,6 @@
 
   .options::-webkit-scrollbar-thumb:hover {
     background: #555;  /* Slightly lighter on hover */
-  }
-
-  .options div:hover {
-    background-color: #3c3c3c;
   }
 
   .logo-container {
@@ -128,13 +127,22 @@
     pointer-events: none;
   }
 
-  .asset-label {
-    margin-right: 10px;
+  .option-item {
+    background: none;
+    border: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    width: 100%;
+  }
+
+  .option-item:hover {
+    background-color: #3c3c3c;
   }
 </style>
 
 <div class="custom-select">
-  <div class="selected" on:click={() => (isOpen = !isOpen)}>
+  <button class="selected" on:click={() => (isOpen = !isOpen)}>
     <div class="logo-container">
       <img 
         class="asset-logo"
@@ -158,8 +166,8 @@
       </div>
     </div>
     <span>{assetNames[selectedAsset]}</span>
-  </div>
-  
+  </button>
+
   {#if isOpen}
     <div 
       class="options" 
@@ -167,7 +175,7 @@
       out:slide|local={{ duration: 200 }}
     >
       {#each assets as asset}
-        <div on:click={() => handleAssetSelect(asset)}>
+        <button class="option-item" on:click={() => handleAssetSelect(asset)}>
           <div class="logo-container">
             <img 
               class="asset-logo"
@@ -191,7 +199,7 @@
             </div>
           </div>
           <span>{assetNames[asset]}</span>
-        </div>
+        </button>
       {/each}
     </div>
   {/if}
