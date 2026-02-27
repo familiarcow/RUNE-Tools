@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "vite"
+    "start": "vite",
+    "nodeop:deploy:backend": "bash ./scripts/nodeop-backend-deploy.sh"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^0.0.17",

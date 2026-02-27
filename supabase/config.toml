@@ -1,0 +1,32 @@
+project_id = "rune-tools-nodeop"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = false
+
+[functions.nodeop-performance]
+verify_jwt = false
+
+[functions.nodeop-leaderboard]
+verify_jwt = false
+
+[functions.nodeop-meta]
+verify_jwt = false
+
+[functions.nodeop-scheduler]
+verify_jwt = true

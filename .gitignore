@@ -1,3 +1,5 @@
+.env
+.env.local
 /node_modules/
 /dist/
 /.vscode/
@@ -5,3 +7,4 @@
 .cursorrules
 CLAUDE.md
 public/docs/
+supabase/.temp/

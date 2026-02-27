@@ -1,0 +1,44 @@
+name: NodeOp Scheduler
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run-scheduler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger Supabase nodeop-scheduler
+        env:
+          NODEOP_SCHEDULER_URL: ${{ secrets.NODEOP_SCHEDULER_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NODEOP_SCHEDULER_SECRET: ${{ secrets.NODEOP_SCHEDULER_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${NODEOP_SCHEDULER_URL}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ]; then
+            echo "Missing required secrets: NODEOP_SCHEDULER_URL and/or SUPABASE_SERVICE_ROLE_KEY"
+            exit 1
+          fi
+
+          if [ -n "${NODEOP_SCHEDULER_SECRET:-}" ]; then
+            curl --fail --show-error --silent \
+              -X POST \
+              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+              -H "Content-Type: application/json" \
+              -H "x-nodeop-secret: ${NODEOP_SCHEDULER_SECRET}" \
+              "${NODEOP_SCHEDULER_URL}" \
+              | tee /tmp/nodeop-scheduler-response.json
+          else
+            curl --fail --show-error --silent \
+              -X POST \
+              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+              -H "Content-Type: application/json" \
+              "${NODEOP_SCHEDULER_URL}" \
+              | tee /tmp/nodeop-scheduler-response.json
+          fi
+
+          echo
+          echo "Scheduler trigger completed"

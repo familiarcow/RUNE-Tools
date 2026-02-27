@@ -55,6 +55,13 @@
       path: "bond", 
       description: "Monitor your THORChain node rewards" 
     },
+    {
+      name: "Node Operator",
+      component: () => import("./lib/NodeOperator.svelte"),
+      icon: "🛠️",
+      path: "node-operator",
+      description: "Manage your THORChain node: bond, unbond, track performance, and leaderboard"
+    },
     { 
       name: "Voting", 
       component: () => import("./lib/Voting.svelte"), 
@@ -434,6 +441,9 @@
       const nodeAddress = urlParams.get("node_address");
       if (bondAddress) params.set("bond_address", bondAddress);
       if (nodeAddress) params.set("node_address", nodeAddress);
+    } else if (app.name === "Node Operator") {
+      const nodeAddress = urlParams.get("node_address");
+      if (nodeAddress) params.set("node_address", nodeAddress);
     } else if (app.name === "Rune Pool") {
       const address = urlParams.get("address");
       if (address) params.set("address", address);
@@ -494,6 +504,9 @@
         const bondAddress = urlParams.get('bond_address');
         const nodeAddress = urlParams.get('node_address');
         // Handle Bond Tracker params if needed
+      } else if (app.name === "Node Operator") {
+        const nodeAddress = urlParams.get('node_address');
+        // Handle Node Operator params if needed
       } else if (app.name === "Rune Pool") {
         const address = urlParams.get('address');
         // Handle Rune Pool params if needed
@@ -1343,4 +1356,3 @@
     /* existing styles */
   }
 </style>
-
