@@ -26,12 +26,31 @@ export const THORNODE_ENDPOINTS = {
 };
 
 /**
+ * Endpoints that require an x-client-id header
+ */
+const CLIENT_ID_ENDPOINTS = new Set([
+  'https://thornode.ninerealms.com',
+  'https://midgard.ninerealms.com'
+]);
+
+/**
  * Midgard API endpoints
  */
 export const MIDGARD_ENDPOINTS = {
   primary: 'https://midgard.ninerealms.com',
   fallback: 'https://midgard.thorchain.info'
 };
+
+// ============================================
+// Rate Limit Tracking
+// ============================================
+
+/**
+ * Track rate-limited endpoints so we skip them on subsequent requests.
+ * Key: base URL, Value: timestamp when cooldown expires
+ */
+const rateLimitedUntil = new Map();
+const RATE_LIMIT_COOLDOWN = 60000; // 60 seconds
 
 // ============================================
 // Fetch Utilities
@@ -41,53 +60,53 @@ export const MIDGARD_ENDPOINTS = {
  * Fetch data from THORNode API with automatic fallback
  *
  * Tries the primary endpoint first, and falls back to the secondary
- * endpoint if the primary fails or returns an error.
+ * endpoint if the primary fails or returns an error. On a 429 (rate limit),
+ * the failing endpoint is skipped for 60 seconds on subsequent calls.
  *
  * @param {string} endpoint - API endpoint path (e.g., '/thorchain/nodes')
  * @param {Object} [options={}] - Fetch options (method, headers, body, etc.)
  * @param {Object} [endpoints=THORNODE_ENDPOINTS] - Endpoint configuration
  * @returns {Promise<Response>} Fetch response object
  * @throws {Error} If both endpoints fail
- *
- * @example
- * // Simple GET request
- * const response = await fetchWithFallback('/thorchain/nodes');
- * const nodes = await response.json();
- *
- * @example
- * // With custom options
- * const response = await fetchWithFallback('/thorchain/quote/swap', {
- *   method: 'GET',
- *   headers: { 'Accept': 'application/json' }
- * });
  */
 export async function fetchWithFallback(endpoint, options = {}, endpoints = THORNODE_ENDPOINTS) {
-  const primaryUrl = `${endpoints.primary}${endpoint}`;
-  const fallbackUrl = `${endpoints.fallback}${endpoint}`;
+  const now = Date.now();
+  const primaryRateLimited = (rateLimitedUntil.get(endpoints.primary) || 0) > now;
+  const fallbackRateLimited = (rateLimitedUntil.get(endpoints.fallback) || 0) > now;
 
-  try {
-    // Try primary endpoint first
-    const response = await fetch(primaryUrl, options);
-    if (response.ok) {
-      return response;
-    }
-    throw new Error(`Primary endpoint failed: ${response.status}`);
-  } catch (error) {
-    console.warn(`Primary endpoint failed, trying fallback: ${error.message}`);
+  // Build ordered list: skip rate-limited endpoints, but keep as last resort
+  const order = primaryRateLimited
+    ? [endpoints.fallback, endpoints.primary]
+    : [endpoints.primary, endpoints.fallback];
 
+  let lastError = null;
+
+  for (const base of order) {
+    const url = `${base}${endpoint}`;
+    const fetchOpts = CLIENT_ID_ENDPOINTS.has(base)
+      ? { ...options, headers: { 'x-client-id': 'RuneTools', ...options.headers } }
+      : options;
     try {
-      // Try fallback endpoint
-      const fallbackResponse = await fetch(fallbackUrl, options);
-      if (fallbackResponse.ok) {
-        console.log(`Using fallback endpoint for: ${endpoint}`);
-        return fallbackResponse;
+      const response = await fetch(url, fetchOpts);
+      if (response.ok) {
+        // Clear rate limit on success
+        rateLimitedUntil.delete(base);
+        return response;
       }
-      throw new Error(`Fallback endpoint failed: ${fallbackResponse.status}`);
-    } catch (fallbackError) {
-      console.error(`Both endpoints failed for ${endpoint}:`, fallbackError);
-      throw fallbackError;
+      if (response.status === 429) {
+        rateLimitedUntil.set(base, Date.now() + RATE_LIMIT_COOLDOWN);
+        console.warn(`Rate limited (429) on ${base}, switching away for ${RATE_LIMIT_COOLDOWN / 1000}s`);
+      }
+      lastError = new Error(`${base} failed: ${response.status}`);
+      console.warn(`Endpoint failed for ${endpoint}: ${lastError.message}`);
+    } catch (error) {
+      lastError = error;
+      console.warn(`Endpoint failed for ${endpoint}: ${error.message}`);
     }
   }
+
+  console.error(`Both endpoints failed for ${endpoint}:`, lastError);
+  throw lastError;
 }
 
 /**

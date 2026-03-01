@@ -50,6 +50,11 @@ class ThorNodeClient {
       ninerealms: 0
     };
     this.maxFailures = 3;
+    this.rateLimitedUntil = {
+      liquify: 0,
+      ninerealms: 0
+    };
+    this.rateLimitCooldown = 60000; // Skip rate-limited provider for 60s
     this.cache = new Map();
     this.cacheTTL = 5000; // 5 seconds default cache
   }
@@ -126,11 +131,19 @@ class ThorNodeClient {
     }
 
     // Determine providers to try (in order)
-    const providers = blockHeight
+    const now = Date.now();
+    const allProviders = blockHeight
       ? [PROVIDERS.archive]
       : preferNinerealms
         ? [PROVIDERS.ninerealms, PROVIDERS.liquify]
         : [PROVIDERS.liquify, PROVIDERS.ninerealms];
+
+    // Skip rate-limited providers (but keep them as last resort)
+    const available = allProviders.filter(p => {
+      const until = this.rateLimitedUntil[p.name];
+      return !until || now >= until;
+    });
+    const providers = available.length > 0 ? available : allProviders;
 
     let lastError = null;
 
@@ -150,6 +163,11 @@ class ThorNodeClient {
         });
 
         if (!response.ok) {
+          // Rate limited — set cooldown so we skip this provider immediately
+          if (response.status === 429 && provider.name in this.rateLimitedUntil) {
+            this.rateLimitedUntil[provider.name] = Date.now() + this.rateLimitCooldown;
+            console.warn(`${provider.name} rate limited (429), switching away for ${this.rateLimitCooldown / 1000}s`);
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
@@ -160,11 +178,10 @@ class ThorNodeClient {
           this.cache.set(cacheKey, { data, timestamp: Date.now() });
         }
 
-        // Reset failure count on success
-        if (provider.name === 'liquify') {
-          this.failureCount.liquify = 0;
-        } else if (provider.name === 'ninerealms') {
-          this.failureCount.ninerealms = 0;
+        // Reset failure count and rate limit on success
+        if (provider.name in this.failureCount) {
+          this.failureCount[provider.name] = 0;
+          this.rateLimitedUntil[provider.name] = 0;
         }
 
         return data;
@@ -173,10 +190,8 @@ class ThorNodeClient {
         console.warn(`THORNode fetch failed for ${provider.name}${path}:`, error.message);
 
         // Increment failure count
-        if (provider.name === 'liquify') {
-          this.failureCount.liquify++;
-        } else if (provider.name === 'ninerealms') {
-          this.failureCount.ninerealms++;
+        if (provider.name in this.failureCount) {
+          this.failureCount[provider.name]++;
         }
       }
     }
