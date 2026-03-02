@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import Chart from 'chart.js/auto';
-  import { fetchMimirValue } from '$lib/utils/api';
+  import { getMimirValue } from '$lib/utils/mimir';
   import { getAddressSuffix } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import {
@@ -85,7 +85,7 @@
 
   async function fetchMinBond() {
     try {
-      const minBond = await fetchMimirValue('MINIMUMBONDINRUNE');
+      const minBond = await getMimirValue('MINIMUMBONDINRUNE');
       if (minBond) {
         minimumBondInRune = fromBaseUnit(minBond);
       }

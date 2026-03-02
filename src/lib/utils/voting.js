@@ -22,6 +22,7 @@
  */
 
 import { fetchJSONWithFallback } from './api';
+import { getAllMimir } from './mimir';
 import { getAddressSuffix } from './formatting';
 
 // ============================================
@@ -115,7 +116,7 @@ export async function fetchMimirNodeVotes(options = {}) {
  * console.log(`Min bond: ${mimirValues.MINIMUMBONDINRUNE}`);
  */
 export async function getCurrentMimirValues(options = {}) {
-  return await fetchJSONWithFallback('/thorchain/mimir', options);
+  return await getAllMimir();
 }
 
 /**

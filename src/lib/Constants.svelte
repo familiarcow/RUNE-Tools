@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { thornode } from '$lib/api';
+  import { getAllMimir } from '$lib/utils/mimir';
   import { PageHeader, LoadingBar } from '$lib/components';
   import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
 
@@ -17,7 +18,7 @@
     try {
       const [constantsData, mimirData] = await Promise.all([
         thornode.fetch('/thorchain/constants'),
-        thornode.fetch('/thorchain/mimir')
+        getAllMimir()
       ]);
 
       constants = constantsData;

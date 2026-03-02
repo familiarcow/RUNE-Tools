@@ -9,6 +9,7 @@
   import { formatNumber, formatUSD as formatUSDBase } from '$lib/utils';
   import { fromBaseUnit } from '$lib/utils';
   import { thornode } from '$lib/api';
+  import { getMimirValue } from '$lib/utils/mimir';
   import { runePrice, subscribeToRunePrice } from '$lib/stores';
   import { PageHeader } from '$lib/components';
 
@@ -157,7 +158,7 @@
   // Unified fetch using thornode client (handles Liquify/NineRealms failover)
   const fetchMaxSupply = async () => {
     try {
-      const data = await thornode.getMimir('MaxRuneSupply');
+      const data = await getMimirValue('MaxRuneSupply');
       await processMaxSupplyData(data);
     } catch (error) {
       console.error("Error fetching max supply:", error);
@@ -227,8 +228,8 @@
 
   const fetchSystemIncomeBurnRate = async () => {
     try {
-      const data = await thornode.getMimir('SystemIncomeBurnRateBPS');
-      systemIncomeBurnRate = Number(data) / 100; // Convert basis points to percentage
+      const data = await getMimirValue('SystemIncomeBurnRateBPS');
+      systemIncomeBurnRate = (data || 0) / 100; // Convert basis points to percentage
     } catch (error) {
       console.error("Error fetching system income burn rate:", error);
     }

@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { thornode } from '$lib/api';
+  import { getMimirValues } from '$lib/utils/mimir';
   import { PageHeader, LoadingBar } from '$lib/components';
   import { formatNumber, simplifyNumber } from '$lib/utils/formatting';
   import { getAssetShortName, fromBaseUnit } from '$lib/utils/blockchain';
@@ -32,14 +33,13 @@
 
   const fetchData = async () => {
     try {
-      const [vaultsData, poolsData, nodesData, mimirData, pendulumUseVaultAssetsData, pendulumUseEffectiveSecurityData] = await Promise.all([
+      const [vaultsData, poolsData, nodesData, mimirValues] = await Promise.all([
         thornode.fetch('/thorchain/vaults/asgard'),
         thornode.fetch('/thorchain/pools'),
         thornode.fetch('/thorchain/nodes'),
-        thornode.fetch('/thorchain/mimir/key/PendulumAssetBasisPoints'),
-        thornode.fetch('/thorchain/mimir/key/PendulumUseVaultAssets'),
-        thornode.fetch('/thorchain/mimir/key/PendulumUseEffectiveSecurity')
+        getMimirValues(['PendulumAssetBasisPoints', 'PendulumUseVaultAssets', 'PendulumUseEffectiveSecurity'])
       ]);
+      const { PendulumAssetBasisPoints: mimirData, PendulumUseVaultAssets: pendulumUseVaultAssetsData, PendulumUseEffectiveSecurity: pendulumUseEffectiveSecurityData } = mimirValues;
 
       const assetTotals = {};
       const poolPrices = {};
@@ -58,8 +58,8 @@
         poolPrices[pool.asset] = assetPrice;
       });
 
-      pendulumUseVaultAssets = Number(pendulumUseVaultAssetsData);
-      pendulumUseEffectiveSecurity = Number(pendulumUseEffectiveSecurityData);
+      pendulumUseVaultAssets = pendulumUseVaultAssetsData ?? -1;
+      pendulumUseEffectiveSecurity = pendulumUseEffectiveSecurityData ?? -1;
 
       // Calculate totalSecuredValue based on PendulumUseVaultAssets
       if (pendulumUseVaultAssets === 1) {
@@ -107,7 +107,7 @@
       }
 
       // Set PendulumAssetBasisPoints
-      pendulumAssetBasisPoints = Number(mimirData) > 0 ? Number(mimirData) : 10000;
+      pendulumAssetBasisPoints = mimirData > 0 ? mimirData : 10000;
 
       // Calculate Adjusted Secured Assetsz
       totalAdjustedSecuredValue = totalSecuredValue * (pendulumAssetBasisPoints / 10000);

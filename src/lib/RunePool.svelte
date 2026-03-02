@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import Chart from "chart.js/auto";
   import { thornode } from '$lib/api';
+  import { getAllMimir } from '$lib/utils/mimir';
   import { PageHeader } from '$lib/components';
   import { formatDuration } from '$lib/utils/formatting';
   import { blocksToSeconds } from '$lib/utils/blockchain';
@@ -78,7 +79,7 @@
     // Fetch user position, mimir, and last block in parallel
     const [data, mimirData, blockData] = await Promise.all([
       thornode.fetch(`/thorchain/rune_provider/${address}`),
-      thornode.fetch('/thorchain/mimir'),
+      getAllMimir(),
       thornode.fetch('/thorchain/lastblock')
     ]);
 
@@ -119,7 +120,7 @@
         // First get all pools data and mimir in parallel
         const [poolsData, mimirData] = await Promise.all([
           thornode.fetch('/thorchain/pools'),
-          thornode.fetch('/thorchain/mimir')
+          getAllMimir()
         ]);
 
         // Create a map of pool balances

@@ -25,6 +25,7 @@
 
 import { thornode } from '../api/thornode.js';
 import { midgard } from '../api/midgard.js';
+import { getMimirValue } from './mimir.js';
 import { fromBaseUnit } from './blockchain.js';
 import { getAddressSuffix } from './formatting.js';
 import { getCurrentBlock, getSecondsPerBlock } from './network.js';
@@ -456,14 +457,14 @@ export function getSecondsUntilChurn(lastChurnTimestamp, churnIntervalBlocks, bl
  * console.log(`Halted: ${churnInfo.isHalted}`);
  */
 export async function getChurnInfo(lastChurnTimestamp, options = {}) {
-  // Fetch churn-related MIMIR values
-  const [churnIntervalText, haltChurningText] = await Promise.all([
-    thornode.getMimir('CHURNINTERVAL', options).catch(() => '43200'), // Default ~3 days
-    thornode.getMimir('HALTCHURNING', options).catch(() => '0')
+  // Fetch churn-related MIMIR values (cached 5 min via shared module)
+  const [churnInterval, haltChurning] = await Promise.all([
+    getMimirValue('CHURNINTERVAL').catch(() => 43200), // Default ~3 days
+    getMimirValue('HALTCHURNING').catch(() => 0)
   ]);
 
-  const churnIntervalBlocks = Number(churnIntervalText);
-  const isHalted = Number(haltChurningText) === 1;
+  const churnIntervalBlocks = churnInterval || 43200;
+  const isHalted = haltChurning === 1;
 
   const nextChurnTimestamp = calculateNextChurnTime(lastChurnTimestamp, churnIntervalBlocks);
   const secondsRemaining = getSecondsUntilChurn(lastChurnTimestamp, churnIntervalBlocks);
@@ -507,8 +508,13 @@ export function getTimeSinceChurn(lastChurnTimestamp) {
   };
 }
 
+// Churns cache — churns only happen every ~3 days, no need to re-fetch every poll
+let churnsCache = null;
+let churnsCacheTimestamp = 0;
+const CHURNS_CACHE_TTL = 600_000; // 10 minutes
+
 /**
- * Fetch recent churns from Midgard
+ * Fetch recent churns from Midgard (cached 10 min)
  *
  * Returns an array of churn events with height, timestamp, and delta blocks.
  *
@@ -521,27 +527,33 @@ export function getTimeSinceChurn(lastChurnTimestamp) {
  * console.log(`Last churn at block ${churns[0].height}`);
  */
 export async function getRecentChurns(limit = 10, options = {}) {
-  const churns = await midgard.getChurns(options);
+  const now = Date.now();
+  if (!churnsCache || now - churnsCacheTimestamp >= CHURNS_CACHE_TTL) {
+    const churns = await midgard.getChurns(options);
 
-  if (!Array.isArray(churns) || churns.length === 0) {
-    return [];
+    if (!Array.isArray(churns) || churns.length === 0) {
+      return [];
+    }
+
+    // Parse and cache the full result — callers slice by limit
+    churnsCache = churns.map((c, idx, arr) => {
+      const height = Number(c.height);
+      const timestampSec = Math.floor(Number(c.date) / 1e9);
+      const next = arr[idx + 1];
+      const prevHeight = next ? Number(next.height) : null;
+      const deltaBlocks = prevHeight ? height - prevHeight : null;
+
+      return {
+        height,
+        timestampSec,
+        timestamp: new Date(timestampSec * 1000),
+        deltaBlocks
+      };
+    });
+    churnsCacheTimestamp = now;
   }
 
-  // Midgard returns latest first
-  return churns.slice(0, limit).map((c, idx, arr) => {
-    const height = Number(c.height);
-    const timestampSec = Math.floor(Number(c.date) / 1e9);
-    const next = arr[idx + 1];
-    const prevHeight = next ? Number(next.height) : null;
-    const deltaBlocks = prevHeight ? height - prevHeight : null;
-
-    return {
-      height,
-      timestampSec,
-      timestamp: new Date(timestampSec * 1000),
-      deltaBlocks
-    };
-  });
+  return churnsCache.slice(0, limit);
 }
 
 /**
@@ -579,10 +591,10 @@ export async function getLastChurn(options = {}) {
  * console.log(`Next churn at block ${nextChurnHeight} (${source})`);
  */
 export async function getNextChurnHeight(options = {}) {
-  // Get last churn and churn interval
+  // Get last churn and churn interval (cached 5 min via shared module)
   const lastChurn = await getLastChurn(options);
-  const churnIntervalText = await thornode.getMimir('CHURNINTERVAL', options).catch(() => '43200');
-  const churnIntervalBlocks = Number(churnIntervalText);
+  const churnInterval = await getMimirValue('CHURNINTERVAL').catch(() => 43200);
+  const churnIntervalBlocks = churnInterval || 43200;
   const lastChurnHeight = lastChurn?.height || 0;
 
   // Try to get next churn height from network endpoint
@@ -661,19 +673,20 @@ export async function getChurnState(options = {}) {
   const { recentChurnsLimit = 0, ...fetchOptions } = options;
 
   // Fetch most data in parallel (avoiding duplicate churns and status calls)
-  const [churnsData, networkData, churnIntervalText, haltChurningText, currentHeight] = await Promise.all([
+  // Mimir values served from shared 5-min cache — no extra HTTP requests
+  const [churnsData, networkData, churnInterval, haltChurning, currentHeight] = await Promise.all([
     recentChurnsLimit > 0 ? getRecentChurns(recentChurnsLimit, fetchOptions) : getLastChurn(fetchOptions),
     thornode.fetch('/thorchain/network', fetchOptions).catch(() => null),
-    thornode.getMimir('CHURNINTERVAL', fetchOptions).catch(() => '43200'),
-    thornode.getMimir('HALTCHURNING', fetchOptions).catch(() => '0'),
+    getMimirValue('CHURNINTERVAL').catch(() => 43200),
+    getMimirValue('HALTCHURNING').catch(() => 0),
     getCurrentBlock()
   ]);
 
   // Get seconds per block, passing the currentHeight we already have
   const secondsPerBlock = await getSecondsPerBlock(10, { ...fetchOptions, currentHeight });
 
-  const isHalted = Number(haltChurningText) === 1;
-  const churnIntervalBlocks = Number(churnIntervalText);
+  const isHalted = haltChurning === 1;
+  const churnIntervalBlocks = churnInterval || 43200;
 
   // Extract values - handle both array (recent churns) and single object (last churn)
   const recentChurns = Array.isArray(churnsData) ? churnsData : [];

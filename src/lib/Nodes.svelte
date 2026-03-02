@@ -6,7 +6,7 @@
   import { formatNumber as formatNumberUtil, formatCountdown, copyToClipboard } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { calculateAPR as calcAPR, calculateAPY as calcAPY } from '$lib/utils/calculations';
-  import { fetchWithFallback, fetchMimirValue } from '$lib/utils/api';
+  import { getMimirValue } from '$lib/utils/mimir';
   import { CopyIcon, ClockIcon, PlayIcon, PauseIcon, LinkOutIcon } from '$lib/components';
   import {
     getNodes,
@@ -419,18 +419,6 @@
   $: filteredActiveNodes = searchNodes(activeNodes, searchQuery);
   $: filteredStandbyNodes = searchNodes(standbyNodes, searchQuery);
 
-  // Add function to fetch latest block height
-  const fetchLatestBlock = async () => {
-    try {
-      const response = await fetchWithFallback('/thorchain/lastblock');
-      const data = await response.json();
-      const thorchainBlock = data.find(item => item.chain === 'AVAX')?.thorchain || 0;
-      currentBlockHeight = thorchainBlock;
-    } catch (error) {
-      console.error('Error fetching latest block:', error);
-    }
-  };
-
   // Update fetchNodes to include block height fetch
   const fetchNodes = async () => {
     if (isPaused) return;
@@ -440,13 +428,13 @@
       const [nodesData, churnState] = await Promise.all([
         getNodes({ cache: false }),
         getChurnState({ cache: false }),
-        fetchLatestBlock(),
         fetchMimirValuesLocal()
       ]);
 
       nodes = nodesData;
 
-      // Get churn state from unified function
+      // Get churn state from unified function (includes currentHeight)
+      currentBlockHeight = churnState.currentHeight;
       lastChurnHeight = churnState.lastChurnTimestamp;
       recentChurnTimestamp = churnState.lastChurnTimestamp;
       isChurningHalted = churnState.isHalted;
@@ -554,17 +542,17 @@
     return vaultColorMap.get(vaultId);
   };
 
-  // Fetch mimir values using shared utility (churn info is fetched separately via getChurnInfo)
+  // Fetch mimir values using shared cached module (churn info is fetched separately via getChurnInfo)
   const fetchMimirValuesLocal = async () => {
     try {
       const [newNodes, minBond, maxValidator] = await Promise.all([
-        fetchMimirValue('NUMBEROFNEWNODESPERCHURN'),
-        fetchMimirValue('MinimumBondInRune'),
-        fetchMimirValue('DESIREDVALIDATORSET')
+        getMimirValue('NUMBEROFNEWNODESPERCHURN'),
+        getMimirValue('MinimumBondInRune'),
+        getMimirValue('DESIREDVALIDATORSET')
       ]);
 
       newNodesPerChurn = newNodes || 4;
-      minimumBondInRune = fromBaseUnit(minBond);
+      minimumBondInRune = fromBaseUnit(minBond || 0);
       maxValidatorSet = maxValidator || 120;
     } catch (error) {
       console.error('Error fetching mimir values:', error);

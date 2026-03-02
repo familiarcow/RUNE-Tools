@@ -7,6 +7,7 @@
   import { fetchJSONWithFallback } from '$lib/utils/api';
   import { ErrorDisplay } from '$lib/components';
   import { thornode } from '$lib/api/thornode';
+  import { getMimirValue } from '$lib/utils/mimir';
 
   interface ThorNameResponse {
     name: string;
@@ -149,8 +150,8 @@
 
   async function queryPreferredAssetFeeMultiplier() {
     try {
-      const data = await thornode.getMimir('PreferredAssetOutboundFeeMultiplier');
-      preferredAssetFeeMultiplier = Number(data) || 200; // Use 200 as fallback if the response is not a valid number
+      const data = await getMimirValue('PreferredAssetOutboundFeeMultiplier');
+      preferredAssetFeeMultiplier = data || 200; // Use 200 as fallback if not set
       console.log('Preferred Asset Fee Multiplier:', preferredAssetFeeMultiplier);
     } catch (error) {
       console.error('Error fetching Preferred Asset Fee Multiplier:', error);

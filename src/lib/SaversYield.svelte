@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import Chart from "chart.js/auto";
   import { thornode } from '$lib/api/thornode';
+  import { getAllMimir } from '$lib/utils/mimir';
 
   let MAXSYNTHSFORSAVERSYIELD;
   let SYNTHYIELDBASISPOINTS;
@@ -148,7 +149,7 @@
 
   //Get relevant mimir values
   async function getConstants() {
-    const data = await thornode.getAllMimir();
+    const data = await getAllMimir();
     return {
       MAXSYNTHSFORSAVERSYIELD: data["MAXSYNTHSFORSAVERSYIELD"],
       SYNTHYIELDBASISPOINTS: data["SYNTHYIELDBASISPOINTS"],

@@ -911,7 +911,8 @@ export function calculateVaultSurplus(vaultBalance, poolBalance, tradeDepth = 0)
 /**
  * Get current THORChain block height
  *
- * Tries RPC endpoint first (fastest), falls back to THORNode lastblock.
+ * Fetches /thorchain/lastblock and reads the `thorchain` field from any entry.
+ * All entries share the same THORChain height regardless of external chain.
  *
  * @returns {Promise<number>} Current block height, or 0 on error
  *
@@ -920,24 +921,10 @@ export function calculateVaultSurplus(vaultBalance, poolBalance, tradeDepth = 0)
  * console.log(`Current block: ${block.toLocaleString()}`);
  */
 export async function getCurrentBlock() {
-  // Try RPC status endpoint first (fastest)
-  try {
-    const response = await fetch('https://rpc-v2.ninerealms.com/status', {
-      headers: { 'x-client-id': 'RuneTools' }
-    });
-    const data = await response.json();
-    const height = Number(data.result?.sync_info?.latest_block_height);
-    if (height > 0) return height;
-  } catch (e) {
-    // Continue to fallback
-  }
-
-  // Fallback to THORNode lastblock
   try {
     const data = await fetchJSONWithFallback('/thorchain/lastblock');
-    if (Array.isArray(data)) {
-      const thor = data.find((x) => (x?.chain || '').toUpperCase() === 'THOR');
-      const height = Number(thor?.thorchain || thor?.last_observed_in);
+    if (Array.isArray(data) && data.length > 0) {
+      const height = Number(data[0]?.thorchain);
       if (height > 0) return height;
     }
   } catch (e) {

@@ -14,6 +14,7 @@
  */
 
 import { fetchJSONWithFallback, THORNODE_ENDPOINTS, MIDGARD_ENDPOINTS } from './api.js';
+import { getAllMimir } from './mimir.js';
 import { fromBaseUnit } from './blockchain.js';
 // Import general network functions and re-export for backwards compatibility
 import { getRunePrice, getCurrentBlock } from './network.js';
@@ -273,7 +274,7 @@ export async function getTotalStakedTCY() {
  */
 export async function getTCYMimir() {
   try {
-    const mimirData = await fetchJSONWithFallback('/thorchain/mimir');
+    const mimirData = await getAllMimir();
 
     const result = {};
     for (const key of TCY_MIMIR_KEYS) {

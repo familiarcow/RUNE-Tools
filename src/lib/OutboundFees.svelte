@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { getAllMimir } from '$lib/utils/mimir';
   import { fromBaseUnit, getAssetShortName } from '$lib/utils/blockchain';
   import { formatNumber as formatNum, formatUSD as formatUSDUtil, formatBasisPoints, formatMimirBasisPoints } from '$lib/utils/formatting';
   import { getAllPools } from '$lib/utils/liquidity';
@@ -154,7 +154,7 @@
       const [feesData, poolsData, mimirDataResponse] = await Promise.all([
         getOutboundFees(),
         getAllPools(),
-        fetchJSONWithFallback('/thorchain/mimir')
+        getAllMimir()
       ]);
 
       // Create price mapping from pools data

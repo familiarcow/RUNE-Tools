@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { thornode } from '$lib/api';
+  import { getMimirValue } from '$lib/utils/mimir';
   import { PageHeader, LoadingBar } from '$lib/components';
   import { formatNumber } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
@@ -31,10 +32,10 @@
       const [vaults, pools, tvlCapValue] = await Promise.all([
         thornode.fetch('/thorchain/vaults/asgard'),
         thornode.fetch('/thorchain/pools'),
-        thornode.fetch('/thorchain/mimir/key/TVLCAPBASISPOINTS')
+        getMimirValue('TVLCAPBASISPOINTS')
       ]);
 
-      tvlCapBasisPoints = tvlCapValue;
+      tvlCapBasisPoints = tvlCapValue ?? -1;
 
       // Create a map of asset prices in RUNE
       const assetPrices = {};
