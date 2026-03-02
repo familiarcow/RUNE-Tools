@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Chart from 'chart.js/auto';
+  import { midgard } from '$lib/api/midgard';
 
   let days = 30;
   let volumeData = null;
@@ -48,35 +49,21 @@
 
   async function fetchThorchainData() {
     console.log('🔍 Fetching THORChain data from Midgard API...');
-    
+
     try {
-      let apiUrl;
-      
+      let params;
+
       if (useCustomRange) {
-        // Convert dates to Unix timestamps
         const fromTimestamp = Math.floor(new Date(startDate + 'T00:00:00.000Z').getTime() / 1000);
         const toTimestamp = Math.floor(new Date(endDate + 'T23:59:59.999Z').getTime() / 1000);
-        
-        // For custom ranges, use from/to timestamps
-        apiUrl = `https://midgard.ninerealms.com/v2/history/swaps?interval=day&from=${fromTimestamp}&to=${toTimestamp}`;
+        params = { interval: 'day', from: fromTimestamp, to: toTimestamp };
         console.log(`📅 Custom range: ${startDate} to ${endDate} (${fromTimestamp} to ${toTimestamp})`);
       } else {
-        // For preset ranges, use count
-        apiUrl = `https://midgard.ninerealms.com/v2/history/swaps?interval=day&count=${days}`;
+        params = { interval: 'day', count: days };
         console.log(`📅 Preset range: last ${days} days`);
       }
-      
-      console.log(`📡 Fetching THORChain from:`, apiUrl);
-      
-      const response = await fetch(apiUrl);
-      console.log(`📊 THORChain Midgard response status:`, response.status);
-      
-      if (!response.ok) {
-        console.warn(`⚠️ THORChain Midgard endpoint failed:`, response.status, response.statusText);
-        return null;
-      }
-      
-      const data = await response.json();
+
+      const data = await midgard.getSwapHistory(params);
       console.log(`✅ THORChain Midgard data received:`, {
         intervalsCount: data.intervals?.length,
         sampleInterval: data.intervals?.[0]

@@ -1,11 +1,11 @@
 <script>
   import { onMount } from 'svelte';
-  import axios from 'axios';
   import { formatUSD, getAddressSuffix, copyToClipboard } from '$lib/utils/formatting';
   import { fromBaseUnit, getAssetShortName } from '$lib/utils/blockchain';
   import { calculateLPValue } from '$lib/utils/liquidity';
   import { getAssetLogo } from '$lib/constants/assets';
   import { CopyIcon } from '$lib/components';
+  import { thornode } from '$lib/api/thornode';
 
   export let address = null;
   export let pool = null;
@@ -17,9 +17,6 @@
   let loading = true;
   let error = null;
   let showMore = false;
-
-  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.ninerealms.com';
-  const ARCHIVE_DOMAIN = 'https://thornode-archive.ninerealms.com';
 
   // Asset logos now imported from $lib/constants/assets via getAssetLogo()
 
@@ -33,15 +30,8 @@
     loading = true;
     error = null;
 
-    const domain = height ? ARCHIVE_DOMAIN : API_DOMAIN;
-    let url = `${domain}/thorchain/pool/${pool}/liquidity_provider/${address}`;
-    if (height) {
-      url += `?height=${height}`;
-    }
-
     try {
-      const response = await axios.get(url);
-      lpData = response.data;
+      lpData = await thornode.getLiquidityProvider(pool, address, height ? { blockHeight: height } : {});
 
       // Convert deposit and redeem values from base units
       ['rune_deposit_value', 'asset_deposit_value', 'rune_redeem_value', 'asset_redeem_value'].forEach(key => {

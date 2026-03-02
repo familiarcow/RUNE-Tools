@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
+  import { thornode } from '$lib/api/thornode';
 
   let assets = [];
   let fromAsset = 'BTC.BTC';
@@ -46,13 +47,10 @@
 
   onMount(async () => {
     try {
-      const [poolsResponse, networkResponse] = await Promise.all([
-        fetch('https://thornode.ninerealms.com/thorchain/pools'),
-        fetch('https://thornode.ninerealms.com/thorchain/network')
+      const [pools, network] = await Promise.all([
+        thornode.getPools(),
+        thornode.getNetwork()
       ]);
-
-      const pools = await poolsResponse.json();
-      const network = await networkResponse.json();
       
       // Get RUNE price in USD from network data
       runePrice = network.rune_price_in_tor / 1e8;

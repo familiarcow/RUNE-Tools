@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
+  import { thornode } from '$lib/api/thornode';
+  import { midgard } from '$lib/api/midgard';
 
   let txId = '';
   let txData = null;
@@ -39,11 +41,7 @@
     error = null;
     try {
       const cleanedTxId = txId.startsWith('0x') ? txId.slice(2) : txId;
-      const response = await fetch(`https://thornode.ninerealms.com/thorchain/tx/status/${cleanedTxId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch transaction status');
-      }
-      txData = await response.json();
+      txData = await thornode.getTxStatus(cleanedTxId);
     } catch (err) {
       error = err.message;
     } finally {
@@ -56,11 +54,7 @@
     error = null;
     try {
       const cleanedTxId = txId.startsWith('0x') ? txId : txId;
-      const response = await fetch(`https://midgard.ninerealms.com/v2/actions?txid=${cleanedTxId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch Midgard actions');
-      }
-      midgardData = await response.json();
+      midgardData = await midgard.getAction(cleanedTxId);
     } catch (err) {
       error = err.message;
     } finally {

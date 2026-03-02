@@ -6,6 +6,8 @@
         import { slide } from 'svelte/transition';
         import { SettingsIcon } from '$lib/components';
         import AssetDropdown from './SwapEstimator/AssetDropdown.svelte';
+        import { thornode } from '$lib/api/thornode';
+        import { midgard } from '$lib/api/midgard';
   
           
         let amount = null; //random starting swap
@@ -276,10 +278,8 @@
 
       async function fetchAssetPrices() {
         try {
-          const priceUrl = `https://midgard.ninerealms.com/v2/pools`;
-          const priceResponse = await fetch(priceUrl);
-          const priceResult = await priceResponse.json();
-          
+          const priceResult = await midgard.getPools();
+
           assetPrices = priceResult.reduce((acc, pool) => {
             acc[pool.asset] = parseFloat(pool.assetPriceUSD);
             return acc;
@@ -326,24 +326,22 @@
         //estimate swap output value in USD
         const estimatedValueUSD = amount * assetInPriceUSD;
     
-        // Fetch the streaming swap quote from thornode
-        let url_stream = `https://thornode.ninerealms.com/thorchain/quote/swap?`;
-        
-        // Add height parameter if provided
-        if (height) {
-            url_stream += `height=${height}&`; 
-        }
-        
-        // Add the rest of the parameters
-        url_stream += `amount=${amountToSend}&from_asset=${from_asset}&to_asset=${to_asset}&destination=${destination}&streaming_interval=${streaming_interval}&streaming_quantity=${streaming_quantity}`;
-
-        // Add affiliate parameters if enabled
+        // Build quote parameters
+        const quoteParams = {
+          amount: amountToSend,
+          from_asset,
+          to_asset,
+          destination,
+          streaming_interval,
+          streaming_quantity
+        };
+        if (height) quoteParams.height = height;
         if (enableAffiliateSettings && affiliateAddress && affiliateFeeBps) {
-            url_stream += `&affiliate=${affiliateAddress}&affiliate_bps=${affiliateFeeBps}`;
+          quoteParams.affiliate = affiliateAddress;
+          quoteParams.affiliate_bps = affiliateFeeBps;
         }
 
-        const response_stream = await fetch(url_stream);
-        const result_stream = await response_stream.json();
+        const result_stream = await thornode.getSwapQuote(quoteParams);
     
         if (result_stream.error) {
           throw new Error(result_stream.error);

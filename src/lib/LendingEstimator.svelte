@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { slide } from "svelte/transition";
+  import { thornode } from '$lib/api/thornode';
   let fromAsset = "BTC.BTC"; // default collateral asset BTC
   let userFromAmount = ""; // user inputted fromAmount (not yet converted to 1e8)
   let toAsset = "ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7"; // Asset the user will receive their debt equivalent in (default USDT)
@@ -80,14 +81,12 @@
 
     try {
       let fromAmount = Math.round(userFromAmount * 1e8);
-      const endpoint = `https://thornode.ninerealms.com/thorchain/quote/loan/open?from_asset=${fromAsset}&amount=${fromAmount}&to_asset=${toAsset}&destination=${toAddress}`;
-      const res = await fetch(endpoint);
-
-      if (!res.ok) {
-        throw new Error(`Network response was not ok (${res.status})`);
-      }
-
-      const jsonResponse = await res.json();
+      const jsonResponse = await thornode.getLoanQuote({
+        from_asset: fromAsset,
+        amount: fromAmount,
+        to_asset: toAsset,
+        destination: toAddress
+      });
 
       if (
         jsonResponse.error &&
@@ -154,8 +153,7 @@
 
   // Fetches the available destination assets from THORNode. This will only return gas assets & stablecoins on the EVM chains
   async function fetchToAssets() {
-    const res = await fetch("https://thornode.ninerealms.com/thorchain/pools");
-    const pools = await res.json();
+    const pools = await thornode.getPools();
     toAssets = pools
       .filter((pool) => pool.status === "Available")
       .filter((pool) => {
@@ -185,8 +183,7 @@
 
   // Fetches the available collateral assets from THORNode
   async function fetchFromAssets() {
-    const res = await fetch("https://thornode.ninerealms.com/thorchain/pools");
-    const pools = await res.json();
+    const pools = await thornode.getPools();
     fromAssets = pools
       .filter((pool) => pool.loan_collateral > 0 && Number(pool.loan_collateral_remaining) > 0) // Filter out pools with zero remaining collateral
       .map((pool) => pool.asset);

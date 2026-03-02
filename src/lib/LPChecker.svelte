@@ -1,6 +1,5 @@
 <script>
   import { onMount } from 'svelte';
-  import axios from 'axios';
   import LPDetail from './LPDetail.svelte';
   import { writable } from 'svelte/store';
   import { sleep } from './utils';
@@ -8,6 +7,7 @@
   import { fromBaseUnit, getAssetShortName } from '$lib/utils/blockchain';
   import { getLPType, calculateLPValue } from '$lib/utils/liquidity';
   import { getAddressLabel } from '$lib/constants/addresses';
+  import { thornode } from '$lib/api/thornode';
 
   let pools = [];
   let selectedPool = null;
@@ -26,7 +26,6 @@
   let analyzingProgress = 0;
   let totalAnalysisTime = 0;
 
-  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.ninerealms.com/';
 
   const route = writable({ view: 'list', params: {} });
 
@@ -72,13 +71,13 @@
     window.addEventListener('popstate', updateRoute);
 
     try {
-      const [poolsResponse, networkResponse] = await Promise.all([
-        axios.get(`${API_DOMAIN}/thorchain/pools`),
-        axios.get(`${API_DOMAIN}/thorchain/network`)
+      const [poolsData, networkData] = await Promise.all([
+        thornode.getPools(),
+        thornode.getNetwork()
       ]);
 
-      pools = poolsResponse.data;
-      runePrice = fromBaseUnit(networkResponse.data.rune_price_in_tor);
+      pools = poolsData;
+      runePrice = fromBaseUnit(networkData.rune_price_in_tor);
       pools.forEach(pool => {
         assetPrices[pool.asset] = fromBaseUnit(pool.asset_tor_price);
       });
@@ -111,8 +110,8 @@
 
     for (let pool of pools) {
       try {
-        const response = await axios.get(`${API_DOMAIN}/thorchain/pool/${pool.asset}/liquidity_provider/${address}`);
-        if (response.data) {
+        const data = await thornode.getLiquidityProvider(pool.asset, address);
+        if (data) {
           selectedPool = pool.asset;
           return;
         }
@@ -135,8 +134,8 @@
     loading = true;
     error = null;
     try {
-      const response = await axios.get(`${API_DOMAIN}/thorchain/pool/${selectedPool}/liquidity_providers`);
-      liquidityProviders = response.data.map(lp => {
+      const data = await thornode.getLiquidityProviders(selectedPool);
+      liquidityProviders = data.map(lp => {
         return {
           ...lp,
           type: getLPType(lp.rune_address, lp.asset_address),
@@ -286,8 +285,7 @@
       const lp = liquidityProviders[i];
       const address = lp.rune_address || lp.asset_address;
       try {
-        const response = await axios.get(`${API_DOMAIN}/thorchain/pool/${selectedPool}/liquidity_provider/${address}`);
-        const lpData = response.data;
+        const lpData = await thornode.getLiquidityProvider(selectedPool, address);
 
         // Use shared calculateLPValue for PnL calculation
         const position = {

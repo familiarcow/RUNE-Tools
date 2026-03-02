@@ -6,6 +6,7 @@
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { fetchJSONWithFallback } from '$lib/utils/api';
   import { ErrorDisplay } from '$lib/components';
+  import { thornode } from '$lib/api/thornode';
 
   interface ThorNameResponse {
     name: string;
@@ -83,17 +84,13 @@
 
   async function queryThorName(thorname: string) {
     try {
-      const response = await fetch(`https://thornode.ninerealms.com/thorchain/thorname/${thorname}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: ThorNameResponse = await response.json();
-      
+      const data: ThorNameResponse = await thornode.getThorname(thorname);
+
       // Set preferred_asset to "THOR.RUNE" if it's "."
       if (data.preferred_asset === ".") {
         data.preferred_asset = "THOR.RUNE";
       }
-      
+
       thorNameInfo.set(data);
       console.log('THORName info:', data);
     } catch (error) {
@@ -140,11 +137,7 @@
 
   async function queryNetworkData() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/network');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: NetworkData = await response.json();
+      const data: NetworkData = await thornode.getNetwork();
       networkData.set(data);
       runePrice = fromBaseUnit(data.rune_price_in_tor);
       console.log('Network data:', data);
@@ -156,11 +149,7 @@
 
   async function queryPreferredAssetFeeMultiplier() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/mimir/key/PreferredAssetOutboundFeeMultiplier');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.text();
+      const data = await thornode.getMimir('PreferredAssetOutboundFeeMultiplier');
       preferredAssetFeeMultiplier = Number(data) || 200; // Use 200 as fallback if the response is not a valid number
       console.log('Preferred Asset Fee Multiplier:', preferredAssetFeeMultiplier);
     } catch (error) {

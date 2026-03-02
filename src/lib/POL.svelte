@@ -4,6 +4,7 @@
   import { getRunePrice } from '$lib/utils/network';
   import { getAllPools } from '$lib/utils/liquidity';
   import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { midgard } from '$lib/api/midgard';
 
   const pools = writable([]);
   const loading = writable(true);
@@ -34,10 +35,7 @@
 
   async function fetchMemberPositions(address) {
     try {
-      const response = await fetch(`https://midgard.ninerealms.com/v2/member/${address}`);
-      if (!response.ok) return { pools: [] };
-      const data = await response.json();
-      return data;
+      return await midgard.getMember(address);
     } catch (error) {
       console.error(`Failed to fetch member positions for ${address}:`, error);
       return { pools: [] };

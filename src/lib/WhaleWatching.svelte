@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { slide } from 'svelte/transition';
   import { LinkOutIcon, ChevronDownIcon } from '$lib/components';
+  import { midgard } from '$lib/api/midgard';
 
   let whales = [];
   let loading = true;
@@ -132,8 +133,7 @@
 
   async function fetchTxDetails(txid) {
     try {
-      const response = await fetch(`https://midgard.ninerealms.com/v2/actions?txid=${txid}`);
-      const data = await response.json();
+      const data = await midgard.getAction(txid);
       if (data.actions && data.actions[0]) {
         const action = data.actions[0];
         const affiliateOutput = action.out.find(o => o.affiliate);

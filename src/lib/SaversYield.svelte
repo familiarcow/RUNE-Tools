@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import Chart from "chart.js/auto";
+  import { thornode } from '$lib/api/thornode';
 
   let MAXSYNTHSFORSAVERSYIELD;
   let SYNTHYIELDBASISPOINTS;
@@ -147,10 +148,7 @@
 
   //Get relevant mimir values
   async function getConstants() {
-    const response = await fetch(
-      "https://thornode.ninerealms.com/thorchain/mimir"
-    );
-    const data = await response.json();
+    const data = await thornode.getAllMimir();
     return {
       MAXSYNTHSFORSAVERSYIELD: data["MAXSYNTHSFORSAVERSYIELD"],
       SYNTHYIELDBASISPOINTS: data["SYNTHYIELDBASISPOINTS"],
@@ -180,10 +178,7 @@
 
   //get pools with savers balances and their synth utilization
   async function getPools() {
-    const response = await fetch(
-      "https://thornode.ninerealms.com/thorchain/pools"
-    );
-    const data = await response.json();
+    const data = await thornode.getPools();
     const availablePools = data
       .filter((pool) => pool.status === "Available" && pool.savers_units > 0)
       .sort((a, b) => b.balance_rune - a.balance_rune)

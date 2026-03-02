@@ -50,7 +50,10 @@ class MidgardClient {
 
     try {
       const response = await fetch(`${MIDGARD_BASE}${path}`, {
-        headers: { ...fetchOptions.headers },
+        headers: {
+          'x-client-id': 'RuneTools',
+          ...fetchOptions.headers
+        },
         ...fetchOptions
       });
 

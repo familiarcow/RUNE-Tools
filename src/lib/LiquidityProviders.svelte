@@ -21,8 +21,6 @@
   let loading = true;
   let error = null;
 
-  const API_DOMAIN = import.meta.env.VITE_API_DOMAIN || 'https://thornode.ninerealms.com';
-
   // Add this store to track the active tab across components
   const activeTabStore = writable('checker');
   

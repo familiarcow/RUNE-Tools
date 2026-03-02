@@ -27,12 +27,14 @@ export const PROVIDERS = {
   ninerealms: {
     name: 'ninerealms',
     base: 'https://thornode.ninerealms.com',
+    headers: { 'x-client-id': 'RuneTools' },
     updateFrequency: 60000, // ~1 minute
     priority: 2
   },
   archive: {
     name: 'archive',
     base: 'https://thornode-archive.ninerealms.com',
+    headers: { 'x-client-id': 'RuneTools' },
     supportsBlockHeight: true,
     priority: 3
   }
@@ -333,6 +335,88 @@ class ThorNodeClient {
   async getSwapQuote(params, options = {}) {
     const query = new URLSearchParams(params).toString();
     return this.fetch(`/thorchain/quote/swap?${query}`, options);
+  }
+
+  /**
+   * Get saver data for a specific asset and address
+   * @param {string} asset - Asset identifier
+   * @param {string} address - Saver address
+   * @param {Object} options - Fetch options
+   */
+  async getSaver(asset, address, options = {}) {
+    return this.fetch(
+      `/thorchain/pool/${encodeURIComponent(asset)}/saver/${address}`,
+      options
+    );
+  }
+
+  /**
+   * Get saver withdraw quote
+   * @param {Object} params - Quote parameters (asset, address, withdraw_bps)
+   * @param {Object} options - Fetch options
+   */
+  async getSaverWithdrawQuote(params, options = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.fetch(`/thorchain/quote/saver/withdraw?${query}`, options);
+  }
+
+  /**
+   * Get THORName data
+   * @param {string} name - THORName to look up
+   * @param {Object} options - Fetch options
+   */
+  async getThorname(name, options = {}) {
+    return this.fetch(`/thorchain/thorname/${encodeURIComponent(name)}`, options);
+  }
+
+  /**
+   * Get transaction status
+   * @param {string} txid - Transaction ID
+   * @param {Object} options - Fetch options
+   */
+  async getTxStatus(txid, options = {}) {
+    return this.fetch(`/thorchain/tx/status/${txid}`, options);
+  }
+
+  /**
+   * Get loan open quote
+   * @param {Object} params - Quote parameters (from_asset, amount, to_asset, destination)
+   * @param {Object} options - Fetch options
+   */
+  async getLoanQuote(params, options = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.fetch(`/thorchain/quote/loan/open?${query}`, options);
+  }
+
+  /**
+   * Get limit swaps summary
+   * @param {Object} options - Fetch options
+   */
+  async getLimitSwapsSummary(options = {}) {
+    return this.fetch('/thorchain/queue/limit_swaps/summary', options);
+  }
+
+  /**
+   * Get limit swaps
+   * @param {Object} params - Query parameters (offset, limit, source_asset, target_asset, sort_by, sort_order)
+   * @param {Object} options - Fetch options
+   */
+  async getLimitSwaps(params = {}, options = {}) {
+    const query = new URLSearchParams(params).toString();
+    const path = query ? `/thorchain/queue/limit_swaps?${query}` : '/thorchain/queue/limit_swaps';
+    return this.fetch(path, options);
+  }
+
+  /**
+   * Get all liquidity providers for a pool
+   * @param {string} pool - Pool asset identifier
+   * @param {Object} options - Fetch options
+   */
+  async getLiquidityProviders(pool, options = {}) {
+    return this.fetch(
+      `/thorchain/pool/${encodeURIComponent(pool)}/liquidity_providers`,
+      options
+    );
   }
 }
 

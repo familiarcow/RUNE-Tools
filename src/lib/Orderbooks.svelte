@@ -5,6 +5,7 @@
   import { getRunePrice } from '$lib/utils/network';
   import { fromBaseUnit, normalizeAsset, getAssetType, getChainFromAsset } from '$lib/utils/blockchain';
   import { getPoolDepthUSD } from '$lib/utils/liquidity';
+  import { thornode } from '$lib/api/thornode';
 
   let limitSwapsSummary = null;
   let limitSwaps = [];
@@ -24,14 +25,9 @@
   let testingQuote = new Set(); // Track which swaps are testing quotes
   let quoteResults = new Map(); // Store quote results
 
-  const MAINNET_API = 'https://thornode.ninerealms.com/thorchain';
-
   async function fetchLimitSwapsSummary() {
     try {
-      const response = await fetch(`${MAINNET_API}/queue/limit_swaps/summary`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      limitSwapsSummary = data;
+      limitSwapsSummary = await thornode.getLimitSwapsSummary();
     } catch (err) {
       console.error('Error fetching limit swaps summary:', err);
       error = `Failed to fetch summary: ${err.message}`;
@@ -40,9 +36,7 @@
 
   async function fetchPools() {
     try {
-      const response = await fetch(`${MAINNET_API}/pools`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
+      const data = await thornode.getPools();
       pools = Array.isArray(data) ? data : [];
       
       // Create a map of asset -> USD price for quick lookup
@@ -102,10 +96,8 @@
 
   async function fetchLimitSwaps() {
     try {
-      const response = await fetch(`${MAINNET_API}/queue/limit_swaps`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      
+      const data = await thornode.getLimitSwaps();
+
       // Ensure we always have an array
       if (Array.isArray(data)) {
         limitSwaps = data;
@@ -123,7 +115,7 @@
   async function fetchPairDetails(sourceAsset, targetAsset) {
     loadingPairDetails = true;
     try {
-      const params = new URLSearchParams({
+      const data = await thornode.getLimitSwaps({
         offset: '0',
         limit: '100',
         source_asset: sourceAsset,
@@ -131,10 +123,7 @@
         sort_by: 'ratio',
         sort_order: 'asc'
       });
-      const response = await fetch(`${MAINNET_API}/queue/limit_swaps?${params}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      
+
       if (Array.isArray(data)) {
         pairSwaps = data;
       } else if (data?.limit_swaps) {
@@ -396,13 +385,14 @@
       const streamingInterval = swap.swap.state?.interval || "0";
       const streamingQuantity = swap.swap.state?.quantity || "4";
 
-      // Build the quote URL for mainnet
-      let url = `${MAINNET_API}/quote/swap?`;
-      url += `amount=${amount}&from_asset=${fromAsset}&to_asset=${toAsset}&destination=${destination}`;
-      url += `&streaming_interval=${streamingInterval}&streaming_quantity=${streamingQuantity}`;
-
-      const response = await fetch(url);
-      const result = await response.json();
+      const result = await thornode.getSwapQuote({
+        amount,
+        from_asset: fromAsset,
+        to_asset: toAsset,
+        destination,
+        streaming_interval: streamingInterval,
+        streaming_quantity: streamingQuantity
+      });
 
       if (result.error) {
         throw new Error(result.error);

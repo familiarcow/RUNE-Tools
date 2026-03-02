@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { slide } from 'svelte/transition';
   import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
+  import { thornode } from '$lib/api/thornode';
 
   interface Pool {
     asset: string;
@@ -161,18 +162,17 @@
 
   async function fetchTokenLists() {
     try {
-      const [ethResponse, configResponse, poolsResponse] = await Promise.all([
+      const [ethResponse, configResponse, pools] = await Promise.all([
         fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/common%2Ftokenlist%2Fethtokens%2Feth_mainnet_latest.json/raw?ref=develop'),
         fetch('https://gitlab.com/api/v4/projects/thorchain%2Fthornode/repository/files/config%2Fdefault.yaml/raw?ref=develop'),
-        fetch('https://thornode.ninerealms.com/thorchain/pools')
+        thornode.getPools()
       ]);
 
-      if (!ethResponse.ok || !configResponse.ok) 
+      if (!ethResponse.ok || !configResponse.ok)
         throw new Error('Failed to fetch token lists');
 
       const ethList = await ethResponse.json();
       const configText = await configResponse.text();
-      const pools: Pool[] = await poolsResponse.json();
 
       // Parse YAML to extract whitelist tokens
       const chainWhitelists: Record<string, string[]> = {};

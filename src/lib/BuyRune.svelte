@@ -17,6 +17,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { ethers } from 'ethers';
   import { fade } from 'svelte/transition';
+  import { thornode } from '$lib/api/thornode';
   
   let account = '';
   let selectedAsset = 'ETH';
@@ -73,8 +74,7 @@
 
   async function fetchThorchainAddresses() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/inbound_addresses');
-      const data = await response.json();
+      const data = await thornode.getInboundAddresses();
       const ethChain = data.find(chain => chain.chain === 'ETH');
       
       if (!ethChain) {
@@ -101,8 +101,7 @@
 
   async function fetchPoolPrices() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/pools');
-      const pools = await response.json();
+      const pools = await thornode.getPools();
       
       const ethPool = pools.find(p => p.asset === 'ETH.ETH');
       const usdcPool = pools.find(p => p.asset === 'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48');
@@ -375,10 +374,14 @@
   async function fetchQuote() {
     try {
       const amountToSend = getNumericAmount() * 1e8;
-      const url = `https://thornode.ninerealms.com/thorchain/quote/swap?amount=${amountToSend}&from_asset=${getFullAssetString(selectedAsset)}&to_asset=THOR.RUNE&destination=${runeAddress}&affiliate=${MEMO_CONFIG.AFFILIATE}&affiliate_bps=${MEMO_CONFIG.FEE}`;
-      
-      const response = await fetch(url);
-      const result = await response.json();
+      const result = await thornode.getSwapQuote({
+        amount: amountToSend,
+        from_asset: getFullAssetString(selectedAsset),
+        to_asset: 'THOR.RUNE',
+        destination: runeAddress,
+        affiliate: MEMO_CONFIG.AFFILIATE,
+        affiliate_bps: MEMO_CONFIG.FEE
+      });
 
       // Check for explicit error
       if (result.error) {
@@ -461,8 +464,7 @@
   // Add this helper function to verify addresses
   async function verifyThorchainAddresses() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/inbound_addresses');
-      const data = await response.json();
+      const data = await thornode.getInboundAddresses({ cache: false });
       const ethChain = data.find(chain => chain.chain === 'ETH');
       
       if (!ethChain) {

@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
+  import { thornode } from '$lib/api/thornode';
 
   export let asset = "";
   export let address = "";
@@ -20,11 +21,7 @@
 
   async function fetchAvailableAssets() {
     try {
-      const response = await fetch("https://thornode.ninerealms.com/thorchain/pools");
-      if (!response.ok) {
-        throw new Error('Failed to fetch pool data');
-      }
-      const pools = await response.json();
+      const pools = await thornode.getPools();
       availableAssets = pools
         .filter(pool => parseInt(pool.savers_depth) > 0)
         .map(pool => ({
@@ -51,11 +48,7 @@
 
   async function fetchSaverData() {
     try {
-      const response = await fetch(`https://thornode.ninerealms.com/thorchain/pool/${asset}/saver/${address}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch saver data');
-      }
-      saverData = await response.json();
+      saverData = await thornode.getSaver(asset, address);
       isViewingPosition = true;
       updateURL();
     } catch (err) {
@@ -103,11 +96,7 @@
   async function fetchWithdrawQuote() {
     try {
       const bps = Math.floor(withdrawPercentage * 100);
-      const response = await fetch(`https://thornode.ninerealms.com/thorchain/quote/saver/withdraw?asset=${asset}&address=${address}&withdraw_bps=${bps}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch withdraw quote');
-      }
-      withdrawQuote = await response.json();
+      withdrawQuote = await thornode.getSaverWithdrawQuote({ asset, address, withdraw_bps: bps });
     } catch (err) {
       error = err.message;
     }

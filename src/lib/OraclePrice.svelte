@@ -5,6 +5,7 @@
   import { fetchJSONWithFallback } from '$lib/utils/api';
   import { getAllPools } from '$lib/utils/liquidity';
   import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { thornode } from '$lib/api/thornode';
   import { RefreshIcon } from '$lib/components';
 
   const oraclePrices = writable({});
@@ -190,8 +191,7 @@
 
   async function fetchRunePrice() {
     try {
-      const response = await fetch('https://thornode.ninerealms.com/thorchain/network');
-      const data = await response.json();
+      const data = await thornode.getNetwork();
       return Number(data.rune_price_in_tor) / 1e8;
     } catch (error) {
       console.error('Failed to fetch RUNE price:', error);

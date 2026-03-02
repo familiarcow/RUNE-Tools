@@ -76,8 +76,13 @@ export async function fetchWithFallback(endpoint, options = {}, endpoints = THOR
 
   for (const base of order) {
     const url = `${base}${endpoint}`;
+    // Add x-client-id for ninerealms endpoints to get our own rate limit bucket
+    const isNinerealms = base.includes('ninerealms.com');
+    const fetchOpts = isNinerealms
+      ? { ...options, headers: { 'x-client-id': 'RuneTools', ...options.headers } }
+      : options;
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, fetchOpts);
       if (response.ok) {
         // Clear rate limit and failure count on success
         rateLimitedUntil.delete(base);
