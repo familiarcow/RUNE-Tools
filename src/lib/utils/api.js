@@ -26,14 +26,6 @@ export const THORNODE_ENDPOINTS = {
 };
 
 /**
- * Endpoints that require an x-client-id header
- */
-const CLIENT_ID_ENDPOINTS = new Set([
-  'https://thornode.ninerealms.com',
-  'https://midgard.ninerealms.com'
-]);
-
-/**
  * Midgard API endpoints
  */
 export const MIDGARD_ENDPOINTS = {
@@ -50,6 +42,7 @@ export const MIDGARD_ENDPOINTS = {
  * Key: base URL, Value: timestamp when cooldown expires
  */
 const rateLimitedUntil = new Map();
+const failureCounts = new Map();
 const RATE_LIMIT_COOLDOWN = 60000; // 60 seconds
 
 // ============================================
@@ -83,14 +76,12 @@ export async function fetchWithFallback(endpoint, options = {}, endpoints = THOR
 
   for (const base of order) {
     const url = `${base}${endpoint}`;
-    const fetchOpts = CLIENT_ID_ENDPOINTS.has(base)
-      ? { ...options, headers: { 'x-client-id': 'RuneTools', ...options.headers } }
-      : options;
     try {
-      const response = await fetch(url, fetchOpts);
+      const response = await fetch(url, options);
       if (response.ok) {
-        // Clear rate limit on success
+        // Clear rate limit and failure count on success
         rateLimitedUntil.delete(base);
+        failureCounts.delete(base);
         return response;
       }
       if (response.status === 429) {
@@ -100,6 +91,13 @@ export async function fetchWithFallback(endpoint, options = {}, endpoints = THOR
       lastError = new Error(`${base} failed: ${response.status}`);
       console.warn(`Endpoint failed for ${endpoint}: ${lastError.message}`);
     } catch (error) {
+      // CORS-blocked 429s show up as "Failed to fetch" here
+      const count = (failureCounts.get(base) || 0) + 1;
+      failureCounts.set(base, count);
+      if (count >= 2) {
+        rateLimitedUntil.set(base, Date.now() + RATE_LIMIT_COOLDOWN);
+        console.warn(`${base} failed ${count} times, switching away for ${RATE_LIMIT_COOLDOWN / 1000}s`);
+      }
       lastError = error;
       console.warn(`Endpoint failed for ${endpoint}: ${error.message}`);
     }

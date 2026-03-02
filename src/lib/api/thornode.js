@@ -27,14 +27,12 @@ export const PROVIDERS = {
   ninerealms: {
     name: 'ninerealms',
     base: 'https://thornode.ninerealms.com',
-    headers: { 'x-client-id': 'RuneTools' },
     updateFrequency: 60000, // ~1 minute
     priority: 2
   },
   archive: {
     name: 'archive',
     base: 'https://thornode-archive.ninerealms.com',
-    headers: { 'x-client-id': 'RuneTools' },
     supportsBlockHeight: true,
     priority: 3
   }
@@ -189,9 +187,14 @@ class ThorNodeClient {
         lastError = error;
         console.warn(`THORNode fetch failed for ${provider.name}${path}:`, error.message);
 
-        // Increment failure count
+        // Increment failure count and apply cooldown on repeated failures
+        // (CORS-blocked 429s show up as "Failed to fetch" in the catch block)
         if (provider.name in this.failureCount) {
           this.failureCount[provider.name]++;
+          if (this.failureCount[provider.name] >= 2) {
+            this.rateLimitedUntil[provider.name] = Date.now() + this.rateLimitCooldown;
+            console.warn(`${provider.name} failed ${this.failureCount[provider.name]} times, switching away for ${this.rateLimitCooldown / 1000}s`);
+          }
         }
       }
     }
