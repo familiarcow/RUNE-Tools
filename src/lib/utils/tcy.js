@@ -466,7 +466,9 @@ export async function getRemainingClaimAddresses() {
  */
 export async function getTCYTotalSupply() {
   try {
-    const response = await fetch('https://api.ninerealms.com/thorchain/supply/cmc?asset=tcy&type=total');
+    const response = await fetch('https://api.ninerealms.com/thorchain/supply/cmc?asset=tcy&type=total', {
+      headers: { 'x-client-id': 'RuneTools' }
+    });
     const supply = await response.json();
     return Number(supply) || TCY_TOTAL_SUPPLY;
   } catch (error) {

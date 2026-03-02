@@ -922,7 +922,9 @@ export function calculateVaultSurplus(vaultBalance, poolBalance, tradeDepth = 0)
 export async function getCurrentBlock() {
   // Try RPC status endpoint first (fastest)
   try {
-    const response = await fetch('https://rpc-v2.ninerealms.com/status');
+    const response = await fetch('https://rpc-v2.ninerealms.com/status', {
+      headers: { 'x-client-id': 'RuneTools' }
+    });
     const data = await response.json();
     const height = Number(data.result?.sync_info?.latest_block_height);
     if (height > 0) return height;
