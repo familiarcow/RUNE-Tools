@@ -3,9 +3,9 @@
   import LPChecker from './LPChecker.svelte';
   import LPDetail from './LPDetail.svelte';
   import { writable } from 'svelte/store';
-  import { getAllPools } from '$lib/utils/liquidity';
   import { getRunePrice } from '$lib/utils/network';
   import { fromBaseUnit } from '$lib/utils/blockchain';
+  import { thornode } from '$lib/api/thornode';
   import { ErrorDisplay } from '$lib/components';
 
   let activeTab = 'checker';
@@ -35,18 +35,18 @@
 
   onMount(async () => {
     try {
-      // Fetch pools list and RUNE price using shared utilities
+      // Fetch full pool objects and RUNE price
       const [poolsData, runePriceData] = await Promise.all([
-        getAllPools(),
+        thornode.getPools(),
         getRunePrice()
       ]);
-      pools = poolsData;
       runePrice = runePriceData;
 
-      // Build asset prices map
-      for (const pool of pools) {
+      // Build asset prices map from full pool objects, store asset names for dropdown
+      for (const pool of poolsData) {
         assetPrices[pool.asset] = fromBaseUnit(pool.asset_tor_price);
       }
+      pools = poolsData.map(p => p.asset);
 
       // Parse URL parameters
       const urlParams = new URLSearchParams(window.location.search);
@@ -205,7 +205,7 @@
               <select bind:value={selectedPool} on:change={handlePoolSelect}>
                 <option value="">Select a pool</option>
                 {#each pools as pool}
-                  <option value={pool.asset}>{pool.asset}</option>
+                  <option value={pool}>{pool}</option>
                 {/each}
               </select>
               <input 
