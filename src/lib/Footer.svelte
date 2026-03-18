@@ -1,7 +1,5 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { fade, slide } from 'svelte/transition';
-  import { cubicInOut } from 'svelte/easing';
   import { audioPlaying } from './stores/audioStore';
 
   const emojis = ['🫡', '✍️', '💪', '🧙‍♂️', '🕺', '🏃‍♂️‍➡️', '🦅', '🐋', '🐉', '⚡️', '🌊', '🍷', '🍻', '🏄‍♂️', '🏆', '🎸', '🚀', '🗿', '🗽', '🏗️', '📠', '🔌', '🔮', '🔭', '💯', '🏴‍☠️', '🥷', '👑', '🪐', '🍦', '🍾', '🎯', '❤️', '☑️', '🆒'];
@@ -11,16 +9,6 @@
   }
 
   let randomEmoji;
-  let currentPage = 0;
-  let startX = 0;
-  let startY = 0;
-  let isDragging = false;
-  const totalPages = 2;
-  let autoScrollTimer;
-  let isUserInteracting = false;
-
-  const FIRST_PAGE_DURATION = 15000;  // 15 seconds
-  const OTHER_PAGE_DURATION = 10000;  // 10 seconds
 
   // Music tracks array
   const musicTracks = [
@@ -40,7 +28,6 @@
   let currentTrackTitle = '';
 
   function getTrackTitle(path) {
-    // Extract title from path and format it
     return path
       .split('/')
       .pop()
@@ -48,127 +35,8 @@
       .replace(/-/g, ' ');
   }
 
-  const pages = [
-    {
-      content: {
-        type: 'desktop-app',
-        href: "/desktop",
-        text: "NEW DESKTOP APP - Rune Tools Wallet for MacOS and Windows"
-      }
-    },
-    {
-      content: {
-        type: 'links',
-        elements: [
-          { href: "https://github.com/cow9r/RUNE-Tools", text: "Source" },
-          { text: " by " },
-          { href: "https://x.com/familiarcow", text: "familiarcow" },
-          { emoji: true },
-          { href: "https://x.com/RuneDotTools", text: "Follow on 𝕏" },
-          { type: 'sound' }
-        ]
-      }
-    }
-  ];
-
-  function startAutoScroll() {
-    clearTimeout(autoScrollTimer);
-    const duration = currentPage === 0 ? FIRST_PAGE_DURATION : OTHER_PAGE_DURATION;
-    
-    autoScrollTimer = setTimeout(() => {
-      if (!isUserInteracting) {
-        if (currentPage < totalPages - 1) {
-          currentPage++;
-          startAutoScroll(); // Schedule next scroll
-        } else {
-          currentPage = 0; // Reset to first page
-          startAutoScroll(); // Restart cycle
-        }
-      }
-    }, duration);
-  }
-
-  function handleUserInteraction() {
-    isUserInteracting = true;
-    clearTimeout(autoScrollTimer);
-    
-    // Reset auto-scroll after 30 seconds of no interaction
-    setTimeout(() => {
-      isUserInteracting = false;
-      startAutoScroll();
-    }, 30000);
-  }
-
-  function handleTouchStart(e) {
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    isDragging = true;
-    handleUserInteraction();
-  }
-
-  function handleTouchMove(e) {
-    if (!isDragging) return;
-    
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const diffX = startX - currentX;
-    const diffY = startY - currentY;
-    
-    // If horizontal movement is greater than vertical, handle as horizontal swipe
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-      if (Math.abs(diffX) > 20) {
-        if (diffX > 0) {
-          // Swipe left - next page
-          currentPage = (currentPage + 1) % totalPages;
-          isDragging = false;
-        } else {
-          // Swipe right - previous page
-          currentPage = currentPage === 0 ? totalPages - 1 : currentPage - 1;
-          isDragging = false;
-        }
-      }
-    } else if (Math.abs(diffY) > 20) {
-      // Handle vertical swipe as before
-      if (diffY > 0) {
-        currentPage = (currentPage + 1) % totalPages;
-        isDragging = false;
-      } else if (diffY < 0) {
-        currentPage = currentPage === 0 ? totalPages - 1 : currentPage - 1;
-        isDragging = false;
-      }
-    }
-  }
-
-  function handleTouchEnd() {
-    isDragging = false;
-  }
-
-  function handleWheel(e) {
-    handleUserInteraction();
-    if (Math.abs(e.deltaY) > 10) {
-      if (e.deltaY > 0) {
-        currentPage = (currentPage + 1) % totalPages;
-      } else if (e.deltaY < 0) {
-        currentPage = currentPage === 0 ? totalPages - 1 : currentPage - 1;
-      }
-    }
-  }
-
-  // Add keyboard navigation
-  function handleKeydown(e) {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      handleUserInteraction();
-      if (e.key === 'ArrowDown') {
-        currentPage = (currentPage + 1) % totalPages;
-      } else {
-        currentPage = currentPage === 0 ? totalPages - 1 : currentPage - 1;
-      }
-    }
-  }
-
   function toggleSound() {
     if (!audio) {
-      // Initialize audio on first play
       audio = new Audio();
       audio.addEventListener('ended', playNextTrack);
       currentTrackIndex = Math.floor(Math.random() * musicTracks.length);
@@ -190,7 +58,7 @@
 
   function playNextTrack() {
     if (!$audioPlaying) return;
-    
+
     currentTrackIndex = (currentTrackIndex + 1) % musicTracks.length;
     audio.src = musicTracks[currentTrackIndex];
     currentTrackTitle = getTrackTitle(musicTracks[currentTrackIndex]);
@@ -210,11 +78,9 @@
 
   onMount(() => {
     randomEmoji = getRandomEmoji();
-    startAutoScroll();
   });
 
   onDestroy(() => {
-    clearTimeout(autoScrollTimer);
     if (audio) {
       audio.removeEventListener('ended', playNextTrack);
       audio.pause();
@@ -224,85 +90,49 @@
 </script>
 
 <footer>
-  <div
-    class="page-container"
-    role="button"
-    tabindex="0"
-    on:touchstart={handleTouchStart}
-    on:touchmove={handleTouchMove}
-    on:touchend={handleTouchEnd}
-    on:wheel={handleWheel}
-    on:mouseenter={handleUserInteraction}
-    on:keydown={handleKeydown}
-    on:click={() => {
-      currentPage = (currentPage + 1) % totalPages;
-      handleUserInteraction();
-    }}
-    aria-label="Navigate footer pages"
-  >
-    {#key currentPage}
-      <div 
-        class="page"
-        in:slide={{ 
-          duration: 300,
-          easing: cubicInOut,
-          axis: 'y'
-        }}
+  <div class="footer-content">
+    <span>
+      <a
+        href="https://github.com/cow9r/RUNE-Tools"
+        target="_blank"
+        class="source-link"
+        on:click|stopPropagation={() => trackFooterClick('Source')}
       >
-        {#if pages[currentPage].content.type === 'links'}
-          <span>
-            {#each pages[currentPage].content.elements as element}
-              {#if element.type === 'sound'}
-                <button
-                  class="sound-button"
-                  on:click|stopPropagation={() => { toggleSound(); trackFooterClick('sound_button'); }}
-                  aria-label={$audioPlaying ? 'Stop music' : 'Play music'}
-                  title={currentTrackTitle}
-                >
-                  {#if $audioPlaying}
-                    🔊
-                  {:else}
-                    🔇
-                  {/if}
-                </button>
-              {:else if element.href}
-                <a 
-                  href={element.href} 
-                  target="_blank" 
-                  class="source-link"
-                  on:click|stopPropagation={() => trackFooterClick(element.text)}
-                >
-                  {element.text}
-                </a>
-              {:else if element.emoji}
-                <span class="emoji-wrapper">
-                  {getRandomEmoji()}
-                </span>
-              {:else if element.onClick}
-                <button
-                  class="clickable-text"
-                  on:click|stopPropagation={element.onClick}
-                >
-                  {element.text}
-                </button>
-              {:else}
-                {element.text}
-              {/if}
-            {/each}
-          </span>
-        {:else if pages[currentPage].content.type === 'desktop-app'}
-          <span>
-            <a 
-              href={pages[currentPage].content.href}
-              class="source-link desktop-link"
-              on:click|stopPropagation={() => trackFooterClick(pages[currentPage].content.text)}
-            >
-              {pages[currentPage].content.text}
-            </a>
-          </span>
+        Source
+      </a>
+      {" by "}
+      <a
+        href="https://x.com/familiarcow"
+        target="_blank"
+        class="source-link"
+        on:click|stopPropagation={() => trackFooterClick('familiarcow')}
+      >
+        familiarcow
+      </a>
+      <span class="emoji-wrapper">
+        {getRandomEmoji()}
+      </span>
+      <a
+        href="https://x.com/RuneDotTools"
+        target="_blank"
+        class="source-link"
+        on:click|stopPropagation={() => trackFooterClick('Follow on 𝕏')}
+      >
+        Follow on 𝕏
+      </a>
+      <button
+        class="sound-button"
+        on:click|stopPropagation={() => { toggleSound(); trackFooterClick('sound_button'); }}
+        aria-label={$audioPlaying ? 'Stop music' : 'Play music'}
+        title={currentTrackTitle}
+      >
+        {#if $audioPlaying}
+          🔊
+        {:else}
+          🔇
         {/if}
-      </div>
-    {/key}
+      </button>
+    </span>
   </div>
 </footer>
 
@@ -316,7 +146,6 @@
     align-items: center;
     gap: 0.25rem;
     user-select: none;
-    touch-action: pan-x pan-y;
     position: fixed;
     bottom: 0;
     left: 0;
@@ -326,32 +155,18 @@
     border-top: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .page-container {
-    position: relative;
+  .footer-content {
     width: 100%;
     display: flex;
     justify-content: center;
-    overflow: hidden;
     height: 24px;
-    margin-top: 0;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
-    color: inherit;
-  }
-
-  .page {
-    width: 100%;
+    line-height: 24px;
     text-align: center;
     font-size: 0.95rem;
     font-weight: 400;
-    line-height: 24px;
     white-space: nowrap;
     overflow: hidden;
     color: rgba(255, 255, 255, 0.8);
-    padding-right: 1.5rem;
   }
 
   footer span {
@@ -372,25 +187,6 @@
   .source-link:hover {
     opacity: 1;
     text-shadow: 0 0 8px rgba(49, 253, 157, 0.3);
-  }
-
-  .desktop-link {
-    color: #ffd700 !important;
-    font-weight: 700;
-    animation: gold-glow 2s infinite alternate;
-  }
-
-  .desktop-link:hover {
-    text-shadow: 0 0 12px rgba(255, 215, 0, 0.6) !important;
-  }
-
-  @keyframes gold-glow {
-    from {
-      text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
-    }
-    to {
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-    }
   }
 
   .sound-button {
@@ -416,27 +212,22 @@
       padding: 0.25rem 1rem;
     }
 
-    .page {
+    .footer-content {
       font-size: 0.8rem;
-      padding-right: 1rem;
       line-height: 20px;
-    }
-    
-    .page-container {
       height: 20px;
     }
-    
+
     .sound-button {
       font-size: 0.8rem;
     }
   }
 
   @media (max-width: 400px) {
-    .page {
+    .footer-content {
       font-size: 0.75rem;
-      padding-right: 0.75rem;
     }
-    
+
     .sound-button {
       font-size: 0.75rem;
     }
@@ -453,21 +244,4 @@
     opacity: 1;
     transform: scale(1.1);
   }
-
-  .clickable-text {
-    cursor: pointer;
-    color: #31FD9D;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    opacity: 0.95;
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
-  }
-
-  .clickable-text:hover {
-    opacity: 1;
-    text-shadow: 0 0 8px rgba(49, 253, 157, 0.3);
-  }
-</style> 
+</style>
