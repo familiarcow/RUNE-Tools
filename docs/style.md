@@ -543,9 +543,14 @@ src/lib/components/
 |-----------|:----------:|:---------------:|:------------:|:----------:|:-----:|:--------:|:------------:|
 | BondTracker | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
 | Version | ✅ | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ |
-| **Vaults** | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Vaults | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
 | TCY | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Nodes | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Nodes | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| ChurnCountdown | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Feed | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| WhaleWatching | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+**Legend**: ✅ = Uses shared component | ❌ = Uses inline/local implementation
 
 ### Migration Log
 
@@ -558,17 +563,117 @@ src/lib/components/
 | 2025-01 | BondTracker.svelte | Full migration: CSS variables, Toast component (was inline), simplified toast logic | ✅ Tested |
 | 2025-01 | Version.svelte | CSS variables migration (already had LoadingBar, PageHeader, shared utils) | ✅ Tested |
 | 2025-01 | LinkOutIcon.svelte | Moved from lib root to components folder, updated imports in Version, Feed, WhaleWatching | ✅ Tested |
+| 2026-01 | ErrorDisplay.svelte | Created new shared error/warning display component (variants: error, warning, info; layouts: inline, banner) | ✅ Tested |
+| 2026-01 | LiquidityProviders.svelte | Migrated to use ErrorDisplay component | ✅ Tested |
+| 2026-01 | Affiliates.svelte | Migrated to use ErrorDisplay component for warning messages | ✅ Tested |
 
 ### Migration Priority
 
 1. ~~**High Priority**: Create shared Toast component, migrate BondTracker & Vaults~~ ✅ DONE
-2. **Medium Priority**: Migrate TCY to use shared components
-3. **Medium Priority**: Migrate Feed & WhaleWatching (have local assetIcons mappings)
-4. **Low Priority**: Nodes (complex, requires careful handling)
+2. ~~**High Priority**: Create ErrorDisplay component~~ ✅ DONE (2026-01)
+3. ~~**Medium Priority**: Migrate TCY to use shared components~~ ⏭️ SKIPPED - TCY has intentional unique branding
+4. **Medium Priority**: Migrate Feed & WhaleWatching (have local assetIcons mappings)
+5. **Medium Priority**: Migrate ChurnCountdown to use LoadingBar
+6. **High Priority**: Implement Nodes compact chain health column - Plan at `.claude/plans/refactored-wondering-breeze.md`
 
 ---
 
 ## Observations & Notes
+
+### 2026-01 Architecture Analysis
+
+Comprehensive analysis of UI patterns across all components to identify consolidation opportunities.
+
+#### Loading States Analysis
+
+| Component | Pattern | Status |
+|-----------|---------|--------|
+| BondTracker | Uses shared `LoadingBar` component | ✅ Optimal |
+| Version | Uses shared `LoadingBar` component | ✅ Optimal |
+| Vaults | Uses shared `LoadingBar` component | ✅ Optimal |
+| TCY | Inline shimmer CSS (duplicate) | ⚠️ Needs migration |
+| Nodes | Custom "Loading nodes..." text | ⚠️ Needs migration |
+| ChurnCountdown | Custom inline loading bars | ⚠️ Needs migration |
+| Feed | Simple text-based loading | ⚠️ Needs migration |
+| WhaleWatching | Simple text-based loading | ⚠️ Needs migration |
+
+#### Card Pattern Variations
+
+| Component | Card Style | Height | Notes |
+|-----------|------------|--------|-------|
+| BondTracker | 120px fixed with absolute positioning | 120px | Gold standard |
+| TCY | 120px fixed with absolute positioning | 120px | Same pattern, not using DataCard |
+| Version | Stat cards with flex layout | Auto | Different pattern (compact) |
+| Vaults | Expandable vault cards | Variable | Has expanded state |
+| Nodes | Table rows, not cards | N/A | Different paradigm |
+
+#### Error Handling Patterns (Gap Identified)
+
+**Current State**: No shared error display component. Each component handles errors differently:
+
+| Component | Error Handling |
+|-----------|---------------|
+| BondTracker | Shows inline error text |
+| Version | Shows error in stat card |
+| Vaults | Shows error message in section |
+| TCY | Shows error in alerts section |
+| Nodes | Shows error below table |
+
+**Recommendation**: Create `ErrorDisplay.svelte` component with variants:
+- `inline` - For card-level errors
+- `banner` - For page-level errors
+- `toast` - For transient errors (already have Toast)
+
+#### Header/Title Patterns
+
+| Component | Header Style |
+|-----------|-------------|
+| BondTracker | Gradient h2 with shimmer effect |
+| Version | Uses PageHeader component |
+| Vaults | Gradient h2 with shimmer effect |
+| TCY | Custom teal gradient h2 |
+| Nodes | Custom section headers |
+
+**Status**: Version uses PageHeader. Others have inline h2 styling. TCY has unique branding.
+
+#### Button Patterns
+
+| Component | Button Types |
+|-----------|-------------|
+| BondTracker | ActionButton (refresh, bookmark, external) |
+| Version | Custom refresh button |
+| Vaults | Custom external link buttons |
+| TCY | Custom submit button, toggle buttons |
+| Nodes | Various custom buttons |
+
+**Recommendation**: Extend `ActionButton.svelte` to support:
+- `variant="info"` - For info/help buttons
+- `variant="download"` - For export/download buttons
+- `variant="toggle"` - For on/off states
+
+#### Status Indicator Patterns
+
+| Component | Indicator Style |
+|-----------|----------------|
+| BondTracker | Uses StatusIndicator component |
+| Nodes | Custom status dots with unique colors |
+| TCY | Custom status badges |
+
+**Note**: Nodes has unique status colors (standby, disabled, whitelisted) that StatusIndicator doesn't support yet.
+
+#### Consolidation Priorities (2026-01)
+
+| Priority | Task | Components Affected | Impact | Status |
+|----------|------|---------------------|--------|--------|
+| 1 | Create `ErrorDisplay` component | All | High - No shared error handling exists | ✅ Done |
+| 2 | ~~Migrate TCY to use `LoadingBar`~~ | TCY | N/A - TCY uses on-demand loading, not global state | ⏭️ Skipped |
+| 3 | ~~Migrate TCY to use `DataCard`~~ | TCY | N/A - TCY has intentional unique branding | ⏭️ Skipped |
+| 4 | Implement Nodes compact chain health column | Nodes | High - Reduce horizontal space, improve UX | 🔜 Next |
+| 5 | Add `ActionButton` variants | Version, Vaults, TCY | Low - Standardize button styles | Pending |
+| 6 | Add status variants to `StatusIndicator` | Nodes | Low - Support standby/disabled states | Pending |
+| 7 | Migrate ChurnCountdown to shared components | ChurnCountdown | Medium - Currently has inline loading | Pending |
+
+---
 
 ### 2024-01 Research Session
 
@@ -581,7 +686,7 @@ src/lib/components/
    - Standardize to system fonts (recommended)
    - Or keep Exo as intentional branding
 
-3. **TCY has unique accent color (#28f4af)** - This appears intentional for TCY product branding. Consider keeping this as a theme variant rather than standardizing.
+3. **TCY has unique accent color (#28f4af)** - This is intentional TCY product branding. **Decision (2026-01)**: TCY should NOT be migrated to use standard DataCard component as it would override intentional branding. TCY's teal color scheme and unique card styling should be preserved.
 
 4. ~~**Toast notifications are duplicated** in BondTracker and Vaults. Should extract to shared component.~~ ✅ DONE - Toast component created, both now use it.
 
@@ -710,11 +815,21 @@ Learnings from migrating components to use shared utilities:
 - [x] Create CSS variables file (`src/lib/styles/variables.css`) - **DONE**
 - [x] Create base styles file (`src/lib/styles/base.css`) - **DONE**
 - [x] Create index.css entry point (`src/lib/styles/index.css`) - **DONE**
+- [ ] Create ErrorDisplay component (variants: inline, banner, toast)
+- [ ] Enhance DataCard with slot-based layout (title, main-value, sub-values slots)
+- [ ] Add ActionButton variants (info, download, toggle)
+- [ ] Add StatusIndicator variants (standby, disabled, whitelisted) for Nodes
 - [ ] Consider CSS-in-JS or CSS modules for better scoping
 - [ ] Add Storybook for component documentation
 - [ ] Create theme system for TCY-specific colors
 - [ ] Consider global CSS variables import vs per-component imports
 
+### In-Progress Plans
+
+| Plan | File | Status |
+|------|------|--------|
+| Compact Chain Health Display for Nodes | `.claude/plans/refactored-wondering-breeze.md` | Pending implementation |
+
 ---
 
-*Last updated: 2025-01*
+*Last updated: 2026-01*
