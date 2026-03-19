@@ -2,7 +2,7 @@
  * THORNode API Client
  *
  * Provider Strategy:
- * - Liquify (thornode.thorchain.liquify.com): Updates every 6 seconds (per block)
+ * - Liquify (gateway.liquify.com/chain/thorchain_api): Updates every 6 seconds (per block)
  *   Use for real-time data like prices, block status, live feeds
  *
  * - Nine Realms (thornode.ninerealms.com): Updates ~once per minute
@@ -193,7 +193,7 @@ class ThorNodeClient {
         // (CORS-blocked 429s show up as "Failed to fetch" in the catch block)
         if (provider.name in this.failureCount) {
           this.failureCount[provider.name]++;
-          if (this.failureCount[provider.name] >= 2) {
+          if (this.failureCount[provider.name] >= this.maxFailures) {
             this.rateLimitedUntil[provider.name] = Date.now() + this.rateLimitCooldown;
             console.warn(`${provider.name} failed ${this.failureCount[provider.name]} times, switching away for ${this.rateLimitCooldown / 1000}s`);
           }

@@ -17,7 +17,8 @@ export {
 export {
   midgard,
   MidgardClient,
-  MIDGARD_BASE
+  MIDGARD_BASE,
+  MIDGARD_PROVIDERS
 } from './midgard.js';
 
 /**
@@ -29,6 +30,9 @@ export const ENDPOINTS = {
     ninerealms: 'https://thornode.ninerealms.com',
     archive: 'https://thornode-archive.ninerealms.com'
   },
-  midgard: 'https://midgard.ninerealms.com/v2',
+  midgard: {
+    liquify: 'https://gateway.liquify.com/chain/thorchain_midgard/v2',
+    ninerealms: 'https://midgard.ninerealms.com/v2'
+  },
   coingecko: 'https://api.coingecko.com/api/v3'
 };

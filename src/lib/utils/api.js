@@ -29,8 +29,8 @@ export const THORNODE_ENDPOINTS = {
  * Midgard API endpoints
  */
 export const MIDGARD_ENDPOINTS = {
-  primary: 'https://midgard.ninerealms.com',
-  fallback: 'https://midgard.thorchain.info'
+  primary: 'https://gateway.liquify.com/chain/thorchain_midgard',
+  fallback: 'https://midgard.ninerealms.com'
 };
 
 // ============================================

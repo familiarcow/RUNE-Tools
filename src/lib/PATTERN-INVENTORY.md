@@ -155,7 +155,7 @@ const logo = getAssetLogo(pool.asset);
 ### THORNode Client
 
 **Provider Strategy:**
-- **Liquify** (`thornode.thorchain.liquify.com`): Updates every 6 seconds - use for real-time data
+- **Liquify** (`gateway.liquify.com/chain/thorchain_api`): Updates every 6 seconds - use for real-time data
 - **Nine Realms** (`thornode.ninerealms.com`): Updates ~1 minute - fallback after 3 Liquify failures
 - **Archive** (`thornode-archive.ninerealms.com`): Historical queries with block height
 
