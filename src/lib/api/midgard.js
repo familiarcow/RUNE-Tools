@@ -4,13 +4,36 @@
  * Midgard provides aggregated and historical data for THORChain.
  * It's better suited for analytics, historical queries, and member data.
  *
- * Endpoint: https://midgard.ninerealms.com/v2
+ * Provider Strategy:
+ * - Liquify (gateway.liquify.com/chain/thorchain_midgard): Primary provider
+ *   Use for all midgard queries with automatic failover
+ *
+ * - Nine Realms (midgard.ninerealms.com): Fallback after Liquify failures
+ *   NOTE: Nine Realms endpoints will eventually be deprecated
  */
 
 /**
- * Midgard API base URL
+ * Midgard API Provider configurations
  */
-export const MIDGARD_BASE = 'https://midgard.ninerealms.com/v2';
+export const MIDGARD_PROVIDERS = {
+  liquify: {
+    name: 'liquify',
+    base: 'https://gateway.liquify.com/chain/thorchain_midgard/v2',
+    priority: 1
+  },
+  ninerealms: {
+    name: 'ninerealms',
+    // NOTE: Nine Realms midgard will eventually be deprecated
+    base: 'https://midgard.ninerealms.com/v2',
+    headers: { 'x-client-id': 'RuneTools' },
+    priority: 2
+  }
+};
+
+/**
+ * Midgard API base URL (primary provider)
+ */
+export const MIDGARD_BASE = MIDGARD_PROVIDERS.liquify.base;
 
 /**
  * Midgard API Client class
@@ -19,6 +42,16 @@ class MidgardClient {
   constructor() {
     this.cache = new Map();
     this.cacheTTL = 30000; // 30 seconds (Midgard updates less frequently)
+    this.failureCount = {
+      liquify: 0,
+      ninerealms: 0
+    };
+    this.maxFailures = 3;
+    this.rateLimitedUntil = {
+      liquify: 0,
+      ninerealms: 0
+    };
+    this.rateLimitCooldown = 60000; // Skip rate-limited provider for 60s
   }
 
   /**
@@ -29,7 +62,15 @@ class MidgardClient {
   }
 
   /**
-   * Fetch from Midgard API
+   * Reset failure counters
+   */
+  resetFailures() {
+    this.failureCount.liquify = 0;
+    this.failureCount.ninerealms = 0;
+  }
+
+  /**
+   * Fetch from Midgard API with automatic failover
    * @param {string} path - API endpoint path (e.g., '/stats')
    * @param {Object} options - Fetch options
    * @returns {Promise<any>} Response data
@@ -48,31 +89,69 @@ class MidgardClient {
       this.cache.delete(cacheKey);
     }
 
-    try {
-      const response = await fetch(`${MIDGARD_BASE}${path}`, {
-        headers: {
-          'x-client-id': 'RuneTools',
-          ...fetchOptions.headers
-        },
-        ...fetchOptions
-      });
+    // Determine providers to try (in order)
+    const now = Date.now();
+    const allProviders = [MIDGARD_PROVIDERS.liquify, MIDGARD_PROVIDERS.ninerealms];
 
-      if (!response.ok) {
-        throw new Error(`Midgard error: ${response.status} ${response.statusText}`);
+    // Skip rate-limited providers (but keep them as last resort)
+    const available = allProviders.filter(p => {
+      const until = this.rateLimitedUntil[p.name];
+      return !until || now >= until;
+    });
+    const providers = available.length > 0 ? available : allProviders;
+
+    let lastError = null;
+
+    for (const provider of providers) {
+      try {
+        const url = `${provider.base}${path}`;
+
+        const response = await fetch(url, {
+          headers: { ...(provider.headers || {}), ...fetchOptions.headers },
+          ...fetchOptions
+        });
+
+        if (!response.ok) {
+          // Rate limited — set cooldown so we skip this provider immediately
+          if (response.status === 429 && provider.name in this.rateLimitedUntil) {
+            this.rateLimitedUntil[provider.name] = Date.now() + this.rateLimitCooldown;
+            console.warn(`Midgard ${provider.name} rate limited (429), switching away for ${this.rateLimitCooldown / 1000}s`);
+          }
+          throw new Error(`Midgard HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Cache successful response
+        if (cache) {
+          this.cache.set(cacheKey, { data, timestamp: Date.now() });
+        }
+
+        // Reset failure count and rate limit on success
+        if (provider.name in this.failureCount) {
+          this.failureCount[provider.name] = 0;
+          this.rateLimitedUntil[provider.name] = 0;
+        }
+
+        return data;
+      } catch (error) {
+        lastError = error;
+        console.warn(`Midgard fetch failed for ${provider.name}${path}:`, error.message);
+
+        // Increment failure count and apply cooldown on repeated failures
+        // (CORS-blocked 429s show up as "Failed to fetch" in the catch block)
+        if (provider.name in this.failureCount) {
+          this.failureCount[provider.name]++;
+          if (this.failureCount[provider.name] >= this.maxFailures) {
+            this.rateLimitedUntil[provider.name] = Date.now() + this.rateLimitCooldown;
+            console.warn(`Midgard ${provider.name} failed ${this.failureCount[provider.name]} times, switching away for ${this.rateLimitCooldown / 1000}s`);
+          }
+        }
       }
-
-      const data = await response.json();
-
-      // Cache successful response
-      if (cache) {
-        this.cache.set(cacheKey, { data, timestamp: Date.now() });
-      }
-
-      return data;
-    } catch (error) {
-      console.error(`Midgard fetch failed for ${path}:`, error);
-      throw error;
     }
+
+    // All providers failed
+    throw new Error(`All Midgard providers failed for ${path}: ${lastError?.message}`);
   }
 
   // ============================================
@@ -229,3 +308,9 @@ export const midgard = new MidgardClient();
 
 // Export class for testing or custom instances
 export { MidgardClient };
+
+// Export provider endpoints for direct use if needed
+export const MIDGARD_ENDPOINTS = {
+  liquify: MIDGARD_PROVIDERS.liquify.base,
+  ninerealms: MIDGARD_PROVIDERS.ninerealms.base
+};

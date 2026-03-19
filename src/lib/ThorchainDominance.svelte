@@ -815,7 +815,7 @@
     </div>
     
     <div class="data-source-note">
-      <p><strong>Data Sources:</strong> THORChain volume data fetched from Midgard API (midgard.ninerealms.com). Other protocol data from DefiLlama's free DEX endpoints. Note: Some endpoints may require Pro API for historical data, fallback demo data will be used if API limits are reached.</p>
+      <p><strong>Data Sources:</strong> THORChain volume data fetched from Midgard API (gateway.liquify.com). Other protocol data from DefiLlama's free DEX endpoints. Note: Some endpoints may require Pro API for historical data, fallback demo data will be used if API limits are reached.</p>
     </div>
   {/if}
 
