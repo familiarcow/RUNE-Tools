@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 
 // THORChain API endpoints
 const API_ENDPOINTS = {
-  primary: 'https://thornode.thorchain.liquify.com',
+  primary: 'https://gateway.liquify.com/chain/thorchain_api',
   fallback: 'https://thornode.ninerealms.com'
 };
 

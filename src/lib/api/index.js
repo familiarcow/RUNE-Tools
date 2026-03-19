@@ -25,7 +25,7 @@ export {
  */
 export const ENDPOINTS = {
   thornode: {
-    liquify: 'https://thornode.thorchain.liquify.com',
+    liquify: 'https://gateway.liquify.com/chain/thorchain_api',
     ninerealms: 'https://thornode.ninerealms.com',
     archive: 'https://thornode-archive.ninerealms.com'
   },
