@@ -20,7 +20,7 @@ import { fromBaseUnit } from '../utils/blockchain.js';
 export const PROVIDERS = {
   liquify: {
     name: 'liquify',
-    base: 'https://thornode.thorchain.liquify.com',
+    base: 'https://gateway.liquify.com/chain/thorchain_api',
     updateFrequency: 6000, // 6 seconds
     priority: 1
   },

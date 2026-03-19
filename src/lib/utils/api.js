@@ -21,7 +21,7 @@
  * THORNode API endpoints with fallback
  */
 export const THORNODE_ENDPOINTS = {
-  primary: 'https://thornode.thorchain.liquify.com',
+  primary: 'https://gateway.liquify.com/chain/thorchain_api',
   fallback: 'https://thornode.ninerealms.com'
 };
 
