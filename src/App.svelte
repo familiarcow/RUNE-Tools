@@ -198,7 +198,7 @@
       description: "View THORChain outbound fees and dynamic multipliers" 
     },
         { 
-      name: "Thorchad", 
+      name: "THORChad",
       component: () => import("./lib/Thorchad.svelte"), 
       icon: "🧙‍♂️", 
       path: "thorchad", 

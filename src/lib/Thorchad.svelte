@@ -214,9 +214,9 @@
       // Draw the gradient border
       const gradient = selectionCtx.createLinearGradient(
         selection.x - borderWidth,
-        selection.y - borderWidth,
+        selection.y + selection.size + borderWidth,
         selection.x + selection.size + borderWidth,
-        selection.y + selection.size + borderWidth
+        selection.y - borderWidth
       );
       gradient.addColorStop(0, '#03CFFA');
       gradient.addColorStop(1, '#31FD9D');
@@ -319,7 +319,7 @@
     ctx.drawImage(tempCanvas, 0, 0);
 
     // Draw the gradient border
-    const gradient = ctx.createLinearGradient(0, 0, size, size);
+    const gradient = ctx.createLinearGradient(0, size, size, 0);
     gradient.addColorStop(0, '#03CFFA');
     gradient.addColorStop(1, '#31FD9D');
 
