@@ -716,6 +716,7 @@
     border-radius: 12px;
     padding: 16px;
     display: flex;
+    flex: 1;
     flex-direction: column;
     transition: all 0.3s ease;
     height: 120px;
@@ -911,14 +912,6 @@
   .balance-info .usd-value {
     color: #a9a9a9;
     font-size: 16px;
-  }
-
-  .card {
-    background-color: #1a1a1a;
-    border-radius: 12px;
-    padding: 16px;
-    width: 100%;
-    box-sizing: border-box;
   }
 
   .distribution-history-table {
