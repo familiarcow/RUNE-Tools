@@ -19,6 +19,10 @@
     "isp": "Amazon Technologies Inc.",
     "countryCode": "US"
   },
+  "5.10.251.12": {
+    "isp": "firstcolo GmbH",
+    "countryCode": "DE"
+  },
   "5.39.12.176": {
     "isp": "OVH SAS",
     "countryCode": "FR"
@@ -930,6 +934,10 @@
   "185.200.244.90": {
     "isp": "LifeinCloud LTD",
     "countryCode": "FR"
+  },
+  "185.200.244.206": {
+    "isp": "LifeinCloud LTD",
+    "countryCode": "GB"
   },
   "185.246.190.93": {
     "isp": "FlokiNET ehf",
