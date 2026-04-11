@@ -28,7 +28,7 @@
  * const explorerUrl = getExplorerUrl('BTC', 'bc1q...');
  */
 
-import { fetchJSONWithFallback } from './api.js';
+import { thornode } from '$lib/api';
 import { fromBaseUnit } from './blockchain.js';
 
 // ============================================
@@ -136,7 +136,7 @@ export async function getInboundAddresses(options = {}) {
     return inboundAddressesCache;
   }
 
-  const data = await fetchJSONWithFallback('/thorchain/inbound_addresses');
+  const data = await thornode.getInboundAddresses();
   inboundAddressesCache = data;
   inboundAddressesCacheTime = now;
 
@@ -243,7 +243,7 @@ export async function getActiveChains() {
  * // Returns: [{ asset: 'BTC.BTC', outbound_fee: '30000', ... }, ...]
  */
 export async function getOutboundFees() {
-  return fetchJSONWithFallback('/thorchain/outbound_fees');
+  return await thornode.getOutboundFees();
 }
 
 /**
@@ -692,7 +692,7 @@ export const VAULT_STATUS = {
  * console.log(`Found ${vaults.length} vaults`);
  */
 export async function getAsgardVaults() {
-  return fetchJSONWithFallback('/thorchain/vaults/asgard');
+  return await thornode.getVaults();
 }
 
 /**
@@ -922,16 +922,28 @@ export function calculateVaultSurplus(vaultBalance, poolBalance, tradeDepth = 0)
  */
 export async function getCurrentBlock() {
   try {
-    const data = await fetchJSONWithFallback('/thorchain/lastblock');
-    if (Array.isArray(data) && data.length > 0) {
-      const height = Number(data[0]?.thorchain);
-      if (height > 0) return height;
+    const data = await thornode.getLastBlocks();
+    if (!Array.isArray(data) || data.length === 0) {
+      console.error('Unexpected /lastblock response: not an array or empty');
+      return 0;
     }
-  } catch (e) {
-    console.error('Error fetching current block:', e);
+    // Find THORChain block from the response (use any chain as reference)
+    const entry = data.find(item => item && 'thorchain' in item);
+    if (!entry || entry.thorchain == null) {
+      console.warn('No entry with thorchain key found in /lastblock; assuming 0)');
+      return 0;
+    }
+    const raw = entry.thorchain;
+    const block = Number(raw);
+    if (isNaN(block) || block <= 0) {
+      console.warn(`Unexpected thorchain height: ${raw} (type: ${typeof raw})`);
+      return 0;
+    }
+    return block;
+  } catch (error) {
+    console.error('Error fetching current block:', error);
+    return 0;
   }
-
-  return 0;
 }
 
 /**
@@ -968,8 +980,8 @@ export async function getSecondsPerBlock(sampleSize = 10, options = {}) {
 
     // Fetch block timestamps for current and (current - sampleSize)
     const [newestBlock, oldestBlock] = await Promise.all([
-      fetchJSONWithFallback(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight}`, fetchOptions),
-      fetchJSONWithFallback(`/cosmos/base/tendermint/v1beta1/blocks/${currentHeight - sampleSize}`, fetchOptions)
+      thornode.getCosmosBlockByHeight(currentHeight, fetchOptions),
+      thornode.getCosmosBlockByHeight(currentHeight - sampleSize, fetchOptions)
     ]);
 
     const newestTime = newestBlock?.block?.header?.time;
@@ -1014,7 +1026,7 @@ export async function getSecondsPerBlock(sampleSize = 10, options = {}) {
  */
 export async function getRunePrice() {
   try {
-    const networkData = await fetchJSONWithFallback('/thorchain/network');
+    const networkData = await thornode.getNetwork();
     return fromBaseUnit(networkData.rune_price_in_tor);
   } catch (error) {
     console.error('Error fetching RUNE price:', error);
@@ -1047,7 +1059,7 @@ export async function getSwapperClout(address) {
     throw new Error('Address is required');
   }
 
-  return await fetchJSONWithFallback(`/thorchain/clout/swap/${address}`);
+  return await thornode.getSwapperClout(address);
 }
 
 /**

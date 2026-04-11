@@ -2,10 +2,9 @@
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
   import { cubicOut } from 'svelte/easing';
-  import { fetchJSONWithFallback } from '$lib/utils/api';
   import { getAllPools } from '$lib/utils/liquidity';
   import { fromBaseUnit } from '$lib/utils/blockchain';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
   import { RefreshIcon } from '$lib/components';
 
   const oraclePrices = writable({});
@@ -160,7 +159,7 @@
   async function fetchOraclePrices() {
     try {
       // Use shared utility with fallback support
-      const data = await fetchJSONWithFallback('/thorchain/oracle/prices');
+      const data = await thornode.getOraclePrices();
       const pricesMap = {};
       data.prices.forEach(item => {
         pricesMap[item.symbol] = parseFloat(item.price);

@@ -30,8 +30,8 @@
     try {
       // Fetch vault data, pools, and TVLCAPBASISPOINTS in parallel
       const [vaults, pools, tvlCapValue] = await Promise.all([
-        thornode.fetch('/thorchain/vaults/asgard'),
-        thornode.fetch('/thorchain/pools'),
+        thornode.getVaults(),
+        thornode.getPools(),
         getMimirValue('TVLCAPBASISPOINTS')
       ]);
 
@@ -76,7 +76,7 @@
       totalVaultValueInRune = vaultAssets.reduce((sum, asset) => sum + asset.runeValue, 0);
 
       // Fetch node data for security budget
-      const nodes = await thornode.fetch('/thorchain/nodes');
+      const nodes = await thornode.getNodes();
 
       // Get active nodes and sort by bond size (largest to smallest)
       const activeNodes = nodes

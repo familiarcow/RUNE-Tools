@@ -13,12 +13,11 @@
  * const staker = await getTCYStaker('thor1...');
  */
 
-import { fetchJSONWithFallback, THORNODE_ENDPOINTS, MIDGARD_ENDPOINTS } from './api.js';
+import { fetchJSONWithFallback, MIDGARD_ENDPOINTS } from './api.js';
 import { getAllMimir } from './mimir.js';
 import { fromBaseUnit } from './blockchain.js';
-// Import general network functions and re-export for backwards compatibility
-import { getRunePrice, getCurrentBlock } from './network.js';
-export { getRunePrice, getCurrentBlock };
+import { thornode } from '$lib/api';
+import { getRunePrice, getCurrentBlock } from '$lib/utils/network';
 
 // ============================================
 // Constants
@@ -80,7 +79,7 @@ export const TCY_CONSTANT_KEYS = [
  */
 export async function getTCYPrice() {
   try {
-    const poolsData = await fetchJSONWithFallback('/thorchain/pools');
+    const poolsData = await thornode.getPools();
     const tcyPool = poolsData.find(pool => pool.asset === TCY_ASSET);
     if (tcyPool) {
       return fromBaseUnit(tcyPool.asset_tor_price);
@@ -127,7 +126,7 @@ export async function getPrices() {
  */
 export async function getTCYPool() {
   try {
-    const poolsData = await fetchJSONWithFallback('/thorchain/pools');
+    const poolsData = await thornode.getPools();
     const tcyPool = poolsData.find(pool => pool.asset === TCY_ASSET);
 
     if (!tcyPool) return null;
@@ -174,7 +173,7 @@ export async function getTCYLiquidity() {
  */
 export async function getTCYStakers() {
   try {
-    const data = await fetchJSONWithFallback('/thorchain/tcy_stakers');
+    const data = await thornode.getTcyStakers();
     if (!data.tcy_stakers) return [];
 
     return data.tcy_stakers.map(staker => ({
@@ -203,7 +202,7 @@ export async function getTCYStaker(address) {
   if (!address) return null;
 
   try {
-    const data = await fetchJSONWithFallback(`/thorchain/tcy_staker/${address}`);
+    const data = await thornode.getTcyStaker(address);
     return {
       address: data.address || address,
       amount: fromBaseUnit(data.amount)
@@ -299,7 +298,7 @@ export async function getTCYMimir() {
  */
 export async function getTCYConstants() {
   try {
-    const constantsData = await fetchJSONWithFallback('/thorchain/constants');
+    const constantsData = await thornode.getConstants();
 
     return {
       MinRuneForTCYStakeDistribution: fromBaseUnit(constantsData.int_64_values?.MinRuneForTCYStakeDistribution),
@@ -393,7 +392,7 @@ export async function getTCYDistributionHistory(address) {
  */
 export async function getTCYStakeModuleBalance() {
   try {
-    const data = await fetchJSONWithFallback('/thorchain/balance/module/tcy_stake');
+    const data = await thornode.getTcyStakeModuleBalance();
 
     const runeBalance = data.coins?.find(c => c.denom === 'rune');
     const tcyBalance = data.coins?.find(c => c.denom === 'tcy');
@@ -423,7 +422,7 @@ export async function getTCYStakeModuleBalance() {
  */
 export async function getTCYClaimers() {
   try {
-    const data = await fetchJSONWithFallback('/thorchain/tcy_claimers');
+    const data = await thornode.getTcyClaimers();
     if (!data.tcy_claimers) return [];
 
     return data.tcy_claimers.map(claimer => ({
@@ -467,10 +466,7 @@ export async function getRemainingClaimAddresses() {
  */
 export async function getTCYTotalSupply() {
   try {
-    const response = await fetch('https://api.ninerealms.com/thorchain/supply/cmc?asset=tcy&type=total', {
-      headers: { 'x-client-id': 'RuneTools' }
-    });
-    const supply = await response.json();
+    const supply = await thornode.getTcyTotalSupply();
     return Number(supply) || TCY_TOTAL_SUPPLY;
   } catch (error) {
     console.error('Error fetching TCY total supply:', error);
@@ -512,7 +508,7 @@ export async function getTCYMarketCap() {
 export async function getRuneSupplyAndMarketCap() {
   try {
     const [data, price] = await Promise.all([
-      fetchJSONWithFallback('/cosmos/bank/v1beta1/supply/by_denom?denom=rune'),
+      thornode.getSupplyByDenomination('rune'),
       getRunePrice()
     ]);
 
@@ -544,7 +540,6 @@ export async function getRuneSupplyAndMarketCap() {
  * const block = await getCurrentBlock();
  * console.log(`Current block: ${block}`);
  */
-// getCurrentBlock is now imported from network.js and re-exported above
 
 /**
  * Calculate next distribution block

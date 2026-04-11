@@ -7,7 +7,7 @@
   import { fromBaseUnit, getAssetShortName } from '$lib/utils/blockchain';
   import { getLPType, calculateLPValue } from '$lib/utils/liquidity';
   import { getAddressLabel } from '$lib/constants/addresses';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
 
   let pools = [];
   let selectedPool = null;

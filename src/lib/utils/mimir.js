@@ -19,7 +19,7 @@
  * const allValues = await getAllMimir();
  */
 
-import { thornode } from '../api/thornode.js';
+import { thornode } from '$lib/api';
 
 let cache = null;
 let cacheUpperMap = null; // uppercase key -> original key mapping

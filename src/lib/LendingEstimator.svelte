@@ -1,7 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { slide } from "svelte/transition";
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
   let fromAsset = "BTC.BTC"; // default collateral asset BTC
   let userFromAmount = ""; // user inputted fromAmount (not yet converted to 1e8)
   let toAsset = "ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7"; // Asset the user will receive their debt equivalent in (default USDT)

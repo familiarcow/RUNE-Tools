@@ -5,7 +5,7 @@
   import { writable } from 'svelte/store';
   import { getRunePrice } from '$lib/utils/network';
   import { fromBaseUnit } from '$lib/utils/blockchain';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
   import { ErrorDisplay } from '$lib/components';
 
   let activeTab = 'checker';

@@ -1,208 +1,197 @@
 /**
  * THORNode API Client
- *
- * Provider Strategy:
- * - Liquify (gateway.liquify.com/chain/thorchain_api): Updates every 6 seconds (per block)
- *   Use for real-time data like prices, block status, live feeds
- *
- * - Nine Realms (thornode.ninerealms.com): Updates ~once per minute
- *   More stable, use as fallback after Liquify failures
- *
- * - Archive (thornode-archive.ninerealms.com): For historical queries
- *   Use when fetching data at specific block heights
  */
 
 import { fromBaseUnit } from '../utils/blockchain.js';
 
 /**
- * API Provider configurations
+ * THORNode API provider list -- in order of preference
+ *
+ * @typedef {Object} ApiProvider
+ * @property {string} base - THORNode API base URL (no trailing slash)
+ * @property {Record<string, string>} [headers] - HTTP client headers (e.g. x-client-id)
+ * @property {boolean} [supportsBlockHeight] - When true, `?height=` is appended for historical queries
  */
-export const PROVIDERS = {
-  liquify: {
-    name: 'liquify',
+
+export const THORNODE_PROVIDERS = Object.freeze([
+  {
     base: 'https://gateway.liquify.com/chain/thorchain_api',
-    updateFrequency: 6000, // 6 seconds
-    priority: 1
-  },
-  ninerealms: {
-    name: 'ninerealms',
-    base: 'https://thornode.ninerealms.com',
-    headers: { 'x-client-id': 'RuneTools' },
-    updateFrequency: 60000, // ~1 minute
-    priority: 2
-  },
-  archive: {
-    name: 'archive',
-    base: 'https://thornode-archive.ninerealms.com',
-    headers: { 'x-client-id': 'RuneTools' },
+    // Liquify at this present time doesn't allow x-client-id through their CORS configuration
+    // headers: { 'x-client-id': 'RuneTools' },
     supportsBlockHeight: true,
-    priority: 3
-  }
-};
+  },
+  {
+    base: 'https://gateway2.liquify.com/chain/thorchain_api',
+    supportsBlockHeight: true,
+  },
+]);
+
+// ============================================
+// Rate Limit Tracking
+// ============================================
+
+/**
+ * Track rate-limited endpoints so we skip them on subsequent requests.
+ * Key: base URL, Value: timestamp when cooldown expires
+ */
+const rateLimitedUntil = new Map();
+const failureCounts = new Map();
+const RATE_LIMIT_COOLDOWN = 60_000; // 60 seconds
+
+// ============================================
+// Caching
+// ============================================
+
+const apiCache = new Map();
+const DEFAULT_CACHE_TTL = 15_000; // 15 seconds
 
 /**
  * THORNode API Client class
  */
 class ThorNodeClient {
-  constructor() {
-    this.failureCount = {
-      liquify: 0,
-      ninerealms: 0
-    };
-    this.maxFailures = 3;
-    this.rateLimitedUntil = {
-      liquify: 0,
-      ninerealms: 0
-    };
-    this.rateLimitCooldown = 60000; // Skip rate-limited provider for 60s
-    this.cache = new Map();
-    this.cacheTTL = 5000; // 5 seconds default cache
-  }
-
   /**
-   * Select the appropriate provider based on options
-   * @param {Object} options - Request options
-   * @returns {Object} Selected provider config
+   * Fetch from THORNode (private)
+   *
+   * @param {string} path - API endpoint path (e.g. '/thorchain/network')
+   * @param {Object} [options={}] - Combined options object:
+   *        - Behavior modifiers: cache, cacheTTL, blockHeight
+   *        - Anything else gets passed into fetch() directly
+   * @param {boolean} [options.cache=true] - Enable/disable response caching
+   * @param {number} [options.cacheTTL] - Cache duration (milliseconds)
+   * @param {number|null} [options.blockHeight=null] - Query historical state at specific block height
+   * @returns {Promise<Response>} Raw `Response` object from the successful provider
    */
-  selectProvider(options = {}) {
-    const { blockHeight, realtime = true, preferNinerealms = false } = options;
-
-    // Archive required for historical queries with block height
-    if (blockHeight) {
-      return PROVIDERS.archive;
-    }
-
-    // If explicitly preferring Nine Realms (for less frequent updates)
-    if (preferNinerealms) {
-      return PROVIDERS.ninerealms;
-    }
-
-    // For real-time data, prefer Liquify unless it's been failing
-    if (realtime && this.failureCount.liquify < this.maxFailures) {
-      return PROVIDERS.liquify;
-    }
-
-    // Fall back to Nine Realms
-    return PROVIDERS.ninerealms;
-  }
-
-  /**
-   * Clear the cache (useful when you want fresh data)
-   */
-  clearCache() {
-    this.cache.clear();
-  }
-
-  /**
-   * Reset failure counters (useful after a successful request)
-   */
-  resetFailures() {
-    this.failureCount.liquify = 0;
-    this.failureCount.ninerealms = 0;
-  }
-
-  /**
-   * Fetch from THORNode with automatic failover
-   * @param {string} path - API endpoint path (e.g., '/thorchain/network')
-   * @param {Object} options - Fetch options
-   * @returns {Promise<any>} Response data
-   */
-  async fetch(path, options = {}) {
+  async #fetch(path, options = {}) {
     const {
       cache = true,
-      blockHeight,
-      parseJson = true,
-      realtime = true,
-      preferNinerealms = false,
-      ...fetchOptions
+      cacheTTL = DEFAULT_CACHE_TTL,
+      blockHeight = null,
+      ...fetchInit
     } = options;
+    const now = Date.now();
 
-    // Build cache key
-    const cacheKey = `${path}:${blockHeight || 'latest'}`;
-
-    // Check cache first
-    if (cache && this.cache.has(cacheKey)) {
-      const cached = this.cache.get(cacheKey);
-      if (Date.now() - cached.timestamp < this.cacheTTL) {
-        return cached.data;
-      }
-      // Cache expired, remove it
-      this.cache.delete(cacheKey);
+    let effectivePath = path;
+    if (blockHeight != null) {
+      const separator = path.includes('?') ? '&' : '?';
+      const e_blockHeight = encodeURIComponent(blockHeight);
+      effectivePath += `${separator}height=${e_blockHeight}`;
     }
 
-    // Determine providers to try (in order)
-    const now = Date.now();
-    const allProviders = blockHeight
-      ? [PROVIDERS.archive]
-      : preferNinerealms
-        ? [PROVIDERS.ninerealms, PROVIDERS.liquify]
-        : [PROVIDERS.liquify, PROVIDERS.ninerealms];
+    // Lightweight cache lookup
+    if (cache) {
+      const cached = apiCache.get(effectivePath);
+      if (cached) {
+        const age = now - cached.timestamp;
+        if (age < cacheTTL) {
+          return cached.response.clone();
+        } else {
+          apiCache.delete(effectivePath);
+        }
+      }
+    }
 
-    // Skip rate-limited providers (but keep them as last resort)
-    const available = allProviders.filter(p => {
-      const until = this.rateLimitedUntil[p.name];
-      return !until || now >= until;
+    const available = THORNODE_PROVIDERS.filter(p => {
+      const until = rateLimitedUntil.get(p.base) || 0;
+      return until <= now;
     });
-    const providers = available.length > 0 ? available : allProviders;
+    const rateLimited = THORNODE_PROVIDERS.filter(p => {
+      const until = rateLimitedUntil.get(p.base) || 0;
+      return until > now;
+    });
+    const order = [...available, ...rateLimited];
 
     let lastError = null;
 
-    for (const provider of providers) {
+    for (const provider of order) {
       try {
-        let url = `${provider.base}${path}`;
-
-        // Add block height for archive queries
-        if (blockHeight && provider.supportsBlockHeight) {
-          const separator = url.includes('?') ? '&' : '?';
-          url += `${separator}height=${blockHeight}`;
-        }
-
-        const response = await fetch(url, {
-          headers: { ...(provider.headers || {}), ...fetchOptions.headers },
-          ...fetchOptions
-        });
-
-        if (!response.ok) {
-          // Rate limited — set cooldown so we skip this provider immediately
-          if (response.status === 429 && provider.name in this.rateLimitedUntil) {
-            this.rateLimitedUntil[provider.name] = Date.now() + this.rateLimitCooldown;
-            console.warn(`${provider.name} rate limited (429), switching away for ${this.rateLimitCooldown / 1000}s`);
+        const requestPath = (blockHeight != null && provider.supportsBlockHeight)
+          ? effectivePath
+          : path;
+        const url = `${provider.base}${requestPath}`;
+        const fetchOpts = {
+          ...fetchInit,
+          headers: {
+            ...(provider.headers || {}),
+            ...(fetchInit.headers || {})
           }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        };
+
+        const response = await fetch(url, fetchOpts);
+        if (response.ok) {
+          // Clear rate limit and failure count on success
+          rateLimitedUntil.delete(provider.base);
+          failureCounts.delete(provider.base);
+
+          if (cache) {
+            // Always cache under effectivePath so historical queries are
+            // consistently cached regardless of which provider was used
+            apiCache.set(effectivePath, {
+              timestamp: now,
+              response: response.clone()
+            });
+          }
+          return response;
         }
-
-        const data = parseJson ? await response.json() : await response.text();
-
-        // Cache successful response
-        if (cache) {
-          this.cache.set(cacheKey, { data, timestamp: Date.now() });
+        if (response.status === 429) {
+          rateLimitedUntil.set(provider.base, Date.now() + RATE_LIMIT_COOLDOWN);
+          console.warn(`Rate limited (429) on ${provider.base}, switching away for ${RATE_LIMIT_COOLDOWN / 1000}s`);
         }
-
-        // Reset failure count and rate limit on success
-        if (provider.name in this.failureCount) {
-          this.failureCount[provider.name] = 0;
-          this.rateLimitedUntil[provider.name] = 0;
-        }
-
-        return data;
+        lastError = new Error(`${provider.base} failed: ${response.status}`);
+        console.warn(`Endpoint failed for ${path}: ${lastError.message}`);
       } catch (error) {
-        lastError = error;
-        console.warn(`THORNode fetch failed for ${provider.name}${path}:`, error.message);
-
-        // Increment failure count and apply cooldown on repeated failures
-        // (CORS-blocked 429s show up as "Failed to fetch" in the catch block)
-        if (provider.name in this.failureCount) {
-          this.failureCount[provider.name]++;
-          if (this.failureCount[provider.name] >= this.maxFailures) {
-            this.rateLimitedUntil[provider.name] = Date.now() + this.rateLimitCooldown;
-            console.warn(`${provider.name} failed ${this.failureCount[provider.name]} times, switching away for ${this.rateLimitCooldown / 1000}s`);
-          }
+        // CORS-blocked 429s show up as "Failed to fetch" here
+        const count = (failureCounts.get(provider.base) || 0) + 1;
+        failureCounts.set(provider.base, count);
+        if (count >= 2) {
+          rateLimitedUntil.set(provider.base, Date.now() + RATE_LIMIT_COOLDOWN);
+          console.warn(`${provider.base} failed ${count} times, switching away for ${RATE_LIMIT_COOLDOWN / 1000}s`);
         }
+        lastError = error;
+        console.warn(`Endpoint failed for ${path}: ${error.message}`);
       }
     }
 
-    // All providers failed
-    throw new Error(`All THORNode providers failed for ${path}: ${lastError?.message}`);
+    console.error(`All providers failed for ${path}:`, lastError);
+    throw lastError;
+  }
+
+  // ============================================
+  // Wrapper methods
+  // ============================================
+
+  /**
+   * Fetch and parse JSON response
+   *
+   * @param {string} path - API endpoint path
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>}
+   */
+  async #fetchJSON(path, options = {}) {
+    const response = await this.#fetch(path, options);
+    return response.json();
+  }
+
+  /**
+   * Fetch and return the response body as plain text
+   *
+   * @param {string} path - API endpoint path
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<string>}
+   */
+  async #fetchText(path, options = {}) {
+    const response = await this.#fetch(path, options);
+    return response.text();
+  }
+
+  // ============================================
+  // Cache methods
+  // ============================================
+
+  /**
+   * Clear cache
+   */
+  clearCache() {
+    apiCache.clear();
   }
 
   // ============================================
@@ -210,213 +199,501 @@ class ThorNodeClient {
   // ============================================
 
   /**
-   * Get network data (includes RUNE price)
-   * @param {Object} options - Fetch options
+   * Get network data (includes RUNE price, current block height, etc.)
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getNetwork(options = {}) {
-    return this.fetch('/thorchain/network', options);
+    return this.#fetchJSON('/thorchain/network', options);
   }
 
   /**
-   * Get RUNE price in USD
-   * @param {Object} options - Fetch options
-   * @returns {Promise<number>} RUNE price
+   * Get current upgrade proposals
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
-  async getRunePrice(options = {}) {
-    const network = await this.getNetwork(options);
-    return fromBaseUnit(network.rune_price_in_tor);
+  async getUpgradeProposals(options = {}) {
+    return this.#fetchJSON('/thorchain/upgrade_proposals', options);
+  }
+
+  /**
+   * Get upgrade proposal for the provided name
+   *
+   * @param {string} name - name parameter
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getUpgradeProposal(name, options = {}) {
+    const e_name = encodeURIComponent(name);
+    return this.#fetchJSON(`/thorchain/upgrade_proposal/${name}`, options);
+  }
+
+  /**
+   * Get last block info for all chains
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getLastBlocks(options = {}) {
+    return this.#fetchJSON('/thorchain/lastblock', options);
+  }
+
+  /**
+   * Get last block info for all chains
+   *
+   * @param {string} chain - Chain identifier
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getLastBlock(chain, options = {}) {
+    const e_chain = encodeURIComponent(chain);
+    return this.#fetchJSON(`/thorchain/lastblock/${e_chain}`, options);
   }
 
   /**
    * Get all pools
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getPools(options = {}) {
-    return this.fetch('/thorchain/pools', options);
+    return this.#fetchJSON('/thorchain/pools', options);
   }
 
   /**
    * Get a specific pool
+   *
    * @param {string} asset - Asset identifier
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getPool(asset, options = {}) {
-    return this.fetch(`/thorchain/pool/${encodeURIComponent(asset)}`, options);
+    const e_asset = encodeURIComponent(asset);
+    return this.#fetchJSON(`/thorchain/pool/${e_asset}`, options);
   }
 
   /**
    * Get all nodes
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getNodes(options = {}) {
-    return this.fetch('/thorchain/nodes', options);
+    return this.#fetchJSON('/thorchain/nodes', options);
+  }
+
+  /**
+   * Get node information via address
+   *
+   * @param {string} address - THORChain node address
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getNode(address, options = {}) {
+    const e_address = encodeURIComponent(address);
+    return this.#fetchJSON(`/thorchain/node/${e_address}`, options);
   }
 
   /**
    * Get a Mimir value
+   *
    * @param {string} key - Mimir key name
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getMimir(key, options = {}) {
-    const data = await this.fetch(`/thorchain/mimir/key/${key}`, {
-      parseJson: false,
-      ...options
-    });
-    return data;
+    const e_key = encodeURIComponent(key);
+    return this.#fetchText(`/thorchain/mimir/key/${e_key}`, options);
   }
 
   /**
    * Get all Mimir values
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getAllMimir(options = {}) {
-    return this.fetch('/thorchain/mimir', options);
+    return this.#fetchJSON('/thorchain/mimir', options);
+  }
+
+  /**
+   * Get all current node Mimir votes
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getMimirAllNodeVotes(options = {}) {
+    return this.#fetchJSON('/thorchain/mimir/nodes_all', options);
   }
 
   /**
    * Get balance for an address
+   *
    * @param {string} address - THORChain address
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getBalance(address, options = {}) {
-    return this.fetch(`/cosmos/bank/v1beta1/balances/${address}`, options);
+    const e_address = encodeURIComponent(address);
+    return this.#fetchJSON(
+      `/cosmos/bank/v1beta1/balances/${e_address}`,
+       options
+    );
   }
 
   /**
-   * Get liquidity provider data
+   * Get all liquidity providers for a pool
+   *
+   * @param {string} pool - Pool asset identifier
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getLiquidityProviders(pool, options = {}) {
+    const e_pool = encodeURIComponent(pool);
+    return this.#fetchJSON(
+      `/thorchain/pool/${e_pool}/liquidity_providers`,
+      options
+    );
+  }
+
+  /**
+   * Get liquidity provider data via pool and address
+   *
    * @param {string} pool - Pool asset identifier
    * @param {string} address - LP address
-   * @param {Object} options - Fetch options (can include blockHeight for historical)
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getLiquidityProvider(pool, address, options = {}) {
-    return this.fetch(
-      `/thorchain/pool/${encodeURIComponent(pool)}/liquidity_provider/${address}`,
+    const e_pool = encodeURIComponent(pool);
+    const e_address = encodeURIComponent(address);
+    return this.#fetchJSON(
+      `/thorchain/pool/${e_pool}/liquidity_provider/${e_address}`,
       options
     );
   }
 
   /**
    * Get Asgard vaults
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getVaults(options = {}) {
-    return this.fetch('/thorchain/vaults/asgard', options);
+    return this.#fetchJSON('/thorchain/vaults/asgard', options);
   }
 
   /**
    * Get inbound addresses
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getInboundAddresses(options = {}) {
-    return this.fetch('/thorchain/inbound_addresses', options);
+    return this.#fetchJSON('/thorchain/inbound_addresses', options);
   }
 
   /**
    * Get constants
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getConstants(options = {}) {
-    return this.fetch('/thorchain/constants', options);
+    return this.#fetchJSON('/thorchain/constants', options);
   }
 
   /**
    * Get current block status
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getStatus(options = {}) {
-    return this.fetch('/status', options);
+    return this.#fetchJSON('/status', options);
   }
 
   /**
    * Get swap quote
+   *
    * @param {Object} params - Quote parameters
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getSwapQuote(params, options = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.fetch(`/thorchain/quote/swap?${query}`, options);
+    return this.#fetchJSON(`/thorchain/quote/swap?${query}`, options);
   }
 
   /**
    * Get saver data for a specific asset and address
+   *
    * @param {string} asset - Asset identifier
    * @param {string} address - Saver address
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getSaver(asset, address, options = {}) {
-    return this.fetch(
-      `/thorchain/pool/${encodeURIComponent(asset)}/saver/${address}`,
+    const e_asset = encodeURIComponent(asset);
+    const e_address = encodeURIComponent(address);
+    return this.#fetchJSON(
+      `/thorchain/pool/${e_asset}/saver/${e_address}`,
       options
     );
   }
 
   /**
    * Get saver withdraw quote
+   *
    * @param {Object} params - Quote parameters (asset, address, withdraw_bps)
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getSaverWithdrawQuote(params, options = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.fetch(`/thorchain/quote/saver/withdraw?${query}`, options);
+    return this.#fetchJSON(`/thorchain/quote/saver/withdraw?${query}`, options);
   }
 
   /**
    * Get THORName data
+   *
    * @param {string} name - THORName to look up
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getThorname(name, options = {}) {
-    return this.fetch(`/thorchain/thorname/${encodeURIComponent(name)}`, options);
+    const e_name = encodeURIComponent(name);
+    return this.#fetchJSON(`/thorchain/thorname/${e_name}`, options);
+  }
+
+  /**
+   * Get all RUNE Pool information
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getRunePool(options = {}) {
+    return this.#fetchJSON('/thorchain/runepool', options);
+  }
+
+  /**
+   * Get all RUNE providers
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getRuneProviders(options = {}) {
+    return this.#fetchJSON('/thorchain/rune_providers', options);
+  }
+
+  /**
+   * Get information for RUNE provider via address
+   *
+   * @param {string} address - THORChain wallet address
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getRuneProvider(address, options = {}) {
+    const e_address = encodeURIComponent(address);
+    return this.#fetchJSON(`/thorchain/rune_provider/${e_address}`, options);
   }
 
   /**
    * Get transaction status
+   *
    * @param {string} txid - Transaction ID
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getTxStatus(txid, options = {}) {
-    return this.fetch(`/thorchain/tx/status/${txid}`, options);
+    const e_txid = encodeURIComponent(txid);
+    return this.#fetchJSON(`/thorchain/tx/status/${e_txid}`, options);
   }
 
   /**
    * Get loan open quote
+   *
    * @param {Object} params - Quote parameters (from_asset, amount, to_asset, destination)
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getLoanQuote(params, options = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.fetch(`/thorchain/quote/loan/open?${query}`, options);
+    return this.#fetchJSON(`/thorchain/quote/loan/open?${query}`, options);
   }
 
   /**
    * Get limit swaps summary
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getLimitSwapsSummary(options = {}) {
-    return this.fetch('/thorchain/queue/limit_swaps/summary', options);
+    return this.#fetchJSON('/thorchain/queue/limit_swaps/summary', options);
   }
 
   /**
    * Get limit swaps
+   *
    * @param {Object} params - Query parameters (offset, limit, source_asset, target_asset, sort_by, sort_order)
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getLimitSwaps(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
-    const path = query ? `/thorchain/queue/limit_swaps?${query}` : '/thorchain/queue/limit_swaps';
-    return this.fetch(path, options);
+    const path = query
+      ? `/thorchain/queue/limit_swaps?${query}`
+      : '/thorchain/queue/limit_swaps';
+    return this.#fetchJSON(path, options);
   }
 
   /**
-   * Get all liquidity providers for a pool
-   * @param {string} pool - Pool asset identifier
-   * @param {Object} options - Fetch options
+   * Get all outbound fees
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
-  async getLiquidityProviders(pool, options = {}) {
-    return this.fetch(
-      `/thorchain/pool/${encodeURIComponent(pool)}/liquidity_providers`,
+  async getOutboundFees(options = {}) {
+    return this.#fetchJSON('/thorchain/outbound_fees', options);
+  }
+
+  /**
+   * Get all TCY stakers
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getTcyStakers(options = {}) {
+    return this.#fetchJSON('/thorchain/tcy_stakers', options);
+  }
+
+  /**
+   * Get TCY staker position details
+   *
+   * @param {string} address - THORChain wallet address
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getTcyStaker(address, options = {}) {
+    const e_address = encodeURIComponent(address);
+    return this.#fetchJSON(`/thorchain/tcy_staker/${e_address}`, options);
+  }
+
+  /**
+   * Get TCY stake module balance (accrued RUNE for distribution)
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getTcyStakeModuleBalance(options = {}) {
+    return this.#fetchJSON('/thorchain/balance/module/tcy_stake', options);
+  }
+
+  /**
+   * Get all pending TCY claimants (those who have unclaimed TCY)
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getTcyClaimers(options = {}) {
+    return this.#fetchJSON('/thorchain/tcy_claimers', options);
+  }
+
+  /**
+   * Get total TCY supply via CMC data
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getTcyTotalSupply(options = {}) {
+    return this.#fetchText('/thorchain/supply/cmc?asset=tcy&type=total', options);
+  }
+
+  /**
+   * Get total supply by asset denomination
+   *
+   * @param {string} denom - asset denomination in lowercase (e.g. "rune")
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getSupplyByDenomination(denom, options = {}) {
+    const e_denom = encodeURIComponent(denom);
+    return this.#fetchJSON(
+      `/cosmos/bank/v1beta1/supply/by_denom?denom=${e_denom}`,
       options
     );
+  }
+
+  /**
+   * Get block details from Cosmos SDK/RPC layer (GetBlockByHeight)
+   *
+   * @param {string} height - block height
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getCosmosBlockByHeight(height, options = {}) {
+    const e_height = encodeURIComponent(height);
+    return this.#fetchJSON(
+      `/cosmos/base/tendermint/v1beta1/blocks/${e_height}`,
+      options
+    );
+  }
+
+  /**
+   * Get all available oracle prices
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getOraclePrices(options = {}) {
+    return this.#fetchJSON('/thorchain/oracle/prices', options);
+  }
+
+  /**
+   * Get total size and ratio of all secured assets
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getSecuredAssets(options = {}) {
+    return this.#fetchJSON('/thorchain/securedassets', options);
+  }
+
+  /**
+   * Get the clout score of an address
+   *
+   * @param {string} address - wallet address
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getSwapperClout(address, options = {}) {
+    const e_address = encodeURIComponent(address);
+    return this.#fetchJSON(
+      `/thorchain/clout/swap/${e_address}`,
+      options
+    );
+  }
+
+  /**
+   * Get total units and depth for all Trade Assets
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getTradeUnits(options = {}) {
+    return this.#fetchJSON('/thorchain/trade/units', options);
+  }
+
+  /**
+   * Get Treasury module address and assets/balances
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getTreasuryInfo(options = {}) {
+    return this.#fetchJSON('/thorchain/balance/module/treasury', options);
   }
 }
 
@@ -425,10 +702,3 @@ export const thornode = new ThorNodeClient();
 
 // Export class for testing or custom instances
 export { ThorNodeClient };
-
-// Export provider endpoints for direct use if needed
-export const THORNODE_ENDPOINTS = {
-  liquify: PROVIDERS.liquify.base,
-  ninerealms: PROVIDERS.ninerealms.base,
-  archive: PROVIDERS.archive.base
-};

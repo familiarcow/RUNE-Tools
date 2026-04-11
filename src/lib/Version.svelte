@@ -83,7 +83,7 @@
 
   async function fetchUpgradeProposal() {
     try {
-      const data = await thornode.fetch('/thorchain/upgrade_proposals', { cache: false });
+      const data = await thornode.getUpgradeProposals({ cache: false });
       
       // Add debugging
       if (data && data[0]) {
@@ -110,7 +110,7 @@
 
   async function fetchUpgradeProposalDetails(name) {
     try {
-      const data = await thornode.fetch(`/thorchain/upgrade_proposal/${name}`, { cache: false });
+      const data = await thornode.getUpgradeProposal(name, { cache: false });
       upgradeProposalDetails = data;
     } catch (error) {
       console.error('Error fetching upgrade proposal details:', error);

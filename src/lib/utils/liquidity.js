@@ -30,7 +30,7 @@
  * console.log(`Profit: ${value.profitPercentage.toFixed(2)}%`);
  */
 
-import { thornode } from '../api/thornode.js';
+import { thornode } from '$lib/api';
 import { fromBaseUnit, parseAsset } from './blockchain.js';
 
 // ============================================
@@ -717,7 +717,7 @@ export function isAsymmetricLP(position) {
  */
 export async function getTradeUnits(options = {}) {
   try {
-    return await thornode.fetch('/thorchain/trade/units', options);
+    return await thornode.getTradeUnits(options);
   } catch (error) {
     console.error('Failed to fetch trade units:', error);
     return [];

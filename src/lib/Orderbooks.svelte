@@ -5,7 +5,7 @@
   import { getRunePrice } from '$lib/utils/network';
   import { fromBaseUnit, normalizeAsset, getAssetType, getChainFromAsset } from '$lib/utils/blockchain';
   import { getPoolDepthUSD } from '$lib/utils/liquidity';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
 
   let limitSwapsSummary = null;
   let limitSwaps = [];

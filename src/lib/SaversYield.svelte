@@ -1,7 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import Chart from "chart.js/auto";
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
   import { getAllMimir } from '$lib/utils/mimir';
 
   let MAXSYNTHSFORSAVERSYIELD;

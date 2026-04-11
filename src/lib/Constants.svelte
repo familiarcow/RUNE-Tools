@@ -17,7 +17,7 @@
   onMount(async () => {
     try {
       const [constantsData, mimirData] = await Promise.all([
-        thornode.fetch('/thorchain/constants'),
+        thornode.getConstants(),
         getAllMimir()
       ]);
 
