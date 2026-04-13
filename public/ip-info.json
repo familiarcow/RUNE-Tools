@@ -307,6 +307,14 @@
     "isp": "Hostkey B.V.",
     "countryCode": "NL"
   },
+  "38.143.19.126": {
+    "isp": "Hostkey B.V.",
+    "countryCode": "FR"
+  },
+  "38.143.19.169": {
+    "isp": "Hostkey B.V.",
+    "countryCode": "FR"
+  },
   "44.215.208.10": {
     "isp": "Amazon.com",
     "countryCode": "US"
@@ -474,6 +482,26 @@
   "80.68.58.132": {
     "isp": "DATANET",
     "countryCode": "GB"
+  },
+  "80.91.65.179": {
+    "isp": "Registered Cogent Communications Customer - LifeinCloud LTD",
+    "countryCode": "NL"
+  },
+  "80.91.65.181": {
+    "isp": "Registered Cogent Communications Customer - LifeinCloud LTD",
+    "countryCode": "NL"
+  },
+  "80.91.65.182": {
+    "isp": "Registered Cogent Communications Customer - LifeinCloud LTD",
+    "countryCode": "NL"
+  },
+  "80.91.65.183": {
+    "isp": "Registered Cogent Communications Customer - LifeinCloud LTD",
+    "countryCode": "NL"
+  },
+  "80.91.65.184": {
+    "isp": "Registered Cogent Communications Customer - LifeinCloud LTD",
+    "countryCode": "NL"
   },
   "89.116.167.88": {
     "isp": "HOSTINGER",
