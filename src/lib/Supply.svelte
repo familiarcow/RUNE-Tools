@@ -196,7 +196,7 @@
 
   const fetchSupply = async () => {
     try {
-      const data = await thornode.fetch('/cosmos/bank/v1beta1/supply/by_denom?denom=rune');
+      const data = await thornode.getSupplyByDenomination('rune');
       const totalSupplyInRune = fromBaseUnit(data.amount.amount);
       tweenedTotalSupply.set(totalSupplyInRune);
       currentSupply = totalSupplyInRune;

@@ -17,7 +17,7 @@
     calculateVaultBond,
     calculateVaultAssetValue
   } from '$lib/utils/network';
-  import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { thornode } from '$lib/api';
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { getNodes } from '$lib/utils/nodes';
   import { getAssetLogo, getAssetDisplayName } from '$lib/constants';
@@ -47,7 +47,7 @@
 
   async function fetchPrices() {
     try {
-      const pools = await fetchJSONWithFallback('/thorchain/pools');
+      const pools = await thornode.getPools();
 
       const priceMap = pools.reduce((acc, pool) => {
         const assetExistsInVaults = vaults.some(vault =>
@@ -83,7 +83,7 @@
 
   async function fetchNetwork() {
     try {
-      networkData = await fetchJSONWithFallback('/thorchain/network');
+      networkData = await thornode.getNetwork();
     } catch (e) {
       console.error('Error fetching network data:', e);
     }

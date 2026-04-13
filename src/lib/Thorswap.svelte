@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
 
   let assets = [];
   let fromAsset = 'BTC.BTC';

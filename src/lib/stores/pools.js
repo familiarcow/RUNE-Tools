@@ -6,7 +6,7 @@
  */
 
 import { writable, derived, get } from 'svelte/store';
-import { thornode } from '../api/thornode.js';
+import { thornode } from '$lib/api';
 import { fromBaseUnit } from '../utils/blockchain.js';
 
 // Private state for lifecycle management
@@ -101,7 +101,7 @@ export const poolsWithPrices = derived(pools, ($pools) =>
  */
 async function fetchPools() {
   try {
-    const data = await thornode.getPools({ realtime: false, preferNinerealms: true });
+    const data = await thornode.getPools();
 
     pools.set(data);
     poolsLastUpdate.set(new Date());

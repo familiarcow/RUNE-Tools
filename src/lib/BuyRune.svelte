@@ -17,7 +17,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { ethers } from 'ethers';
   import { fade } from 'svelte/transition';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
   
   let account = '';
   let selectedAsset = 'ETH';

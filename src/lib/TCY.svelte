@@ -9,8 +9,8 @@
     formatUSDWithDecimals
   } from '$lib/utils/formatting';
   import { blocksToSeconds, fromBaseUnit } from '$lib/utils/blockchain';
-  import { fetchJSONWithFallback, THORNODE_ENDPOINTS, MIDGARD_ENDPOINTS } from '$lib/utils/api';
-  import { getRunePrice } from '$lib/utils/network';
+  import { thornode } from '$lib/api';
+  import { getRunePrice, getCurrentBlock } from '$lib/utils/network';
   import {
     getTCYPrice,
     getTCYMimir,
@@ -18,7 +18,6 @@
     getTCYStaker,
     getTCYDistributionHistory,
     getTCYStakeModuleBalance,
-    getCurrentBlock,
     getNextDistributionBlock,
     calculateUserDistributionShare,
     getHistoricalRunePrices,
@@ -166,7 +165,7 @@
 
       // Fetch unstaked balances using shared utility with fallback
       try {
-        const unstakedData = await fetchJSONWithFallback(`/cosmos/bank/v1beta1/balances/${address}`);
+        const unstakedData = await thornode.getBalance(address);
         const tcyBalance = unstakedData.balances.find(b => b.denom === "tcy");
         const runeBalance = unstakedData.balances.find(b => b.denom === "rune");
         unstakedBalance = tcyBalance ? fromBaseUnit(tcyBalance.amount) : 0;

@@ -1,7 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
 
   export let asset = "";
   export let address = "";

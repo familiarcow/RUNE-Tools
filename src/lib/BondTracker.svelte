@@ -1,7 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { thornode } from '$lib/api';
-  import { midgard } from '$lib/api/midgard';
+  import { thornode, midgard } from '$lib/api';
   import { formatNumber, simplifyNumber, formatCountdown, getAddressSuffix } from '$lib/utils/formatting';
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { getChurnInfo, getLastChurn, getNodes, getLeaveStatus, LEAVE_STATUS } from '$lib/utils/nodes';
@@ -173,7 +172,7 @@
 
       // Fetch detailed data for each node
       const nodeDataPromises = nodes.map(async (node) => {
-        const nodeData = await thornode.fetch(`/thorchain/node/${node.address}`);
+        const nodeData = await thornode.getNode(node.address);
         const bondProviders = nodeData.bond_providers.providers;
 
         let userBond = 0;
@@ -249,7 +248,7 @@
     try {
       // Parallelize independent API calls
       const [nodeData, lastChurn, runePriceData, allNodesData] = await Promise.all([
-        thornode.fetch(`/thorchain/node/${node_address}`),
+        thornode.getNode(node_address),
         getLastChurn(),
         thornode.getNetwork(),
         getNodes()

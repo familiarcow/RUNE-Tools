@@ -155,37 +155,77 @@ const logo = getAssetLogo(pool.asset);
 ### THORNode Client
 
 **Provider Strategy:**
-- **Liquify** (`gateway.liquify.com/chain/thorchain_api`): Updates every 6 seconds - use for real-time data
-- **Nine Realms** (`thornode.ninerealms.com`): Updates ~1 minute - fallback after 3 Liquify failures
-- **Archive** (`thornode-archive.ninerealms.com`): Historical queries with block height
+
+THORNode API providers are defined in array `THORNODE_PROVIDERS`.  Each entry is an object containing multiple attributes:
+
+- `base` (string): base API URL without trailing slash (required)
+- `headers` (object): key/value pair of parameters passed to fetch() (optional)
+- `supportsBlockHeight` (boolean): whether or not API endpoints supports `?height` HTTP parameter (optional, default false)
+
+### Method Options
+
+All THORNode Client methods support an optional `options` object as the last parameter.
+
+This object is passed onto the private method called `#fetch()` which can contain header information (for standard
+JavaScript fetch()) as well keys that act as "control" capabilities for the fetch mechanism itself:
+
+- `cache` (boolean, true): whether or not to cache responses
+- `cacheTTL` (integer, 60000): cache entry time-to-live in milliseconds
+- `blockHeight` (integer|null): block height to query API information for. Only works with `supportsBlockHeight: true` providers
 
 ### Available Methods
 
 | Method | Purpose |
 |--------|---------|
-| `thornode.fetch(path, options)` | Raw fetch with failover |
 | `thornode.getNetwork()` | Get network data (includes RUNE price) |
-| `thornode.getRunePrice()` | Get RUNE price in USD directly |
+| `thornode.getUpgradeProposals()` | Get current upgrade proposals |
+| `thornode.getUpgradeProposal(name)` | Get current upgrade proposals for the provided name |
+| `thornode.getLastBlocks()` | Get last block info for all chains |
+| `thornode.getLastBlock(chain)` | Get last block info for provided chain |
 | `thornode.getPools()` | Get all pools |
 | `thornode.getPool(asset)` | Get specific pool |
 | `thornode.getNodes()` | Get all nodes |
+| `thornode.getNode(address)` | Get node information via address |
 | `thornode.getMimir(key)` | Get Mimir value |
 | `thornode.getAllMimir()` | Get all Mimir values |
+| `thornode.getMimirAllNodeVotes()` | Get all current node Mimir votes |
 | `thornode.getBalance(address)` | Get address balance |
-| `thornode.getLiquidityProvider(pool, address, options)` | Get LP data (supports `{ blockHeight }` for historical) |
+| `thornode.getLiquidityProviders(pool)` | Get all liquidity providers for a pool |
+| `thornode.getLiquidityProvider(pool, address)` | Get liquidity provider data via pool and address |
 | `thornode.getVaults()` | Get Asgard vaults |
 | `thornode.getInboundAddresses()` | Get inbound addresses |
 | `thornode.getConstants()` | Get protocol constants |
+| `thornode.getStatus()` | Get current block status |
 | `thornode.getSwapQuote(params)` | Get swap quote |
+| `thornode.getSaver(asset, address)` | Get saver data for asset and address |
+| `thornode.getSaverWithdrawQuote(params)` | Get saver withdraw quote |
+| `thornode.getThorname(name)` | Get THORName data for name |
+| `thornode.getRunePool()` | Get all RUNE Pool information |
+| `thornode.getRuneProviders()` | Get all RUNE providers |
+| `thornode.getRuneProvider(address)` | Get information for RUNE Provider via address |
+| `thornode.getTxStatus(txid)` | Get transaction status via txid |
+| `thornode.getLoanQuote(params)` | Get loan open quote |
+| `thornode.getLimitSwapsSummary()` | Get limit swaps summary |
+| `thornode.getLimitSwaps(params)` | Get limit swaps |
+| `thornode.getOutboundFees()` | Get all outbound fees |
+| `thornode.getTcyStakers()` | Get all TCY stakers |
+| `thornode.getTcyStaker(address)` | Get TCY staker position details via address |
+| `thornode.getTcyStakeModuleBalance()` | Get TCY stake module balance (accrued RUNE for distribution) |
+| `thornode.getTcyClaimers()` | Get all pending TCY claimants (those who have unclaimed TCY) |
+| `thornode.getTcyTotalSupply()` | Get total TCY supply via CMC data |
+| `thornode.getSupplyByDenomination(denom)` | Get total supply by asset denomination |
+| `thornode.getCosmosBlockByHeight(height)` | Get block details from Cosmos SDK/RPC layer (GetBlockByHeight) |
+| `thornode.getOraclePrices()` | Get all available oracle prices |
+| `thornode.getSecuredAssets()` | Get total size and ratio of all secured assets |
+| `thornode.getSwapperClout(address)` | Get the clout score of an address |
+| `thornode.getTradeUnits()` | Get total units and depth for all Trade Assets |
+| `thornode.getTreasuryInfo()` | Get Treasury module address and assets/balances |
 
 ### Options
 
 ```javascript
 // Default: Uses Liquify with Nine Realms fallback
 await thornode.getNetwork();
-
-// Prefer Nine Realms (less frequent updates OK)
-await thornode.getPools({ preferNinerealms: true });
 
 // Historical query with block height (uses Archive)
 await thornode.getLiquidityProvider(pool, address, { blockHeight: 12345678 });
@@ -211,11 +251,11 @@ const fetchRunePrice = async () => {
 
 **After:**
 ```javascript
-import { thornode } from '$lib/api';
+import { getRunePrice } from '$lib/utils/network';
 
 const fetchRunePrice = async () => {
   try {
-    runePrice = await thornode.getRunePrice();
+    runePrice = await getRunePrice();
   } catch (err) {
     console.error('Failed to fetch RUNE price:', err);
   }
@@ -337,7 +377,7 @@ When migrating a component, check for these patterns:
 - [ ] Hardcoded `1e8` → `THOR_BASE`
 
 ### Replace Direct API Calls
-- [ ] `fetch('https://thornode.ninerealms.com/...')` → `thornode.fetch()` or convenience method
+- [X] `fetch('https://thornode.ninerealms.com/...')` → `thornode.fetch()` or convenience method
 - [ ] `fetch('https://midgard.ninerealms.com/...')` → `midgard.fetch()` or convenience method
 
 ### Replace Independent Data Fetching

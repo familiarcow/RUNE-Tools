@@ -34,9 +34,9 @@
   const fetchData = async () => {
     try {
       const [vaultsData, poolsData, nodesData, mimirValues] = await Promise.all([
-        thornode.fetch('/thorchain/vaults/asgard'),
-        thornode.fetch('/thorchain/pools'),
-        thornode.fetch('/thorchain/nodes'),
+        thornode.getVaults(),
+        thornode.getPools(),
+        thornode.getNodes(),
         getMimirValues(['PendulumAssetBasisPoints', 'PendulumUseVaultAssets', 'PendulumUseEffectiveSecurity'])
       ]);
       const { PendulumAssetBasisPoints: mimirData, PendulumUseVaultAssets: pendulumUseVaultAssetsData, PendulumUseEffectiveSecurity: pendulumUseEffectiveSecurityData } = mimirValues;

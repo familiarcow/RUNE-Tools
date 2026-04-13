@@ -6,8 +6,7 @@
         import { slide } from 'svelte/transition';
         import { SettingsIcon } from '$lib/components';
         import AssetDropdown from './SwapEstimator/AssetDropdown.svelte';
-        import { thornode } from '$lib/api/thornode';
-        import { midgard } from '$lib/api/midgard';
+        import { thornode, midgard } from '$lib/api';
   
           
         let amount = null; //random starting swap

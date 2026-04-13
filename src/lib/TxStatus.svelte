@@ -2,8 +2,7 @@
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
-  import { thornode } from '$lib/api/thornode';
-  import { midgard } from '$lib/api/midgard';
+  import { thornode, midgard } from '$lib/api';
 
   let txId = '';
   let txData = null;

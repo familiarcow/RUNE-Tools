@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { copyToClipboard as copyToClipboardUtil, shortenAddress } from '$lib/utils/formatting';
-  import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { thornode } from '$lib/api';
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { getAllPools } from '$lib/utils/liquidity';
   import {
@@ -38,7 +38,7 @@
       const [inboundData, poolsData, networkData] = await Promise.all([
         getInboundAddresses(),
         getAllPools(),
-        fetchJSONWithFallback('/thorchain/network')
+        thornode.getNetwork()
       ]);
 
       const runePrice = fromBaseUnit(networkData.rune_price_in_tor);
