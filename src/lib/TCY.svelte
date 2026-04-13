@@ -227,7 +227,7 @@
   };
 
   // Use shared formatNumber utility with locale formatting
-  const numFormat = (x) => formatNumber(x, { maximumFractionDigits: 1 });
+  const numFormat = (x, decimals=1) => formatNumber(x, { maximumFractionDigits: decimals });
 
   // Use shared formatUSDWithDecimals utility
   const formatCurrency = (value) => formatUSDWithDecimals(value, 2);
@@ -269,11 +269,11 @@
   const formatRuneAmount = (amount) => {
     const value = Number(amount) / 1e8;
     if (value >= 1) {
-      return numFormat(value.toFixed(1));
+      return numFormat(value.toFixed(1), 1);
     } else if (value >= 0.01) {
-      return numFormat(value.toFixed(3));
+      return numFormat(value.toFixed(3), 3);
     } else {
-      return numFormat(value.toFixed(8));
+      return numFormat(value.toFixed(8), 8);
     }
   };
 
