@@ -91,8 +91,6 @@ export async function getTCYPrice() {
   }
 }
 
-// getRunePrice is now imported from network.js and re-exported above
-
 /**
  * Fetch both TCY and RUNE prices at once
  *

@@ -52,19 +52,21 @@ class ThorNodeClient {
   /**
    * Fetch from THORNode (private)
    *
+   * Caching is handled by #fetchJSON / #fetchText wrappers so parsed bodies
+   * are cached once and returned directly on hits (no re-parse, no Response
+   * clone consumption hazards).
+   *
    * @param {string} path - API endpoint path (e.g. '/thorchain/network')
    * @param {Object} [options={}] - Combined options object:
-   *        - Behavior modifiers: cache, cacheTTL, blockHeight
+   *        - Behavior modifiers: blockHeight (cache, cacheTTL handled by wrappers)
    *        - Anything else gets passed into fetch() directly
-   * @param {boolean} [options.cache=true] - Enable/disable response caching
-   * @param {number} [options.cacheTTL] - Cache duration (milliseconds)
    * @param {number|null} [options.blockHeight=null] - Query historical state at specific block height
    * @returns {Promise<Response>} Raw `Response` object from the successful provider
    */
   async #fetch(path, options = {}) {
     const {
-      cache = true,
-      cacheTTL = DEFAULT_CACHE_TTL,
+      cache: _cache,
+      cacheTTL: _cacheTTL,
       blockHeight = null,
       ...fetchInit
     } = options;
@@ -75,19 +77,6 @@ class ThorNodeClient {
       const separator = path.includes('?') ? '&' : '?';
       const e_blockHeight = encodeURIComponent(blockHeight);
       effectivePath += `${separator}height=${e_blockHeight}`;
-    }
-
-    // Lightweight cache lookup
-    if (cache) {
-      const cached = apiCache.get(effectivePath);
-      if (cached) {
-        const age = now - cached.timestamp;
-        if (age < cacheTTL) {
-          return cached.response.clone();
-        } else {
-          apiCache.delete(effectivePath);
-        }
-      }
     }
 
     const available = THORNODE_PROVIDERS.filter(p => {
@@ -121,15 +110,6 @@ class ThorNodeClient {
           // Clear rate limit and failure count on success
           rateLimitedUntil.delete(provider.base);
           failureCounts.delete(provider.base);
-
-          if (cache) {
-            // Always cache under effectivePath so historical queries are
-            // consistently cached regardless of which provider was used
-            apiCache.set(effectivePath, {
-              timestamp: now,
-              response: response.clone()
-            });
-          }
           return response;
         }
         if (response.status === 429) {
@@ -160,27 +140,78 @@ class ThorNodeClient {
   // ============================================
 
   /**
-   * Fetch and parse JSON response
-   *
-   * @param {string} path - API endpoint path
-   * @param {Object} [options={}] - Same options as #fetch
-   * @returns {Promise<Object>}
+   * Build the cache key used by #fetchJSON / #fetchText.
+   * Includes format so json/text for the same path don't collide.
    */
-  async #fetchJSON(path, options = {}) {
-    const response = await this.#fetch(path, options);
-    return response.json();
+  #cacheKey(path, options, format) {
+    const { blockHeight = null } = options;
+    let effectivePath = path;
+    if (blockHeight != null) {
+      const separator = path.includes('?') ? '&' : '?';
+      effectivePath += `${separator}height=${encodeURIComponent(blockHeight)}`;
+    }
+    return `${format}:${effectivePath}`;
   }
 
   /**
-   * Fetch and return the response body as plain text
+   * Look up a fresh cached body. Returns undefined on miss.
+   */
+  #cacheGet(key, cacheTTL) {
+    const entry = apiCache.get(key);
+    if (!entry) return undefined;
+    if (Date.now() - entry.timestamp >= cacheTTL) {
+      apiCache.delete(key);
+      return undefined;
+    }
+    return entry.body;
+  }
+
+  /**
+   * Fetch and parse JSON response (cached)
    *
    * @param {string} path - API endpoint path
-   * @param {Object} [options={}] - Same options as #fetch
+   * @param {Object} [options={}] - Same options as #fetch, plus cache controls
+   * @param {boolean} [options.cache=true] - Enable/disable response caching
+   * @param {number} [options.cacheTTL] - Cache duration (milliseconds)
+   * @returns {Promise<Object>}
+   */
+  async #fetchJSON(path, options = {}) {
+    const { cache = true, cacheTTL = DEFAULT_CACHE_TTL } = options;
+    const key = this.#cacheKey(path, options, 'json');
+    if (cache) {
+      const hit = this.#cacheGet(key, cacheTTL);
+      if (hit !== undefined) return hit;
+    }
+    const response = await this.#fetch(path, options);
+    const body = await response.json();
+    if (cache) {
+      apiCache.set(key, { timestamp: Date.now(), body });
+    }
+    return body;
+  }
+
+  /**
+   * Fetch and return the response body as plain text (cached)
+   *
+   * @param {string} path - API endpoint path
+   * @param {Object} [options={}] - Same options as #fetch, plus cache controls
+   * @param {boolean} [options.cache=true] - Enable/disable response caching
+   * @param {number} [options.cacheTTL] - Cache duration (milliseconds)
    * @returns {Promise<string>}
    */
   async #fetchText(path, options = {}) {
+    const { cache = true, cacheTTL = DEFAULT_CACHE_TTL } = options;
+    const key = this.#cacheKey(path, options, 'text');
+    if (cache) {
+      const hit = this.#cacheGet(key, cacheTTL);
+      if (hit !== undefined) return hit;
+    }
     const response = await this.#fetch(path, options);
-    return response.text();
+    const body = await response.text();
+    if (cache) {
+      apiCache.set(key, { timestamp: Date.now(), body });
+    }
+    return body;
   }
 
   // ============================================
@@ -227,7 +258,7 @@ class ThorNodeClient {
    */
   async getUpgradeProposal(name, options = {}) {
     const e_name = encodeURIComponent(name);
-    return this.#fetchJSON(`/thorchain/upgrade_proposal/${name}`, options);
+    return this.#fetchJSON(`/thorchain/upgrade_proposal/${e_name}`, options);
   }
 
   /**
