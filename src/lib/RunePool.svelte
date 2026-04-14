@@ -58,7 +58,7 @@
   });
 
   async function fetchRunepoolData() {
-    const data = await thornode.fetch('/thorchain/runepool');
+    const data = await thornode.getRunePool();
     const providers = data.providers;
 
     value = formatRuneAmount(providers.value / 1e8);
@@ -69,7 +69,7 @@
   }
 
   async function fetchDepositorCount() {
-    const data = await thornode.fetch('/thorchain/rune_providers');
+    const data = await thornode.getRuneProviders();
     depositorCount = data.length;
   }
 
@@ -78,9 +78,9 @@
 
     // Fetch user position, mimir, and last block in parallel
     const [data, mimirData, blockData] = await Promise.all([
-      thornode.fetch(`/thorchain/rune_provider/${address}`),
+      thornode.getRuneProvider(address),
       getAllMimir(),
-      thornode.fetch('/thorchain/lastblock')
+      thornode.getLastBlocks()
     ]);
 
     userValue = formatRuneAmount(data.value / 1e8);
@@ -96,7 +96,7 @@
   }
 
   async function fetchAllPositions() {
-    const data = await thornode.fetch('/thorchain/rune_providers');
+    const data = await thornode.getRuneProviders();
 
     allPositions = data.map((position) => {
       const depositValue = position.deposit_amount / 1e8;
@@ -119,7 +119,7 @@
     try {
         // First get all pools data and mimir in parallel
         const [poolsData, mimirData] = await Promise.all([
-          thornode.fetch('/thorchain/pools'),
+          thornode.getPools(),
           getAllMimir()
         ]);
 
@@ -144,7 +144,7 @@
                 const [chain, ...rest] = asset.split('-');
                 const poolName = `${chain}.${rest.join('-')}`;
 
-                const data = await thornode.fetch(`/thorchain/pool/${poolName}/liquidity_provider/thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt`);
+                const data = await thornode.getLiquidityProvider(poolName, 'thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt');
                 const runeValue = Number(data.rune_redeem_value) / 1e8;
                 
                 // Calculate ownership percentage

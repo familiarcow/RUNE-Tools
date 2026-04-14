@@ -91,7 +91,7 @@
             // Check each asset individually
             for (const asset of LP_ASSETS) {
                 try {
-                    const data = await thornode.fetch(`/thorchain/pool/${encodeURIComponent(asset)}/liquidity_provider/${address}`);
+                    const data = await thornode.getLiquidityProvider(asset, address);
 
                     // Only add if there are actual LP positions (units > 0)
                     if (data.units && Number(data.units) > 0) {
@@ -119,7 +119,7 @@
     async function fetchThorBalances() {
         try {
             // Fetch treasury address first
-            const treasuryData = await thornode.fetch('/thorchain/balance/module/treasury');
+            const treasuryData = await thornode.getTreasuryInfo();
             const treasuryAddress = treasuryData.address;
 
             // Add treasury address to the list if not already present
@@ -139,7 +139,7 @@
             // Use the updated addresses array
             const results = await Promise.all(
                 addresses.map(async ({address, label}) => {
-                    const balanceData = await thornode.fetch(`/cosmos/bank/v1beta1/balances/${address}`);
+                    const balanceData = await thornode.getBalance(address);
                     const lpPositionsData = await fetchLPPositions(address);
 
                     return {
@@ -257,7 +257,7 @@
 
     async function fetchPools() {
         try {
-            const pools = await thornode.fetch('/thorchain/pools');
+            const pools = await thornode.getPools();
 
             // Filter for Available pools only
             LP_ASSETS = pools

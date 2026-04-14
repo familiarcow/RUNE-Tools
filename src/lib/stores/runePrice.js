@@ -7,7 +7,7 @@
  */
 
 import { writable, derived, get } from 'svelte/store';
-import { thornode } from '../api/thornode.js';
+import { getRunePrice } from '$lib/utils/network';
 
 // Private state for lifecycle management
 let updateInterval = null;
@@ -80,7 +80,7 @@ export const runePriceChange = derived(runePriceHistory, ($history) => {
  */
 async function fetchRunePrice() {
   try {
-    const price = await thornode.getRunePrice({ realtime: true });
+    const price = await getRunePrice();
 
     runePrice.set(price);
     runePriceLastUpdate.set(new Date());

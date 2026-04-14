@@ -21,7 +21,7 @@
  * // Returns hex color based on ranking
  */
 
-import { fetchJSONWithFallback } from './api';
+import { thornode } from '$lib/api';
 import { getAllMimir } from './mimir';
 import { getAddressSuffix } from './formatting';
 
@@ -101,7 +101,7 @@ export const VOTE_COLOR_PALETTE = [
  * console.log(`Total votes: ${mimirs.length}`);
  */
 export async function fetchMimirNodeVotes(options = {}) {
-  const data = await fetchJSONWithFallback('/thorchain/mimir/nodes_all', options);
+  const data = await thornode.getMimirAllNodeVotes(options);
   return data.mimirs || [];
 }
 

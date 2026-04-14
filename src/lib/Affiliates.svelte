@@ -4,9 +4,8 @@
   import { getInboundAddresses, getExplorerUrl, getOutboundFee } from '$lib/utils/network';
   import { getAllPools } from '$lib/utils/liquidity';
   import { fromBaseUnit } from '$lib/utils/blockchain';
-  import { fetchJSONWithFallback } from '$lib/utils/api';
   import { ErrorDisplay } from '$lib/components';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
   import { getMimirValue } from '$lib/utils/mimir';
 
   interface ThorNameResponse {

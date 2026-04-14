@@ -5,7 +5,7 @@
   import { calculateLPValue } from '$lib/utils/liquidity';
   import { getAssetLogo } from '$lib/constants/assets';
   import { CopyIcon } from '$lib/components';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
 
   export let address = null;
   export let pool = null;

@@ -29,7 +29,7 @@
  * const totalUSD = calculateWalletValue(balances, assetPrices, runePrice);
  */
 
-import { thornode } from '../api/thornode.js';
+import { thornode } from '$lib/api';
 import { fromBaseUnit } from './blockchain.js';
 
 // ============================================
@@ -109,7 +109,6 @@ export function assetToDenom(asset) {
  * @param {string} address - THORChain address (thor1...)
  * @param {Object} [options={}] - Fetch options passed to thornode client
  * @param {boolean} [options.cache=true] - Whether to use cached data
- * @param {boolean} [options.realtime=true] - Use realtime provider
  * @returns {Promise<Array<Object>>} Array of balance objects
  *
  * @example

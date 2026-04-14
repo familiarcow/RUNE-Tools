@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
   import { RefreshIcon, SettingsIcon } from '$lib/components';
-  import { fetchJSONWithFallback } from '$lib/utils/api';
+  import { thornode } from '$lib/api';
 
   const showInUSD = writable(false);
   const showSettings = writable(false);
@@ -12,7 +12,7 @@
   async function getSecuredAssets() {
     try {
       // Use shared utility with fallback support
-      const data = await fetchJSONWithFallback('/thorchain/securedassets');
+      const data = await thornode.getSecuredAssets();
       return data.map(asset => ({
         ...asset,
         supply: Number(asset.supply),

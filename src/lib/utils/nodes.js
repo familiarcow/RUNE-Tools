@@ -23,8 +23,7 @@
  * console.log(`Total bonded: $${totalUSD.toLocaleString()}`);
  */
 
-import { thornode } from '../api/thornode.js';
-import { midgard } from '../api/midgard.js';
+import { thornode, midgard } from '$lib/api';
 import { getMimirValue } from './mimir.js';
 import { fromBaseUnit } from './blockchain.js';
 import { getAddressSuffix } from './formatting.js';
@@ -599,7 +598,7 @@ export async function getNextChurnHeight(options = {}) {
 
   // Try to get next churn height from network endpoint
   try {
-    const networkData = await thornode.fetch('/thorchain/network', options);
+    const networkData = await thornode.getNetwork(options);
     const candidates = ['next_churn_height', 'churn_height', 'churnHeight', 'nextChurnHeight'];
 
     for (const key of candidates) {
@@ -676,7 +675,7 @@ export async function getChurnState(options = {}) {
   // Mimir values served from shared 5-min cache — no extra HTTP requests
   const [churnsData, networkData, churnInterval, haltChurning, currentHeight] = await Promise.all([
     recentChurnsLimit > 0 ? getRecentChurns(recentChurnsLimit, fetchOptions) : getLastChurn(fetchOptions),
-    thornode.fetch('/thorchain/network', fetchOptions).catch(() => null),
+    thornode.getNetwork(fetchOptions).catch(() => null),
     getMimirValue('CHURNINTERVAL').catch(() => 43200),
     getMimirValue('HALTCHURNING').catch(() => 0),
     getCurrentBlock()

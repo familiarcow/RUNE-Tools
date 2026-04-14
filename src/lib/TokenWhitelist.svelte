@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { slide } from 'svelte/transition';
   import { copyToClipboard as copyToClipboardUtil } from '$lib/utils/formatting';
-  import { thornode } from '$lib/api/thornode';
+  import { thornode } from '$lib/api';
 
   interface Pool {
     asset: string;
