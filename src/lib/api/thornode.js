@@ -16,14 +16,13 @@ import { fromBaseUnit } from '../utils/blockchain.js';
 export const THORNODE_PROVIDERS = Object.freeze([
   {
     base: 'https://gateway.liquify.com/chain/thorchain_api',
-    // Liquify at this present time doesn't allow x-client-id through their CORS configuration
-    // headers: { 'x-client-id': 'RuneTools' },
+    // Liquify doesn't accept x-client-id through their CORS configuration
+    // (unlike the deprecated Nine Realms endpoints)
     supportsBlockHeight: true,
   },
-  {
-    base: 'https://gateway2.liquify.com/chain/thorchain_api',
-    supportsBlockHeight: true,
-  },
+  // Additional fallback providers append here. Failover, rate-limit tracking,
+  // and historical-query routing are all keyed off this array — no other
+  // changes needed when a new backup thornode comes online.
 ]);
 
 // ============================================
