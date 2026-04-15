@@ -779,6 +779,10 @@
     "isp": "OVH SAS",
     "countryCode": "FR"
   },
+  "154.46.30.100": {
+    "isp": "firstcolo GmbH",
+    "countryCode": "DE"
+  },
   "156.59.230.139": {
     "isp": "Zenlayer Inc",
     "countryCode": "JP"
@@ -883,6 +887,10 @@
     "isp": "Akamai Technologies, Inc.",
     "countryCode": "SE"
   },
+  "173.208.48.40": {
+    "isp": "Leaseweb UK Limited",
+    "countryCode": "GB"
+  },
   "173.234.17.198": {
     "isp": "Leaseweb UK Limited",
     "countryCode": "GB"
@@ -958,6 +966,10 @@
   "185.166.39.163": {
     "isp": "HOSTINGER FR",
     "countryCode": "FR"
+  },
+  "185.200.244.22": {
+    "isp": "LifeinCloud LTD",
+    "countryCode": "GB"
   },
   "185.200.244.90": {
     "isp": "LifeinCloud LTD",
