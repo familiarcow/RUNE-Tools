@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  
+
   let releaseData = null;
   let loading = true;
   let error = null;
@@ -27,7 +27,7 @@
 
   function getDownloadUrl(platform) {
     if (!releaseData || !releaseData.assets) return null;
-    
+
     const asset = releaseData.assets.find(asset => {
       const name = asset.name.toLowerCase();
       if (platform === 'mac') {
@@ -37,13 +37,13 @@
       }
       return false;
     });
-    
+
     return asset ? asset.browser_download_url : null;
   }
 
   function getAssetInfo(platform) {
     if (!releaseData || !releaseData.assets) return null;
-    
+
     const asset = releaseData.assets.find(asset => {
       const name = asset.name.toLowerCase();
       if (platform === 'mac') {
@@ -53,13 +53,13 @@
       }
       return false;
     });
-    
+
     if (!asset) return null;
-    
+
     const name = asset.name;
     let arch = 'Universal';
     let type = platform === 'mac' ? 'DMG Installer' : 'EXE Installer';
-    
+
     if (platform === 'mac') {
       if (name.includes('arm64') || name.includes('aarch64')) {
         arch = 'Apple Silicon';
@@ -75,27 +75,27 @@
         arch = 'x86';
       }
     }
-    
+
     return { arch, type, url: asset.browser_download_url };
   }
 
   function parseChangelog(text) {
     if (!text) return [];
-    
+
     // Clean up the text and split into lines
     const lines = text.split('\n').map(line => line.trim());
     const items = [];
     let i = 0;
-    
+
     while (i < lines.length) {
       const line = lines[i];
-      
+
       // Skip empty lines and horizontal rules
       if (line.length === 0 || line === '---') {
         i++;
         continue;
       }
-      
+
       // Handle various header formats
       if (line.startsWith('# ')) {
         items.push({
@@ -106,9 +106,9 @@
         i++;
       } else if (line.startsWith('## ')) {
         const headerText = line.substring(3).trim();
-        
+
         // Check if this is Installation Notes or Verification section
-        if (headerText.toLowerCase().includes('installation') || 
+        if (headerText.toLowerCase().includes('installation') ||
             headerText.toLowerCase().includes('verification')) {
           // Group all content under this header into a unified container
           const groupedContent = [];
@@ -116,23 +116,23 @@
             type: 'section-header',
             text: headerText
           });
-          
+
           i++; // Move past the header
-          
+
           // Collect all content until next major section or end
           while (i < lines.length) {
             const nextLine = lines[i].trim();
-            
+
             // Stop if we hit another major header (## or #)
             if (nextLine.startsWith('## ') || nextLine.startsWith('# ')) {
               break;
             }
-            
+
             if (nextLine.length === 0 || nextLine === '---') {
               i++;
               continue;
             }
-            
+
             // Add content to the grouped section
             if (nextLine.startsWith('### ')) {
               groupedContent.push({
@@ -178,10 +178,10 @@
                 });
               }
             }
-            
+
             i++;
           }
-          
+
           items.push({
             type: 'unified-section',
             title: headerText,
@@ -199,7 +199,7 @@
         }
       } else if (line.startsWith('### ')) {
         items.push({
-          type: 'heading', 
+          type: 'heading',
           text: line.substring(4).trim(),
           level: 3
         });
@@ -210,7 +210,7 @@
         let bulletText = line.substring(2).trim();
         bulletText = cleanupBoldText(bulletText);
         bulletList.push(bulletText);
-        
+
         // Look ahead for more bullet points
         while (i + 1 < lines.length) {
           const nextLine = lines[i + 1].trim();
@@ -223,7 +223,7 @@
             break;
           }
         }
-        
+
         items.push({
           type: 'bullet-list',
           bullets: bulletList
@@ -256,7 +256,7 @@
         i++;
       }
     }
-    
+
     return items;
   }
 

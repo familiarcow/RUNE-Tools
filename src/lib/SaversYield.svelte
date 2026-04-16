@@ -509,8 +509,8 @@
           <th>
             Synth Util.
             <div class="info-container">
-              <button 
-                class="info-btn" 
+              <button
+                class="info-btn"
                 on:click={(e) => toggleTooltip(e, "synth-utilization")}
               >?</button>
             </div>
@@ -518,8 +518,8 @@
           <th>
             Savers Yield
             <div class="info-container">
-              <button 
-                class="info-btn" 
+              <button
+                class="info-btn"
                 on:click={(e) => toggleTooltip(e, "savers-yield-share")}
               >?</button>
             </div>
@@ -527,8 +527,8 @@
           <th>
             LP Yield
             <div class="info-container">
-              <button 
-                class="info-btn" 
+              <button
+                class="info-btn"
                 on:click={(e) => toggleTooltip(e, "lp-yield-share")}
               >?</button>
             </div>
@@ -537,14 +537,14 @@
       </thead>
       <tbody>
         {#each availablePools as pool}
-          <tr 
+          <tr
             on:click={() => selectPool(pool)}
             class:selected={selectedPool === pool}
           >
             <td class="asset-name">
-              <img 
-                src={assetLogos[pool.asset] || 'assets/coins/fallback-logo.svg'} 
-                alt={pool.asset} 
+              <img
+                src={assetLogos[pool.asset] || 'assets/coins/fallback-logo.svg'}
+                alt={pool.asset}
                 class="asset-logo"
                 on:error={(e) => {
                   e.target.onerror = null;

@@ -35,7 +35,7 @@
   let nodeAddressSuffix = "";
   let isMobile = false;
   let nodeStatus = "";
-  
+
   // New variables for multiple bond tracking
   let bondNodes = []; // Array of node data with bonds > 1 RUNE
   let isMultiNode = false; // Whether user has multiple nodes
@@ -123,10 +123,10 @@
 
       // Fetch bond data from midgard
       const bondData = await midgard.fetch(`/bonds/${my_bond_address}`);
-      
+
       // Filter nodes with bond > 1 RUNE (1e8 base units)
       const nodesWithBond = bondData.nodes.filter(node => Number(node.bond) > 1e8);
-      
+
       if (nodesWithBond.length === 1) {
         // Single node - use existing UI
         isMultiNode = false;
@@ -139,7 +139,7 @@
         isMultiNode = true;
         await fetchMultiNodeData(nodesWithBond);
       }
-      
+
       // Data loaded, start transition
       isLoading = false;
       setTimeout(() => {
@@ -218,11 +218,11 @@
       });
 
       bondNodes = await Promise.all(nodeDataPromises);
-      
+
       // Calculate totals
       totalBond = bondNodes.reduce((sum, node) => sum + node.bond, 0);
       totalAward = bondNodes.reduce((sum, node) => sum + node.award, 0);
-      
+
       // Calculate weighted average APY
       let weightedAPYSum = 0;
       for (const node of bondNodes) {
@@ -230,7 +230,7 @@
         weightedAPYSum += node.apy * weight;
       }
       aggregateAPY = weightedAPYSum;
-      
+
       // Update legacy variables for existing reactive statements
       my_bond = totalBond;
       my_award = totalAward;
@@ -238,7 +238,7 @@
       bondvaluebtc = bondNodes.reduce((sum, node) => sum + node.btcValue, 0);
 
       await fetchChurnInterval();
-      
+
     } catch (error) {
       console.error("Error fetching multi-node data:", error);
     }

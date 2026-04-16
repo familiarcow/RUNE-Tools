@@ -159,7 +159,7 @@
       return `Outbound delay: ${remainingSeconds} seconds remaining`;
     }
 
-    if (stages.swap_finalised && stages.swap_finalised.completed && 
+    if (stages.swap_finalised && stages.swap_finalised.completed &&
         stages.outbound_signed && stages.outbound_signed.completed) {
       return 'Completed';
     }
@@ -184,7 +184,7 @@
 
 <div class="tx-status-container">
   <h2>Transaction Status</h2>
-  
+
   {#if txData && txData.stages}
     <div class="status-summary" style="background-color: {getStatusColor(getLatestStatus(txData.stages))}">
       <span class="status-label">Status:</span>

@@ -1,14 +1,14 @@
 <script>
     // Swap estimator created by FamiliarCow for the THORChain community under MIT license
     // Utilizing Nine Realms public infrastructure and THORNode quote endpoint
-    
+
         import { onMount } from 'svelte';
         import { slide } from 'svelte/transition';
         import { SettingsIcon } from '$lib/components';
         import AssetDropdown from './SwapEstimator/AssetDropdown.svelte';
         import { thornode, midgard } from '$lib/api';
-  
-          
+
+
         let amount = null; //random starting swap
         let from_asset = 'ETH.ETH'; //set default from_asset
         let to_asset = 'BTC.BTC'; //set default to_asset
@@ -23,7 +23,7 @@
         let streaming_total_swap_seconds = 0;
         let slippage_bps = 0;
         let estimated_swap_time = 0;
-        let showLogos = false;  
+        let showLogos = false;
         let estimatedValue = '';
         let fromDropdownOpen = false;
         let toDropdownOpen = false;
@@ -60,33 +60,33 @@
         let toggleAll = false;
         let showHeightField = false;
         let height = '';
-  
+
   function changellyAssetFormat(asset) {
     // Splits the string into two at the period, takes the second piece
     let afterPeriod = asset.split('.')[1];
-  
+
     // If there is a hyphen, split the string into two at the hyphen, takes the first piece
     if (afterPeriod.includes('-')) {
       return afterPeriod.split('-')[0];
     }
-  
+
     return afterPeriod;
   }
-  
+
   function wait(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
   }
-      
+
         function formatTime(seconds) {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes} min ${remainingSeconds} sec`;
       }
-          
+
         function formatNumber(number) {
           return number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }        
-      
+        }
+
       // Valid assets to swap to or from (ordered by descending balance_rune + THOR.RUNE exception)
         const assets = [
           'BTC.BTC',
@@ -132,7 +132,7 @@
           'ETH.VTHOR-0X815C23ECA83261B6EC689B60CC4A58B54BC24D8D',
           'ETH.YFI-0X0BC529C00C6401AEF6D220BE8C6EA1667F6AD93E'
         ];
-      
+
       // Map asset names to pool abbreviations
       const assetNames = {
           'BTC.BTC': 'Bitcoin',
@@ -178,7 +178,7 @@
           'TRON.TRX': "Tron",
           'TRON.USDT-TR7NHQJEKQXGTCI8Q8ZY4PL8OTSZGJLJ6T': "USDT (TRON)"
       };
-      
+
       // Dummy destinations from the chains to pull a valid quote from thornode
       const destinations = {
           'BTC.BTC': 'bc1qdvxpt06ulfk5gm5p52wa4mrt6e887wkmvc4xxw',
@@ -224,7 +224,7 @@
           'TRON.TRX': 'TRJZd7dDH6jDuPDVJP6sjdLLQfKMgqMu1c',
           'TRON.USDT-TR7NHQJEKQXGTCI8Q8ZY4PL8OTSZGJLJ6T': 'TRJZd7dDH6jDuPDVJP6sjdLLQfKMgqMu1c'
         };
-    
+
       // Asset svg logos for display
       const assetLogos = {
       'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
@@ -271,7 +271,7 @@
       'TRON.TRX': 'assets/coins/TRON.svg',
       'TRON.USDT-TR7NHQJEKQXGTCI8Q8ZY4PL8OTSZGJLJ6T': 'assets/coins/tether-usdt-logo.svg'
       };
-    
+
       let assetPrices = {};
       let estimatedValueUSD = '';
 
@@ -317,14 +317,14 @@
         isLoading = true;
         destination = destinations[to_asset];
         const amountToSend = amount * 1e8;
-    
+
         // Use the already fetched prices
         const assetInPriceUSD = assetPrices[from_asset];
         const assetOutPriceUSD = assetPrices[to_asset];
-        
+
         //estimate swap output value in USD
         const estimatedValueUSD = amount * assetInPriceUSD;
-    
+
         // Build quote parameters
         const quoteParams = {
           amount: amountToSend,
@@ -341,23 +341,23 @@
         }
 
         const result_stream = await thornode.getSwapQuote(quoteParams);
-    
+
         if (result_stream.error) {
           throw new Error(result_stream.error);
         }
-    
+
         expectedAmountOutStreaming = result_stream.expected_amount_out / 1e8; //get expected amount out for streaming
         expectedAmountOutUSD = expectedAmountOutStreaming * assetOutPriceUSD;
-    
+
         // Get total swap time
         streaming_total_swap_seconds = formatTime(result_stream.total_swap_seconds) || 0; //get streaming swap total seconds
-      
+
         // Set the estimated value in the UI
         estimatedValue = `≈ $${formatNumber(estimatedValueUSD)}`;
-  
+
         //Show result
         showLogos = true;
-  
+
         // Calculate affiliate earnings if enabled
         if (enableAffiliateSettings && result_stream.fees && result_stream.fees.affiliate) {
             const affiliateFeeAsset = result_stream.fees.affiliate / 1e8; // Convert from sats to whole units
@@ -367,7 +367,7 @@
         } else {
             affiliateEarningsUSD = 0;
         }
-  
+
         // Extract fee information
         if (result_stream.fees) {
           outboundFee = result_stream.fees.outbound / 1e8;
@@ -382,7 +382,7 @@
           liquidityFeeUSD = liquidityFee * feeAssetPrice;
           totalFeeUSD = totalFee * feeAssetPrice;
         }
-  
+
         if (result_stream) {
           inboundConfirmationBlocks = result_stream.inbound_confirmation_blocks;
           inboundConfirmationSeconds = result_stream.inbound_confirmation_seconds;
@@ -392,27 +392,27 @@
           streamingSwapBlocks = result_stream.streaming_swap_blocks;
           streamingSwapSeconds = result_stream.streaming_swap_seconds;
         }
-  
+
       } catch (error) {
         alert(`Error fetching quote: ${error.message}`);
       } finally {
         isLoading = false;
       }
     }
-    
-      
-      
-      
-      
-      
-          
-          
+
+
+
+
+
+
+
+
         $: {
           if (from_asset || to_asset || amount) {
             resetResponse();
           }
         }
-      
+
         function resetResponse() {
           expectedAmountOut = '';
           expectedAmountOutUSD = 0;
@@ -431,21 +431,21 @@
           liquidityFeeUSD = 0;
           totalFeeUSD = 0;
         }
-              
+
         function handleFocus(node) {
     node.addEventListener('focus', (event) => {
       if (event.target.value == 1) {
         event.target.value = '';
       }
     });
-  
+
     return {
       destroy() {
         node.removeEventListener('focus', handleFocus);
       },
     };
-  }   
-          
+  }
+
       function toggleSettings() {
         showSettings = !showSettings;
     }
@@ -453,7 +453,7 @@
     function toggleEstimatedTime() {
         showEstimatedTime = !showEstimatedTime;
     }
-          
+
       function handleToggleAll() {
         toggleAll = !toggleAll;
         showEstimatedTime = toggleAll;
@@ -463,16 +463,16 @@
         showOutboundDelay = toggleAll;
         showStreamingDetails = toggleAll;
       }
-          
+
       </script>
-      
-      
+
+
     <style>
       * {
         box-sizing: border-box;
       }
-      
-      
+
+
       .swap-container {
         max-width: 500px;
         width: 100%;
@@ -484,12 +484,12 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         font-family: 'Exo 2', sans-serif;
       }
-      
+
       label {
         display: block;
         margin-bottom: 5px;
       }
-      
+
       input {
         width: 100%;
         padding: 8px;
@@ -504,7 +504,7 @@
         outline: none;
         box-shadow: 0 0 5px 2px rgba(0, 0, 0, 0.1);
       }
-      
+
       button {
         width: 100%;
         padding: 10px;
@@ -516,7 +516,7 @@
         cursor: pointer;
         transition: background-color 0.2s ease-in-out;
       }
-      
+
       button:hover {
         background-color: #3DA17E;
       }
@@ -528,38 +528,38 @@
         font-size: 0.9rem;
         white-space: nowrap;
       }
-      
+
       .asset-selection {
         display: flex;
         justify-content: space-between;
       }
-      
+
       .asset-label {
         flex: 1;
         margin-right: 10px;
       }
-      
+
       .asset-label:last-child {
         margin-right: 0;
       }
-      
-    
-    
+
+
+
         .swap-container {
       color: #fff;
     }
-    
+
     .asset-logo {
       width: 40px;
       height: 40px;
       object-fit: contain;
     }
-    
+
     .green-text-bold {
       color: #2cbe8c;
       font-weight: bold;
     }
-    
+
     .asset-label {
       margin-top: 8px;
       margin-bottom: 4px;
@@ -581,41 +581,41 @@
       display: flex;
       flex-direction: column;
     }
-    
+
     .asset-label-container,
     .asset-select-container {
       display: flex;
       justify-content: space-between;
     }
-    
+
     .asset-select-container {
       margin-top: -4px;
-    
+
     }
-    
+
     .asset-label {
       flex: 1;
       margin-right: 10px;
     }
-    
+
     .asset-label:last-child {
       margin-right: 0;
     }
-    
+
     .asset-selection {
       display: flex;
       flex-direction: column;
     }
-    
+
     .asset-label-container {
       display: flex;
     }
-    
+
     .asset-select-container {
       display: flex;
       margin-top: 4px;
     }
-    
+
     .asset-label {
       margin-right: 10px;
     }
@@ -630,12 +630,12 @@
         margin-left: 5px;
         animation: spin 2s linear infinite;
       }
-    
+
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
-    
+
     .app-container {
         position: relative;
         max-width: 500px;
@@ -775,8 +775,8 @@
       border: none;
     }
 </style>
-    
-      
+
+
     <div class="app-container">
         <button class="settings-icon" on:click={toggleSettings} aria-label="Toggle settings">
             <SettingsIcon />
@@ -790,7 +790,7 @@
                         {toggleAll ? 'Disable All' : 'Enable All'}
                     </button>
                 </div>
-                
+
                 <div class="setting-item">
                     <span>Show Estimated Time</span>
                     <input type="checkbox" bind:checked={showEstimatedTime}>
@@ -823,25 +823,25 @@
         {/if}
 
         <div class="swap-container">
-          
+
           <div style="display: flex; align-items: center; justify-content: center; margin-bottom:10px; ">
             <img src="assets/coins/thorchain-rune-logo.svg" alt="THORChain Logo" style="margin-right: 15px;">
             <div style="text-align: center; font-size: 20px; font-weight: 600; text-shadow: 2px 2px 4px #000000; color: #f8f8f8; font-family: 'Exo 2', sans-serif;">
               <b>THORChain Quote Estimator</b>
-            </div>    
+            </div>
           </div>
-          
-          
+
+
           <div style="height: 1px; background-color: #3a3a3c"></div>
           <div style="height: 10px"></div>
-          
-          
+
+
           <div class="asset-selection">
             <div class="asset-label-container">
               <label class="asset-label" for="from_asset">From:</label>
               <label class="asset-label" for="to_asset">To:</label>
             </div>
-        
+
             <!-- asset selection container -->
             <div class="asset-select-container">
               <AssetDropdown
@@ -856,13 +856,13 @@
                       }
                   }}
               />
-          
+
               <AssetDropdown
                   bind:selectedAsset={to_asset}
                   {assets}
                   {assetNames}
                   {assetLogos}
-                  label="To" 
+                  label="To"
                   on:select={({detail}) => {
                       if (detail.asset === from_asset) {
                           from_asset = to_asset;
@@ -870,9 +870,9 @@
                   }}
               />
             </div>
-      
+
             <div>&nbsp;</div>
-        
+
             <!-- swap amount input and display -->
             <div class="expand" in:slide={{ duration: 1000 }} out:slide={{ duration: 333 }}>
               <label for="swap-amount">Swap Amount ({from_asset.split('.')[1].split('-')[0]}):</label>
@@ -928,11 +928,11 @@
                 <span class="loader"></span>
               {/if}
             </button>
-        
+
             <!-- swap result -->
             {#if expectedAmountOutStreaming}
               <div class="expand" in:slide={{ duration: 1000 }} out:slide={{ duration: 1000 }}>
-              
+
                 {#if showLogos}
               <!--Streaming Swap-->
               <div>
@@ -945,7 +945,7 @@
                   <span class="green-text-bold">{expectedAmountOutStreaming.toFixed(4)} {to_asset.split('.')[1].split('-')[0]}</span>
                 </div>
                 {#if showEstimatedTime}
-                  <div class="result-content" style="display: flex; justify-content: center; align-items: center; margin: 10px 0;">Estimated Time: {streaming_total_swap_seconds}</div>          
+                  <div class="result-content" style="display: flex; justify-content: center; align-items: center; margin: 10px 0;">Estimated Time: {streaming_total_swap_seconds}</div>
                 {/if}
 
                 {#if showFeeBreakdown}
@@ -1019,7 +1019,7 @@
                 {/if}
               </div>
               <!--End Streaming Swap-->
-        
+
                 {/if}
               </div>
             {/if}

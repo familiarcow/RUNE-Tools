@@ -62,10 +62,10 @@
     const checkMobile = () => {
       isMobile = window.innerWidth <= 768;
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => {
       window.removeEventListener('popstate', updateSearchFromURL);
       window.removeEventListener('resize', checkMobile);
@@ -135,8 +135,8 @@
     // Combine all "No Vote" entries
     const noVoteEntry = groupedValues.find(entry => entry.value === 'No Vote');
     const otherVotes = groupedValues.filter(entry => entry.value !== 'No Vote');
-    
-    const noVoteSigners = activeNodeAddresses.filter(address => 
+
+    const noVoteSigners = activeNodeAddresses.filter(address =>
       !Object.values(values).flat().includes(address)
     );
 
@@ -156,12 +156,12 @@
       // Always put "Not Voted" at the bottom
       if (a.value === 'Not Voted') return 1;
       if (b.value === 'Not Voted') return -1;
-      
+
       // Then sort by passed status
       if (a.isPassed !== b.isPassed) {
         return b.isPassed ? 1 : -1; // Passed values go first
       }
-      
+
       // Finally sort by vote count
       return b.count - a.count;
     });
@@ -211,7 +211,7 @@
     filteredKeys = Object.entries(activeKeys).reduce((acc, [key, values]) => {
       if (!keyBlacklist.includes(key)) {
         const matchesKey = key.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesNode = Object.values(values).some(signers => 
+        const matchesNode = Object.values(values).some(signers =>
           signers.some(signer => signer.toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
@@ -235,11 +235,11 @@
 
   function calculateVisibleBubbles(containerWidth, signers, hasExpandButton) {
     if (!containerWidth) return 3; // fallback to default
-    
+
     const BUBBLE_WIDTH = 65; // Reduced from 85 to 65px
     const EXPAND_BUTTON_WIDTH = hasExpandButton ? 80 : 0; // Reduced from 100 to 80px
     const availableWidth = containerWidth - EXPAND_BUTTON_WIDTH;
-    
+
     const maxBubbles = Math.floor(availableWidth / BUBBLE_WIDTH);
     return Math.min(maxBubbles, signers.length);
   }
@@ -285,7 +285,7 @@
 
     Object.keys(activeKeys).forEach(key => {
       Object.keys(activeKeys[key]).forEach(value => {
-        activeKeys[key][value] = activeKeys[key][value].filter(signer => 
+        activeKeys[key][value] = activeKeys[key][value].filter(signer =>
           activeNodeAddresses.includes(signer)
         );
         // Remove the value if there are no active signers
@@ -348,9 +348,9 @@
     {/if}
 
     <div class="search-container">
-      <input 
-        type="text" 
-        bind:value={searchTerm} 
+      <input
+        type="text"
+        bind:value={searchTerm}
         placeholder="Search by mimir key or node address"
         on:input={handleSearch}
       />
@@ -386,8 +386,8 @@
                           <span class="passed">✓ Active</span>
                         {:else if value !== 'Not Voted'}
                           <div class="progress-bar-container">
-                            <div 
-                              class="progress-bar" 
+                            <div
+                              class="progress-bar"
                               style="width: {(count/activeNodeCount) * 100}%; background-color: {getColorForVote(isPassed, popularityRank, value)}"
                             ></div>
                           </div>
@@ -397,10 +397,10 @@
                         {/if}
                       </div>
                     </div>
-                    
+
                     <div class="vote-details">
                       <div class="toggle-and-signers">
-                        <div 
+                        <div
                           class="signers-preview"
                           bind:this={signersContainerRef}
                           bind:clientWidth={signersContainerWidth}
@@ -426,8 +426,8 @@
                               {/each}
                             {/if}
                             {#if signers.length > calculateVisibleBubbles(signersContainerWidth, signers, true)}
-                              <button 
-                                on:click|stopPropagation={() => toggleExpand(key)} 
+                              <button
+                                on:click|stopPropagation={() => toggleExpand(key)}
                                 class="expand-btn"
                               >
                                 +{signers.length - calculateVisibleBubbles(signersContainerWidth, signers, true)} more
@@ -435,9 +435,9 @@
                             {/if}
                           {:else}
                             <label class="toggle" title="Toggle between Node Addresses & Operator Addresses">
-                              <input 
-                                type="checkbox" 
-                                checked={showOperators[key]?.[value]} 
+                              <input
+                                type="checkbox"
+                                checked={showOperators[key]?.[value]}
                                 on:change={() => toggleShowOperators(key, value)}
                               >
                               <span class="slider">
@@ -466,8 +466,8 @@
                                   </button>
                                 {/each}
                               {/if}
-                              <button 
-                                on:click|stopPropagation={() => toggleExpand(key)} 
+                              <button
+                                on:click|stopPropagation={() => toggleExpand(key)}
                                 class="collapse-btn"
                               >
                                 Show less
@@ -502,14 +502,14 @@
                   <div class="mobile-vote-value">
                     <span class="mobile-value-number">{value}</span>
                   </div>
-                  
+
                   {#if isPassed}
                     <span class="mobile-passed">✓ Active</span>
                   {:else if value !== 'Not Voted'}
                     <div class="mobile-vote-progress">
                       <div class="mobile-progress-bar-container">
-                        <div 
-                          class="mobile-progress-bar" 
+                        <div
+                          class="mobile-progress-bar"
                           style="width: {(count/activeNodeCount) * 100}%; background-color: {getColorForVote(isPassed, popularityRank, value)}"
                         ></div>
                       </div>
@@ -524,7 +524,7 @@
 
                 <div class="mobile-vote-details">
                   <div class="toggle-and-signers">
-                    <div 
+                    <div
                       class="signers-preview"
                       bind:this={signersContainerRef}
                       bind:clientWidth={signersContainerWidth}
@@ -550,8 +550,8 @@
                           {/each}
                         {/if}
                         {#if signers.length > calculateVisibleBubbles(signersContainerWidth, signers, true)}
-                          <button 
-                            on:click={() => toggleExpand(key)} 
+                          <button
+                            on:click={() => toggleExpand(key)}
                             class="mobile-expand-btn"
                           >
                             +{signers.length - calculateVisibleBubbles(signersContainerWidth, signers, true)} more
@@ -559,9 +559,9 @@
                         {/if}
                       {:else}
                         <label class="toggle" title="Toggle between Node Addresses & Operator Addresses">
-                          <input 
-                            type="checkbox" 
-                            checked={showOperators[key]?.[value]} 
+                          <input
+                            type="checkbox"
+                            checked={showOperators[key]?.[value]}
                             on:change={() => toggleShowOperators(key, value)}
                           >
                           <span class="slider">
@@ -590,8 +590,8 @@
                               </button>
                             {/each}
                           {/if}
-                          <button 
-                            on:click|stopPropagation={() => toggleExpand(key)} 
+                          <button
+                            on:click|stopPropagation={() => toggleExpand(key)}
                             class="mobile-collapse-btn"
                           >
                             Show less

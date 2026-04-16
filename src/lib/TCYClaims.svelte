@@ -89,7 +89,7 @@
     [claims, searchQuery, remainingClaims, sortBy],
     ([$claims, $searchQuery, $remainingClaims, $sortBy]) => {
       let filtered = $claims;
-      
+
       // Apply search filter if query exists
       if ($searchQuery) {
         const query = $searchQuery.toLowerCase();
@@ -107,13 +107,13 @@
         if ($sortBy.column === 'claimed') {
           // Only sort by claimed status if that column is selected
           if (a.hasClaimed !== b.hasClaimed) {
-            return $sortBy.direction === 'desc' 
+            return $sortBy.direction === 'desc'
               ? (a.hasClaimed ? -1 : 1)
               : (a.hasClaimed ? 1 : -1);
           }
         }
         // Always sort by amount
-        return $sortBy.direction === 'desc' 
+        return $sortBy.direction === 'desc'
           ? b.amount - a.amount
           : a.amount - b.amount;
       });
@@ -123,19 +123,19 @@
   );
 
   // Add a derived store for the total amount
-  const totalAmount = derived(claims, $claims => 
+  const totalAmount = derived(claims, $claims =>
     $claims.reduce((sum, claim) => sum + claim.amount, 0)
   );
 
   // Add a derived store for claimed amount
-  const claimedAmount = derived([claims, remainingClaims], ([$claims, $remainingClaims]) => 
+  const claimedAmount = derived([claims, remainingClaims], ([$claims, $remainingClaims]) =>
     $claims
       .filter(claim => !$remainingClaims.has(claim.address))
       .reduce((sum, claim) => sum + claim.amount, 0)
   );
 
   // Add a derived store for remaining amount
-  const remainingAmount = derived([claims, remainingClaims], ([$claims, $remainingClaims]) => 
+  const remainingAmount = derived([claims, remainingClaims], ([$claims, $remainingClaims]) =>
     $claims
       .filter(claim => $remainingClaims.has(claim.address))
       .reduce((sum, claim) => sum + claim.amount, 0)
@@ -311,7 +311,7 @@
         <a href={methodologyText.codeLink} target="_blank" rel="noopener noreferrer" class="code-link">
           View Calculation Code
         </a>
-        
+
         {#each methodologyText.dataSources as section}
           <div class="methodology-section">
             <h4>{section.title}</h4>
@@ -358,9 +358,9 @@
     </div>
 
     <div class="search-container">
-      <input 
-        type="text" 
-        placeholder="Search by address..." 
+      <input
+        type="text"
+        placeholder="Search by address..."
         bind:value={$searchQuery}
         class="search-input"
       />

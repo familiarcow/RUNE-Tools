@@ -46,23 +46,23 @@
 
   $: filteredTokens = tokenList?.tokens.filter(token => {
     if (!searchQuery.trim() && selectedChain === 'ALL') return true;
-    
+
     const query = searchQuery.trim().toLowerCase();
     const name = token.name.toLowerCase();
     const symbol = token.symbol.toLowerCase();
     const address = token.address.toLowerCase();
     const chain = token.chain.toLowerCase();
     const status = token.poolStatus?.toLowerCase() || '';
-    
-    const matchesSearch = !query || 
-      name.includes(query) || 
-      symbol.includes(query) || 
+
+    const matchesSearch = !query ||
+      name.includes(query) ||
+      symbol.includes(query) ||
       address.includes(query) ||
       chain.includes(query) ||
       status.includes(query);
 
     const matchesChain = selectedChain === 'ALL' || token.chain === selectedChain;
-    
+
     return matchesSearch && matchesChain;
   }) ?? [];
 
@@ -179,7 +179,7 @@
       const lines = configText.split('\n');
       let currentChain = '';
       let inBlockScanner = false;
-      
+
       for (const line of lines) {
         // Match chain section headers
         const chainMatch = line.match(/^\s+(\w+):$/);
@@ -194,13 +194,13 @@
           inBlockScanner = true;
           continue;
         }
-        
+
         // Match whitelist_tokens section
         if (inBlockScanner && line.includes('whitelist_tokens:')) {
           chainWhitelists[currentChain] = [];
           continue;
         }
-        
+
         // Match token addresses
         const tokenMatch = line.match(/^\s+-\s+(0x[a-fA-F0-9]+)\s+#\s*(.+)?$/);
         if (tokenMatch && currentChain) {
@@ -272,11 +272,11 @@
       };
 
       if (tokenList) {
-        await Promise.all(tokenList.tokens.map(token => 
+        await Promise.all(tokenList.tokens.map(token =>
           checkImageExists(token.logoURI)
         ));
       }
-      
+
       loading = false;
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to fetch token lists';
@@ -287,15 +287,15 @@
 
   async function checkImageExists(url: string): Promise<string> {
     if (loadedLogos[url]) return loadedLogos[url];
-    
+
     return new Promise((resolve) => {
       const img = new Image();
-      
+
       img.onload = () => {
         loadedLogos[url] = url;
         resolve(url);
       };
-      
+
       img.onerror = () => {
         loadedLogos[url] = fallbackLogo;
         resolve(fallbackLogo);
@@ -341,8 +341,8 @@
         <div class="title-section">
           <div class="title-with-info">
             <h2>THORChain Token Whitelist</h2>
-            <button 
-              class="info-button {showInfo ? 'active' : ''}" 
+            <button
+              class="info-button {showInfo ? 'active' : ''}"
               on:click={() => showInfo = !showInfo}
               title="Show information"
             >
@@ -354,31 +354,31 @@
             </button>
           </div>
           <div class="chain-filters">
-            <button 
+            <button
               class="chain-filter eth {selectedChain === 'ETH' ? 'active' : ''}"
               on:click={() => selectedChain = 'ETH'}
             >
               ETH
             </button>
-            <button 
+            <button
               class="chain-filter bsc {selectedChain === 'BSC' ? 'active' : ''}"
               on:click={() => selectedChain = 'BSC'}
             >
               BSC
             </button>
-            <button 
+            <button
               class="chain-filter avax {selectedChain === 'AVAX' ? 'active' : ''}"
               on:click={() => selectedChain = 'AVAX'}
             >
               AVAX
             </button>
-            <button 
+            <button
               class="chain-filter base {selectedChain === 'BASE' ? 'active' : ''}"
               on:click={() => selectedChain = 'BASE'}
             >
               BASE
             </button>
-            <button 
+            <button
               class="chain-filter {selectedChain === 'ALL' ? 'active' : ''}"
               on:click={() => selectedChain = 'ALL'}
             >
@@ -396,18 +396,18 @@
         </div>
         {#if showInfo}
           <div class="info-section" transition:slide>
-            This is a list of the tokens that are whitelisted for liquidity pool creation on THORChain. 
-            These assets may or may not have a pool created already. New pools can be created by staging 
-            a pool with at least 10k in RUNE and the equivalent value of the token. Pools transition from Staged to  Active 
+            This is a list of the tokens that are whitelisted for liquidity pool creation on THORChain.
+            These assets may or may not have a pool created already. New pools can be created by staging
+            a pool with at least 10k in RUNE and the equivalent value of the token. Pools transition from Staged to  Active
             after a few days. Active pools will revert to Staged with less than 10k RUNE in liquidity.
           </div>
         {/if}
       </div>
-      
+
       <div class="token-grid">
         {#each filteredTokens as token}
           <div class="token-card">
-            <img 
+            <img
               src={loadedLogos[token.logoURI] || fallbackLogo}
               alt={`${token.symbol} logo`}
             />

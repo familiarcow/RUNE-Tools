@@ -151,8 +151,8 @@
           </div>
           <div class="security-gauge">
             <div class="gauge-track">
-              <div 
-                class="gauge-fill" 
+              <div
+                class="gauge-fill"
                 class:negative={securityDelta < 0}
                 style="width: {Math.min(Math.abs(securityDelta) / totalVaultValueInRune * 100, 100)}%"
               ></div>
@@ -188,8 +188,8 @@
                 <td class="asset-cell">
                   <div class="asset-info">
                     <div class="logo-container">
-                      <img 
-                        src={getAssetLogo(asset.asset)} 
+                      <img
+                        src={getAssetLogo(asset.asset)}
                         alt={formatAssetName(asset.asset)}
                         class="asset-icon"
                         on:error={(e) => {
@@ -198,7 +198,7 @@
                         }}
                       />
                       <div class="chain-logo-container">
-                        <img 
+                        <img
                           src={`assets/chains/${asset.asset.split('.')[0]}.svg`}
                           alt={asset.asset.split('.')[0]}
                           class="chain-icon"

@@ -227,7 +227,7 @@
       searchParams.set('pool', selectedPool);
       searchParams.set('address', address);
       window.history.pushState({}, '', `/lp?${searchParams.toString()}`);
-      
+
       route.set({ view: 'detail', params: { pool: selectedPool, address: address } });
     } else {
       error = 'Unable to find pool for this LP';
@@ -332,9 +332,9 @@
 
 {#if $route.view === 'detail'}
   {#if selectedPool}
-    <LPDetail 
-      address={$route.params.address} 
-      pool={selectedPool} 
+    <LPDetail
+      address={$route.params.address}
+      pool={selectedPool}
       goBack={() => route.set({ view: 'list', params: {} })}
       runePrice={runePrice}
       assetPrices={assetPrices}

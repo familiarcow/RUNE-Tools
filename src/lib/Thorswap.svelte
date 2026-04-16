@@ -51,19 +51,19 @@
         thornode.getPools(),
         thornode.getNetwork()
       ]);
-      
+
       // Get RUNE price in USD from network data
       runePrice = network.rune_price_in_tor / 1e8;
-      
+
       // Filter for active pools only
       const activePools = pools.filter(pool => pool.status === 'Available');
-      
+
       // Store prices for active pools only
       activePools.forEach(pool => {
         assetPrices.set(pool.asset, pool.asset_tor_price / 1e8);
       });
       assetPrices.set('THOR.RUNE', runePrice);
-      
+
       // Update asset mapping with active pools only
       assets = activePools.map(pool => {
         const [chain, ...rest] = pool.asset.split('.');
@@ -86,18 +86,18 @@
 
   function generateThorswapUrl() {
     if (!fromAsset || !toAsset) return '';
-    
+
     const baseUrl = 'https://app.thorswap.finance/swap';
     const fromAssetEncoded = encodeURIComponent(fromAsset);
     const toAssetEncoded = encodeURIComponent(toAsset);
-    
+
     let url = `${baseUrl}/${fromAssetEncoded}_${toAssetEncoded}?ref=-`;
-    
+
     // Only add amount parameter if amount is provided
     if (amount) {
       url += `&sellAmount=${amount}`;
     }
-    
+
     return url;
   }
 
@@ -135,7 +135,7 @@
       usdValue = '';
       return;
     }
-    
+
     const price = assetPrices.get(fromAsset);
     if (price) {
       const value = parseFloat(amount) * price;
@@ -178,7 +178,7 @@
           <div class="input-group">
             <div class="input-column">
               <span class="input-label">From</span>
-              <select 
+              <select
                 class="form-control"
                 bind:value={fromAsset}
               >
@@ -198,7 +198,7 @@
             <div class="input-column">
               <span class="input-label">Amount</span>
               <div class="input-container">
-                <input 
+                <input
                   type="text"
                   class="form-control"
                   placeholder="Enter amount (Optional)"
@@ -216,13 +216,13 @@
 
           <div class="swap-direction">
             <div class="coin-logo">
-              <img 
-                src={currentAssets.from.iconPath} 
+              <img
+                src={currentAssets.from.iconPath}
                 alt={currentAssets.from.ticker}
                 transition:fade={{ duration: 200 }}
               />
             </div>
-            
+
             <button class="swap-button" on:click={swapAssets}>
               <svg viewBox="0 0 24 24" width="24" height="24">
                 <path fill="currentColor" d="M7.5 21.5l-5-5l5-5l1.4 1.4L6.4 15H17v2H6.4l2.5 2.5L7.5 21.5z M16.5 7.5l-1.4-1.4L17.6 4H7V2h10.6l-2.5-2.5L16.5 -1l5 5L16.5 7.5z"/>
@@ -230,8 +230,8 @@
             </button>
 
             <div class="coin-logo">
-              <img 
-                src={currentAssets.to.iconPath} 
+              <img
+                src={currentAssets.to.iconPath}
                 alt={currentAssets.to.ticker}
                 transition:fade={{ duration: 200 }}
               />
@@ -240,7 +240,7 @@
 
           <div class="input-column">
             <span class="input-label">To</span>
-            <select 
+            <select
               class="form-control"
               bind:value={toAsset}
             >
@@ -258,7 +258,7 @@
           </div>
 
           <div class="submit-container">
-            <button 
+            <button
               class="btn btn-primary"
               on:click={handleSwap}
               disabled={!fromAsset || !toAsset}

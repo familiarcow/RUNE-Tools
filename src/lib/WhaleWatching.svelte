@@ -77,18 +77,18 @@
   function getAssetIcon(asset) {
     // Clean the asset name first (remove contract part)
     const cleanedAsset = cleanAssetName(asset);
-    
+
     // For contract assets (e.g. ETH.USDC-1233), use the token icon
     if (cleanedAsset.includes('.') && /.*-\d+.*/.test(asset)) {
       const token = cleanedAsset.split('.')[1];
       return assetIcons[`${cleanedAsset.split('.')[0]}.${token}`] || '/assets/coins/fallback-logo.svg';
     }
-    
+
     // Check if we have a specific asset icon for the cleaned name
     if (assetIcons[cleanedAsset]) {
       return assetIcons[cleanedAsset];
     }
-    
+
     // Fall back to chain icon
     const chain = cleanedAsset.split('.')[0];
     return chainIcons[chain] || '/assets/coins/fallback-logo.svg';
@@ -159,7 +159,7 @@
     try {
       const response = await fetch('https://flipsidecrypto.xyz/api/v1/queries/869c011a-1d08-4bb6-97d8-6d6153ed0036/data/latest');
       const data = await response.json();
-      
+
       whales = data
         .filter(whale => whale.HAS_COMPLETED && !whale.WAS_REFUNDED)
         .map(whale => ({
@@ -195,7 +195,7 @@
       whales = whales.filter((whale, index, self) =>
         index === self.findIndex((t) => t.txid === whale.txid)
       );
-        
+
     } catch (err) {
       error = 'Failed to fetch whale data';
       console.error(err);
@@ -241,10 +241,10 @@
     const checkMobile = () => {
       isMobile = window.innerWidth <= 600;
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => {
       window.removeEventListener('resize', checkMobile);
     };
@@ -253,9 +253,9 @@
   // Add this helper function to determine if an asset is an ERC20 token
   function isERC20(asset) {
     if (!asset || !asset.includes('.')) return false;
-    
+
     const [chain, token] = asset.split('.');
-    
+
     switch (chain) {
       case 'ETH':
         return token.toLowerCase() !== 'eth';
@@ -272,7 +272,7 @@
 <div class="whale-watching">
   <h2>Swap Leaderboard</h2>
   <p class="subtitle">Monitoring the largest swaps on THORChain in the last 7 days</p>
-  
+
   {#if loading}
     <div class="loading">Loading whale activity...</div>
   {:else if error}
@@ -295,14 +295,14 @@
               </div>
               {#if whale.streaming.timeSeconds > 0}
                 <div class="info-pill timer">
-                  <svg 
-                    width="12" 
-                    height="12" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    stroke-width="2" 
-                    stroke-linecap="round" 
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
                     stroke-linejoin="round"
                   >
                     <circle cx="12" cy="12" r="10"></circle>
@@ -314,8 +314,8 @@
               {#if whale.affiliate}
                 <div class="info-pill affiliate">
                   {#if affiliateInfo[whale.affiliate]}
-                    <img 
-                      src={affiliateInfo[whale.affiliate].logo} 
+                    <img
+                      src={affiliateInfo[whale.affiliate].logo}
                       alt={affiliateInfo[whale.affiliate].name}
                       class="affiliate-icon"
                       on:error={(e) => {
@@ -329,8 +329,8 @@
                   {/if}
                 </div>
               {/if}
-              <button 
-                class="expand-button" 
+              <button
+                class="expand-button"
                 class:expanded={expandedTxs.includes(whale.txid)}
                 on:click|stopPropagation={(e) => {
                   e.preventDefault();
@@ -341,16 +341,16 @@
               </button>
             </div>
             <div class="info-pill">
-              <span 
-                class="txid clickable" 
+              <span
+                class="txid clickable"
                 on:click={() => {
                   navigator.clipboard.writeText(whale.txid);
                 }}
                 title="Click to copy full TXID"
               >{whale.txid.slice(-4)}</span>
-              <a 
-                href={`https://runescan.io/tx/${whale.txid}`} 
-                target="_blank" 
+              <a
+                href={`https://runescan.io/tx/${whale.txid}`}
+                target="_blank"
                 class="tx-link"
                 title="View on RuneScan"
               >
@@ -363,8 +363,8 @@
             <div class="swap-details">
               <div class="asset-container">
                 <div class="asset-icon-container">
-                  <img 
-                    src={getAssetIcon(whale.from.asset)} 
+                  <img
+                    src={getAssetIcon(whale.from.asset)}
                     alt={whale.from.asset}
                     class="asset-icon"
                     on:error={(e) => {
@@ -373,8 +373,8 @@
                     }}
                   />
                   {#if isERC20(whale.from.originalAsset)}
-                    <img 
-                      src={chainIcons[whale.from.originalAsset.split('.')[0]]} 
+                    <img
+                      src={chainIcons[whale.from.originalAsset.split('.')[0]]}
                       alt={whale.from.originalAsset.split('.')[0]}
                       class="chain-icon"
                       on:error={(e) => {
@@ -397,8 +397,8 @@
 
               <div class="asset-container">
                 <div class="asset-icon-container">
-                  <img 
-                    src={getAssetIcon(whale.to.asset)} 
+                  <img
+                    src={getAssetIcon(whale.to.asset)}
                     alt={whale.to.asset}
                     class="asset-icon"
                     on:error={(e) => {
@@ -407,8 +407,8 @@
                     }}
                   />
                   {#if isERC20(whale.to.originalAsset)}
-                    <img 
-                      src={chainIcons[whale.to.originalAsset.split('.')[0]]} 
+                    <img
+                      src={chainIcons[whale.to.originalAsset.split('.')[0]]}
                       alt={whale.to.originalAsset.split('.')[0]}
                       class="chain-icon"
                       on:error={(e) => {
@@ -451,7 +451,7 @@
                   </div>
                 {/if}
               </div>
-              
+
               <div class="address-container">
                 <div class="address-item">
                   <span class="detail-label">From</span>
