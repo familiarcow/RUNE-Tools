@@ -1,0 +1,13 @@
+{
+  "extends": "./.svelte-kit/tsconfig.json",
+  "compilerOptions": {
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": true
+  }
+}
