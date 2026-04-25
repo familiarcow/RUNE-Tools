@@ -407,6 +407,10 @@
     "isp": "OVH SAS",
     "countryCode": "DE"
   },
+  "57.129.73.114": {
+    "isp": "OVH SAS",
+    "countryCode": "DE"
+  },
   "61.245.148.230": {
     "isp": "Aussie Broadband",
     "countryCode": "AU"
@@ -892,6 +896,10 @@
     "countryCode": "DE"
   },
   "172.232.142.134": {
+    "isp": "Akamai Technologies, Inc.",
+    "countryCode": "SE"
+  },
+  "172.238.242.131": {
     "isp": "Akamai Technologies, Inc.",
     "countryCode": "SE"
   },
