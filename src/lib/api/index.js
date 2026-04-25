@@ -16,6 +16,5 @@ export {
 export {
   midgard,
   MidgardClient,
-  MIDGARD_BASE,
   MIDGARD_PROVIDERS
 } from './midgard.js';

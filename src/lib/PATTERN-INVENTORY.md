@@ -264,6 +264,25 @@ const fetchRunePrice = async () => {
 
 ### Midgard Client
 
+**Provider Strategy:**
+
+Midgard API providers are defined in array `MIDGARD_PROVIDERS`.  Each entry is an object containing multiple attributes:
+
+- `base` (string): base API URL without trailing slash (required)
+- `headers` (object): key/value pair of parameters passed to fetch() (optional)
+
+### Method Options
+
+All Midgard Client methods support an optional `options` object as the last parameter.
+
+This object is passed onto the private method called `#fetch()` which can contain header information (for standard
+JavaScript fetch()) as well keys that act as "control" capabilities for the fetch mechanism itself:
+
+- `cache` (boolean, true): whether or not to cache responses
+- `cacheTTL` (integer, 60000): cache entry time-to-live in milliseconds
+
+### Available Methods
+
 | Method | Purpose |
 |--------|---------|
 | `midgard.getStats()` | Get network stats |
@@ -276,6 +295,7 @@ const fetchRunePrice = async () => {
 | `midgard.getActions(params)` | Get transaction actions |
 | `midgard.getChurns()` | Get churn history |
 | `midgard.getTCYDistribution(address)` | Get TCY distribution |
+| `midgard.getBonderDetails(address)` | Get bond provider details |
 
 ---
 
@@ -378,7 +398,7 @@ When migrating a component, check for these patterns:
 
 ### Replace Direct API Calls
 - [X] `fetch('https://thornode.ninerealms.com/...')` → `thornode.fetch()` or convenience method
-- [ ] `fetch('https://midgard.ninerealms.com/...')` → `midgard.fetch()` or convenience method
+- [X] `fetch('https://midgard.ninerealms.com/...')` → `midgard.fetch()` or convenience method
 
 ### Replace Independent Data Fetching
 - [ ] RUNE price fetching → `subscribeToRunePrice()` + `$runePrice`

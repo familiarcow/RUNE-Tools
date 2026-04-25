@@ -3,155 +3,206 @@
  *
  * Midgard provides aggregated and historical data for THORChain.
  * It's better suited for analytics, historical queries, and member data.
- *
- * Provider Strategy:
- * - Liquify (gateway.liquify.com/chain/thorchain_midgard): Primary provider
- *   Use for all midgard queries with automatic failover
- *
- * - Nine Realms (midgard.ninerealms.com): Fallback after Liquify failures
- *   NOTE: Nine Realms endpoints will eventually be deprecated
  */
 
 /**
- * Midgard API Provider configurations
+ * Midgard API provider list -- in order of preference
+ *
+ * @typedef {Object} ApiProvider
+ * @property {string} base - Midgard API base URL (no trailing slash)
+ * @property {Record<string, string>} [headers] - HTTP client headers (e.g. x-client-id)
  */
-export const MIDGARD_PROVIDERS = {
-  liquify: {
-    name: 'liquify',
+
+export const MIDGARD_PROVIDERS = Object.freeze([
+  {
     base: 'https://gateway.liquify.com/chain/thorchain_midgard/v2',
-    priority: 1
+    // Liquify doesn't accept x-client-id through their CORS configuration
+    // (unlike the deprecated Nine Realms endpoints)
   },
-  ninerealms: {
-    name: 'ninerealms',
-    // NOTE: Nine Realms midgard will eventually be deprecated
-    base: 'https://midgard.ninerealms.com/v2',
-    headers: { 'x-client-id': 'RuneTools' },
-    priority: 2
-  }
-};
+  // Additional fallback providers append here. Failover, rate-limit tracking,
+  // and historical-query routing are all keyed off this array — no other
+  // changes needed when a new backup midgard comes online.
+]);
+
+// ============================================
+// Rate Limit Tracking
+// ============================================
 
 /**
- * Midgard API base URL (primary provider)
+ * Track rate-limited endpoints so we skip them on subsequent requests.
+ * Key: base URL, Value: timestamp when cooldown expires
  */
-export const MIDGARD_BASE = MIDGARD_PROVIDERS.liquify.base;
+const rateLimitedUntil = new Map();
+const failureCounts = new Map();
+const RATE_LIMIT_COOLDOWN = 60_000; // 60 seconds
+
+// ============================================
+// Caching
+// ============================================
+
+const apiCache = new Map();
+const DEFAULT_CACHE_TTL = 30_000; // 30 seconds (Midgard updates less frequently)
 
 /**
  * Midgard API Client class
  */
 class MidgardClient {
-  constructor() {
-    this.cache = new Map();
-    this.cacheTTL = 30000; // 30 seconds (Midgard updates less frequently)
-    this.failureCount = {
-      liquify: 0,
-      ninerealms: 0
-    };
-    this.maxFailures = 3;
-    this.rateLimitedUntil = {
-      liquify: 0,
-      ninerealms: 0
-    };
-    this.rateLimitCooldown = 60000; // Skip rate-limited provider for 60s
-  }
-
   /**
-   * Clear the cache
+   * Fetch from Midgard (private)
+   *
+   * Caching is handled by #fetchJSON / #fetchText wrappers so parsed bodies
+   * are cached once and returned directly on hits (no re-parse, no Response
+   * clone consumption hazards).
+   *
+   * @param {string} path - API endpoint path (e.g. '/stats')
+   * @param {Object} [options={}] - Combined options object:
+   *        - Behavior modifiers: None (cache, cacheTTL handled by wrappers)
+   *        - Anything else gets passed into fetch() directly
+   * @returns {Promise<Response>} Raw `Response` object from the successful provider
    */
-  clearCache() {
-    this.cache.clear();
-  }
-
-  /**
-   * Reset failure counters
-   */
-  resetFailures() {
-    this.failureCount.liquify = 0;
-    this.failureCount.ninerealms = 0;
-  }
-
-  /**
-   * Fetch from Midgard API with automatic failover
-   * @param {string} path - API endpoint path (e.g., '/stats')
-   * @param {Object} options - Fetch options
-   * @returns {Promise<any>} Response data
-   */
-  async fetch(path, options = {}) {
-    const { cache = true, ...fetchOptions } = options;
-
-    const cacheKey = path;
-
-    // Check cache first
-    if (cache && this.cache.has(cacheKey)) {
-      const cached = this.cache.get(cacheKey);
-      if (Date.now() - cached.timestamp < this.cacheTTL) {
-        return cached.data;
-      }
-      this.cache.delete(cacheKey);
-    }
-
-    // Determine providers to try (in order)
+  async #fetch(path, options = {}) {
+    const {
+      cache: _cache,
+      cacheTTL: _cacheTTL,
+      ...fetchInit
+    } = options;
     const now = Date.now();
-    const allProviders = [MIDGARD_PROVIDERS.liquify, MIDGARD_PROVIDERS.ninerealms];
 
-    // Skip rate-limited providers (but keep them as last resort)
-    const available = allProviders.filter(p => {
-      const until = this.rateLimitedUntil[p.name];
-      return !until || now >= until;
+    const available = MIDGARD_PROVIDERS.filter(p => {
+      const until = rateLimitedUntil.get(p.base) || 0;
+      return until <= now;
     });
-    const providers = available.length > 0 ? available : allProviders;
+    const rateLimited = MIDGARD_PROVIDERS.filter(p => {
+      const until = rateLimitedUntil.get(p.base) || 0;
+      return until > now;
+    });
+    const order = [...available, ...rateLimited];
 
     let lastError = null;
 
-    for (const provider of providers) {
+    for (const provider of order) {
       try {
         const url = `${provider.base}${path}`;
-
-        const response = await fetch(url, {
-          headers: { ...(provider.headers || {}), ...fetchOptions.headers },
-          ...fetchOptions
-        });
-
-        if (!response.ok) {
-          // Rate limited — set cooldown so we skip this provider immediately
-          if (response.status === 429 && provider.name in this.rateLimitedUntil) {
-            this.rateLimitedUntil[provider.name] = Date.now() + this.rateLimitCooldown;
-            console.warn(`Midgard ${provider.name} rate limited (429), switching away for ${this.rateLimitCooldown / 1000}s`);
+        const fetchOpts = {
+          ...fetchInit,
+          headers: {
+            ...(provider.headers || {}),
+            ...(fetchInit.headers || {})
           }
-          throw new Error(`Midgard HTTP ${response.status}: ${response.statusText}`);
+        };
+
+        const response = await fetch(url, fetchOpts);
+        if (response.ok) {
+          // Clear rate limit and failure count on success
+          rateLimitedUntil.delete(provider.base);
+          failureCounts.delete(provider.base);
+          return response;
         }
-
-        const data = await response.json();
-
-        // Cache successful response
-        if (cache) {
-          this.cache.set(cacheKey, { data, timestamp: Date.now() });
+        if (response.status === 429) {
+          rateLimitedUntil.set(provider.base, Date.now() + RATE_LIMIT_COOLDOWN);
+          console.warn(`Midgard tate limited (429) on ${provider.base}, switching away for ${RATE_LIMIT_COOLDOWN / 1000}s`);
         }
-
-        // Reset failure count and rate limit on success
-        if (provider.name in this.failureCount) {
-          this.failureCount[provider.name] = 0;
-          this.rateLimitedUntil[provider.name] = 0;
-        }
-
-        return data;
+        lastError = new Error(`${provider.base} failed: ${response.status}`);
+        console.warn(`Midgard endpoint failed for ${path}: ${lastError.message}`);
       } catch (error) {
-        lastError = error;
-        console.warn(`Midgard fetch failed for ${provider.name}${path}:`, error.message);
-
-        // Increment failure count and apply cooldown on repeated failures
-        // (CORS-blocked 429s show up as "Failed to fetch" in the catch block)
-        if (provider.name in this.failureCount) {
-          this.failureCount[provider.name]++;
-          if (this.failureCount[provider.name] >= this.maxFailures) {
-            this.rateLimitedUntil[provider.name] = Date.now() + this.rateLimitCooldown;
-            console.warn(`Midgard ${provider.name} failed ${this.failureCount[provider.name]} times, switching away for ${this.rateLimitCooldown / 1000}s`);
-          }
+        // CORS-blocked 429s show up as "Failed to fetch" here
+        const count = (failureCounts.get(provider.base) || 0) + 1;
+        failureCounts.set(provider.base, count);
+        if (count >= 2) {
+          rateLimitedUntil.set(provider.base, Date.now() + RATE_LIMIT_COOLDOWN);
+          console.warn(`Midgard ${provider.base} failed ${count} times, switching away for ${RATE_LIMIT_COOLDOWN / 1000}s`);
         }
+        lastError = error;
+        console.warn(`Midgard endpoint failed for ${path}: ${error.message}`);
       }
     }
 
-    // All providers failed
-    throw new Error(`All Midgard providers failed for ${path}: ${lastError?.message}`);
+    console.error(`All Midgard providers failed for ${path}:`, lastError);
+    throw lastError;
+  }
+
+  // ============================================
+  // Wrapper methods
+  // ============================================
+
+  /**
+   * Build the cache key used by #fetchJSON / #fetchText.
+   * Includes format so json/text for the same path don't collide.
+   */
+  #cacheKey(path, format) {
+    return `${format}:${path}`;
+  }
+
+  /**
+   * Look up a fresh cached body. Returns undefined on miss.
+   */
+  #cacheGet(key, cacheTTL) {
+    const entry = apiCache.get(key);
+    if (!entry) return undefined;
+    if (Date.now() - entry.timestamp >= cacheTTL) {
+      apiCache.delete(key);
+      return undefined;
+    }
+    return entry.body;
+  }
+
+  /**
+   * Fetch and parse JSON response (cached)
+   *
+   * @param {string} path - API endpoint path
+   * @param {Object} [options={}] - Same options as #fetch, plus cache controls
+   * @param {boolean} [options.cache=true] - Enable/disable response caching
+   * @param {number} [options.cacheTTL] - Cache duration (milliseconds)
+   * @returns {Promise<Object>}
+   */
+  async #fetchJSON(path, options = {}) {
+    const { cache = true, cacheTTL = DEFAULT_CACHE_TTL } = options;
+    const key = this.#cacheKey(path, options, 'json');
+    if (cache) {
+      const hit = this.#cacheGet(key, cacheTTL);
+      if (hit !== undefined) return hit;
+    }
+    const response = await this.#fetch(path, options);
+    const body = await response.json();
+    if (cache) {
+      apiCache.set(key, { timestamp: Date.now(), body });
+    }
+    return body;
+  }
+
+  /**
+   * Fetch and return the response body as plain text (cached)
+   *
+   * @param {string} path - API endpoint path
+   * @param {Object} [options={}] - Same options as #fetch, plus cache controls
+   * @param {boolean} [options.cache=true] - Enable/disable response caching
+   * @param {number} [options.cacheTTL] - Cache duration (milliseconds)
+   * @returns {Promise<string>}
+   */
+  async #fetchText(path, options = {}) {
+    const { cache = true, cacheTTL = DEFAULT_CACHE_TTL } = options;
+    const key = this.#cacheKey(path, options, 'text');
+    if (cache) {
+      const hit = this.#cacheGet(key, cacheTTL);
+      if (hit !== undefined) return hit;
+    }
+    const response = await this.#fetch(path, options);
+    const body = await response.text();
+    if (cache) {
+      apiCache.set(key, { timestamp: Date.now(), body });
+    }
+    return body;
+  }
+
+  // ============================================
+  // Cache methods
+  // ============================================
+
+  /**
+   * Clear cache
+   */
+  clearCache() {
+    apiCache.clear();
   }
 
   // ============================================
@@ -160,146 +211,187 @@ class MidgardClient {
 
   /**
    * Get overall network stats
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getStats(options = {}) {
-    return this.fetch('/stats', options);
+    return this.#fetchJSON('/stats', options);
   }
 
   /**
    * Get pool statistics
+   *
    * @param {string} pool - Pool asset identifier
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getPoolStats(pool, options = {}) {
-    return this.fetch(`/pool/${encodeURIComponent(pool)}/stats`, options);
+    return this.#fetchJSON(`/pool/${encodeURIComponent(pool)}/stats`, options);
   }
 
   /**
    * Get all pools
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getPools(options = {}) {
-    return this.fetch('/pools', options);
+    return this.#fetchJSON('/pools', options);
   }
 
   /**
    * Get pool depth/price history
+   *
    * @param {string} pool - Pool asset identifier
    * @param {Object} params - Query parameters (interval, count, from, to)
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getPoolHistory(pool, params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/history/depths/${encodeURIComponent(pool)}?${query}` : `/history/depths/${encodeURIComponent(pool)}`;
-    return this.fetch(path, options);
+    return this.#fetchJSON(path, options);
   }
 
   /**
    * Get swap history
+   *
    * @param {Object} params - Query parameters (interval, count, from, to)
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getSwapHistory(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/history/swaps?${query}` : '/history/swaps';
-    return this.fetch(path, options);
+    return this.#fetchJSON(path, options);
   }
 
   /**
    * Get earnings history
+   *
    * @param {Object} params - Query parameters (pool, interval, count, from, to)
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getEarningsHistory(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/history/earnings?${query}` : '/history/earnings';
-    return this.fetch(path, options);
+    return this.#fetchJSON(path, options);
   }
 
   /**
    * Get RUNE price history
+   *
    * @param {Object} params - Query parameters (interval, count, from, to)
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getRuneHistory(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/history/rune?${query}` : '/history/rune';
-    return this.fetch(path, options);
+    return this.#fetchJSON(path, options);
   }
 
   /**
    * Get liquidity history
+   *
    * @param {Object} params - Query parameters (pool, interval, count, from, to)
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getLiquidityHistory(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/history/liquidity_changes?${query}` : '/history/liquidity_changes';
-    return this.fetch(path, options);
+    return this.#fetchJSON(path, options);
   }
 
   /**
    * Get member (LP) data
+   *
    * @param {string} address - Member address
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getMember(address, options = {}) {
-    return this.fetch(`/member/${address}`, options);
+    return this.#fetchJSON(`/member/${address}`, options);
   }
 
   /**
    * Get all members for a pool
+   *
    * @param {string} pool - Pool asset identifier
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getPoolMembers(pool, options = {}) {
-    return this.fetch(`/members?pool=${encodeURIComponent(pool)}`, options);
+    return this.#fetchJSON(`/members?pool=${encodeURIComponent(pool)}`, options);
   }
 
   /**
    * Get actions (transactions)
+   *
    * @param {Object} params - Query parameters (txid, address, type, limit, offset)
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getActions(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
     const path = query ? `/actions?${query}` : '/actions';
-    return this.fetch(path, options);
+    return this.#fetchJSON(path, options);
   }
 
   /**
    * Get action by transaction ID
+   *
    * @param {string} txid - Transaction ID
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getAction(txid, options = {}) {
-    return this.fetch(`/actions?txid=${txid}`, options);
+    return this.#fetchJSON(`/actions?txid=${txid}`, options);
   }
 
   /**
    * Get churn history
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getChurns(options = {}) {
-    return this.fetch('/churns', options);
+    return this.#fetchJSON('/churns', options);
   }
 
   /**
    * Get network health
-   * @param {Object} options - Fetch options
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getHealth(options = {}) {
-    return this.fetch('/health', options);
+    return this.#fetchJSON('/health', options);
   }
 
   /**
    * Get TCY distribution for an address
+   *
    * @param {string} address - Address to check
-   * @param {Object} options - Fetch options
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
    */
   async getTCYDistribution(address, options = {}) {
-    return this.fetch(`/tcy/distribution/${address}`, options);
+    return this.#fetchJSON(`/tcy/distribution/${address}`, options);
+  }
+
+  /**
+   * Get bond details of a given address
+   *
+   * @param {string} address - Address to check
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Object>} Parsed network data
+   */
+  async getBonderDetails(address, options = {}) {
+    return this.#fetchJSON(`/bonds/${address}`, options);
   }
 }
 
@@ -308,9 +400,3 @@ export const midgard = new MidgardClient();
 
 // Export class for testing or custom instances
 export { MidgardClient };
-
-// Export provider endpoints for direct use if needed
-export const MIDGARD_ENDPOINTS = {
-  liquify: MIDGARD_PROVIDERS.liquify.base,
-  ninerealms: MIDGARD_PROVIDERS.ninerealms.base
-};
