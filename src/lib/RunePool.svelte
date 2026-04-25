@@ -102,7 +102,7 @@
       const depositValue = position.deposit_amount / 1e8;
       const pnlValue = position.pnl / 1e8;
       const pnlPercent = (pnlValue / depositValue) * 100;
-      
+
       return {
         runeAddress: position.rune_address,
         deposit: formatRuneAmount(depositValue),
@@ -146,11 +146,11 @@
 
                 const data = await thornode.getLiquidityProvider(poolName, 'thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt');
                 const runeValue = Number(data.rune_redeem_value) / 1e8;
-                
+
                 // Calculate ownership percentage
                 const totalPoolRune = poolBalances[poolName] || 0;
                 const ownershipPercent = totalPoolRune ? (runeValue / totalPoolRune * 100).toFixed(2) : '0.00';
-                
+
                 return {
                     pool: asset,
                     runeValue: runeValue,
@@ -203,7 +203,7 @@
   function createChart(value, deposit) {
     const ctx = document.getElementById("myChart");
     if (!ctx) return;
-    
+
     if (chart) {
       chart.destroy();
     }
@@ -266,7 +266,7 @@
   function createPieChart(data) {
     const ctx = document.getElementById("myChart");
     if (!ctx) return;
-    
+
     if (chart) {
       chart.destroy();
     }
@@ -359,7 +359,7 @@
   // Helper function to adjust color brightness
   function adjustColor(color, amount) {
     const clamp = (val) => Math.min(Math.max(val, 0), 255);
-    
+
     // Convert hex to RGB
     let hex = color.replace('#', '');
     let r = parseInt(hex.substring(0, 2), 16);
@@ -407,7 +407,7 @@
           position.runeAddress.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
-      
+
       // Apply sorting after filtering
       switch (sortCriteria) {
         case "sizeAsc":
@@ -429,7 +429,7 @@
           filteredPositions.sort((a, b) => parseFloat(b.pnlPercent) - parseFloat(a.pnlPercent));
           break;
       }
-      
+
       // Ensure reactivity
       filteredPositions = [...filteredPositions];
     }
@@ -444,38 +444,38 @@
 
   function getColorForPnL(pnl, positions) {
     const pnlValue = parseFloat(pnl);
-    
+
     // Define colors
     const red = { r: 239, g: 83, b: 80 };     // #ef5350 - for negative values
     const neutral = { r: 255, g: 235, b: 59 }; // #ffeb3b - for zero
     const green = { r: 102, g: 187, b: 106 };  // #66bb6a - for positive values
-    
+
     // If PnL is positive, interpolate between neutral and green
     if (pnlValue > 0) {
       // Find max positive value for scaling
       const maxPnL = Math.max(...positions.map(p => parseFloat(p.pnlPercent)));
       const normalizedValue = pnlValue / maxPnL;
-      
+
       return `rgb(${
         Math.round(neutral.r + normalizedValue * (green.r - neutral.r))}, ${
         Math.round(neutral.g + normalizedValue * (green.g - neutral.g))}, ${
         Math.round(neutral.b + normalizedValue * (green.b - neutral.b))
       })`;
     }
-    
+
     // If PnL is negative, interpolate between red and neutral
     if (pnlValue < 0) {
       // Find min negative value for scaling
       const minPnL = Math.min(...positions.map(p => parseFloat(p.pnlPercent)));
       const normalizedValue = pnlValue / minPnL; // Will be between 0 and 1
-      
+
       return `rgb(${
         Math.round(red.r + (1 - normalizedValue) * (neutral.r - red.r))}, ${
         Math.round(red.g + (1 - normalizedValue) * (neutral.g - red.g))}, ${
         Math.round(red.b + (1 - normalizedValue) * (neutral.b - red.b))
       })`;
     }
-    
+
     // If PnL is exactly 0, return neutral color
     return `rgb(${neutral.r}, ${neutral.g}, ${neutral.b})`;
   }
@@ -485,20 +485,20 @@
   <PageHeader title="RUNEPool" />
 
   <div class="tabs">
-    <button 
-      class="tab-button {activeTab === 'overview' ? 'active' : ''}" 
+    <button
+      class="tab-button {activeTab === 'overview' ? 'active' : ''}"
       on:click={() => setActiveTab('overview')}
     >
       Overview
     </button>
-    <button 
-      class="tab-button {activeTab === 'allPositions' ? 'active' : ''}" 
+    <button
+      class="tab-button {activeTab === 'allPositions' ? 'active' : ''}"
       on:click={() => setActiveTab('allPositions')}
     >
       All Positions
     </button>
-    <button 
-      class="tab-button {activeTab === 'myPosition' ? 'active' : ''}" 
+    <button
+      class="tab-button {activeTab === 'myPosition' ? 'active' : ''}"
       on:click={() => setActiveTab('myPosition')}
     >
       My Position
@@ -542,8 +542,8 @@
                   <tr>
                     <td class="pool-cell">
                       <div class="pool-name-with-icon">
-                        <img 
-                          src={chainIcons[pool.pool.includes('(') ? pool.pool.split(' ')[1].slice(1, -1) : pool.pool]} 
+                        <img
+                          src={chainIcons[pool.pool.includes('(') ? pool.pool.split(' ')[1].slice(1, -1) : pool.pool]}
                           alt={pool.pool}
                           class="chain-icon"
                           on:error={(e) => {
@@ -568,9 +568,9 @@
       {/if}
     {:else if activeTab === 'myPosition'}
       <div class="position-lookup">
-        <input 
-          type="text" 
-          bind:value={runeAddress} 
+        <input
+          type="text"
+          bind:value={runeAddress}
           placeholder="Enter RUNE Address"
           class="search-input"
         />
@@ -601,9 +601,9 @@
       {/if}
     {:else if activeTab === 'allPositions'}
       <div class="controls">
-        <input 
-          type="text" 
-          bind:value={searchTerm} 
+        <input
+          type="text"
+          bind:value={searchTerm}
           placeholder="Search by RUNE address"
           class="search-input"
         />
@@ -1107,4 +1107,4 @@
     overflow: hidden;
   }
 </style>
-  
+

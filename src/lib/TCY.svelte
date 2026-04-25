@@ -282,18 +282,18 @@
       return null;
     }
 
-    const totalRune = distributions.reduce((sum, d) => 
+    const totalRune = distributions.reduce((sum, d) =>
       sum + (Number(d.amount) / 1e8), 0
     );
 
     // Calculate average daily RUNE
     const days = distributions.length;
     const avgDailyRune = totalRune / days;
-    
+
     // Annualize
     const annualRune = avgDailyRune * 365;
     const annualUSD = annualRune * runePriceUSD;
-    
+
     // Calculate staked value in USD using the staked balance and TCY price
     const stakedValueUSD = stakedBalance * tcyPriceUSD;
 
@@ -423,8 +423,8 @@
           <h2>TCY Staking - {getAddressSuffix(address, 4)}</h2>
         </div>
 
-        {#if tcyMimir.TCYCLAIMINGHALT === 1 || tcyMimir.TCYCLAIMINGSWAPHALT === 1 || 
-           tcyMimir.TCYSTAKEDISTRIBUTIONHALT === 1 || tcyMimir.TCYSTAKINGHALT === 1 || 
+        {#if tcyMimir.TCYCLAIMINGHALT === 1 || tcyMimir.TCYCLAIMINGSWAPHALT === 1 ||
+           tcyMimir.TCYSTAKEDISTRIBUTIONHALT === 1 || tcyMimir.TCYSTAKINGHALT === 1 ||
            tcyMimir.TCYUNSTAKINGHALT === 1 || tcyMimir.HALTTCYTRADING === 1}
           <div class="alerts-section">
             {#if tcyMimir.TCYCLAIMINGHALT === 1}

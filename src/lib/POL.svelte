@@ -11,7 +11,7 @@
   const error = writable(null);
   const runePrice = writable(0);
   let showUSD = true; // Default to USD display
-  
+
   // Treasury addresses from the documentation
   const TREASURY_ADDRESSES = [
     'thor1egxvam70a86jafa8gcg3kqfmfax3s0m2g3m754', // Treasury 1
@@ -96,22 +96,22 @@
         const synthUnits = Number(pool.synth_units);
         const balanceRune = Number(pool.balance_rune);
         const balanceAsset = Number(pool.balance_asset);
-        
+
         // Treasury positions for this pool
         const treasuryPosition = combinedPositions[pool.asset] || { liquidityUnits: 0, runeAdded: 0, assetAdded: 0 };
-        
+
         // Total POL ownership = Treasury LP units + Protocol synth units
         const totalPOLUnits = treasuryPosition.liquidityUnits + synthUnits;
-        
+
         // Calculate ownership percentages
         const polOwnershipPercent = poolUnits > 0 ? (totalPOLUnits / poolUnits) * 100 : 0;
         const synthOwnershipPercent = poolUnits > 0 ? (synthUnits / poolUnits) * 100 : 0;
         const treasuryOwnershipPercent = poolUnits > 0 ? (treasuryPosition.liquidityUnits / poolUnits) * 100 : 0;
-        
+
         // Calculate pool values in RUNE and USD
         const poolTotalLiquidityRune = fromBaseUnit(balanceRune) * 2;
         const poolTotalLiquidityUSD = poolTotalLiquidityRune * price;
-        
+
         // Calculate POL value
         const polValueRune = (poolTotalLiquidityRune * polOwnershipPercent) / 100;
         const polValueUSD = polValueRune * price;
@@ -167,17 +167,17 @@
     if (parts.length >= 2) {
       const chain = parts[0];
       let symbol = parts[1];
-      
+
       // Handle contract addresses - extract just the token symbol
       if (symbol.includes('-0X')) {
         symbol = symbol.split('-')[0];
       }
-      
+
       // Show chain for native assets that appear on multiple chains
       if (['ETH', 'BNB', 'AVAX'].includes(symbol)) {
         return `${symbol} (${chain})`;
       }
-      
+
       return symbol;
     }
     return asset;
@@ -190,18 +190,18 @@
       sortBy = column;
       sortDirection = 'desc';
     }
-    
+
     pools.update(poolsData => {
       return [...poolsData].sort((a, b) => {
         let aVal = a[column];
         let bVal = b[column];
-        
+
         if (column === 'asset') {
           aVal = formatAssetName(aVal);
           bVal = formatAssetName(bVal);
           return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         }
-        
+
         const result = aVal - bVal;
         return sortDirection === 'asc' ? result : -result;
       });
@@ -228,8 +228,8 @@
       <h2>Protocol Owned Liquidity (POL)</h2>
       <div class="header-controls">
         <label class="toggle">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             bind:checked={showUSD}
           >
           <span class="slider">
@@ -333,9 +333,9 @@
               <tr>
                 <td class="asset-cell">
                   <div class="asset-info">
-                    <img 
-                      src="assets/chains/{pool.asset.split('.')[0]}.svg" 
-                      alt={pool.asset.split('.')[0]} 
+                    <img
+                      src="assets/chains/{pool.asset.split('.')[0]}.svg"
+                      alt={pool.asset.split('.')[0]}
                       class="chain-icon"
                       on:error={(e) => e.target.style.display = 'none'}
                     />

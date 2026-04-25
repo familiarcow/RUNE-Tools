@@ -32,10 +32,10 @@
     const rect = container.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     const mouseX = event.clientX;
     const mouseY = event.clientY;
-    
+
     // Reduce the rotation effect by decreasing these multipliers
     rotateY = ((mouseX - centerX) / (rect.width / 2)) * 5; //multiplier at the end changes the rotation amount
     rotateX = -((mouseY - centerY) / (rect.height / 2)) * 5; //multiplier at the end changes the rotation amount
@@ -155,7 +155,7 @@
     if (!image || !selectionCtx || !selectionCanvas) return;
 
     const borderWidth = 20;
-    
+
     // Ensure selection stays within image bounds
     selection.size = Math.min(selection.size, Math.min(image.width, image.height) - borderWidth * 2);
     selection.x = Math.max(borderWidth, Math.min(selection.x, image.width - selection.size - borderWidth));
@@ -400,7 +400,7 @@
     const rect = selectionCanvas.getBoundingClientRect();
     const x = touch.clientX - rect.left - touchStartPos.x;
     const y = touch.clientY - rect.top - touchStartPos.y;
-    
+
     const borderWidth = 20;
     selection.x = Math.max(
       borderWidth,
@@ -430,7 +430,7 @@
     const randomNumber = Math.floor(Math.random() * 100) + 1;
     const paddedNumber = randomNumber.toString().padStart(3, '0');
     const imagePath = `/assets/thorwizards/${paddedNumber}.png`;
-    
+
     fetch(imagePath)
       .then(response => response.blob())
       .then(blob => {
@@ -481,7 +481,7 @@
         <button class="primary-button" on:click={downloadImage} aria-label="Download Image">
           <DownloadIcon size={24} color="#ffffff" />
         </button>
-        <button 
+        <button
           class="secondary-button"
           on:mousedown={startDecreasing}
           on:mouseup={stopDecreasing}
@@ -491,7 +491,7 @@
           on:touchcancel={handleButtonTouchEnd}
           aria-label="Decrease Size"
         >-</button>
-        <button 
+        <button
           class="secondary-button"
           on:mousedown={startIncreasing}
           on:mouseup={stopIncreasing}

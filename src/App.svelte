@@ -11,11 +11,11 @@
   import LoadingBar from './lib/components/LoadingBar.svelte';
   import { writable } from 'svelte/store';
   import Banner from './lib/Banner.svelte';
-  
+
   // Add store for starred apps
   const STARRED_APPS_KEY = 'runetools-starred-apps';
   const starredApps = writable(new Set(JSON.parse(localStorage.getItem(STARRED_APPS_KEY) || '[]')));
-  
+
   // Subscribe to changes and update localStorage
   starredApps.subscribe(value => {
     localStorage.setItem(STARRED_APPS_KEY, JSON.stringify(Array.from(value)));
@@ -26,7 +26,7 @@
 
   // Check for desktop app iframe mode
   let isDesktopApp = false;
-  
+
   let selectedApp = null;
   let addressParam = writable('');
   let votingSearchTerm = writable('');
@@ -42,19 +42,19 @@
       path: "desktop",
       description: "Download the native RUNE Tools wallet for macOS and Windows"
     },
-    { 
-      name: "Swap Quote", 
-      component: () => import("./lib/SwapEstimator.svelte"), 
-      icon: "🔄", 
-      path: "swap", 
-      description: "Get real time THORChain swap quotes" 
+    {
+      name: "Swap Quote",
+      component: () => import("./lib/SwapEstimator.svelte"),
+      icon: "🔄",
+      path: "swap",
+      description: "Get real time THORChain swap quotes"
     },
-    { 
-      name: "Bond Tracker", 
-      component: () => import("./lib/BondTracker.svelte"), 
-      icon: "🔗", 
-      path: "bond", 
-      description: "Monitor your THORChain node rewards" 
+    {
+      name: "Bond Tracker",
+      component: () => import("./lib/BondTracker.svelte"),
+      icon: "🔗",
+      path: "bond",
+      description: "Monitor your THORChain node rewards"
     },
     {
       name: "Voting",
@@ -70,139 +70,139 @@
       path: "solana",
       description: "Track Solana RPC provider diversity among THORChain nodes"
     },
-    { 
-      name: "Nodes", 
-      component: () => import("./lib/Nodes.svelte"), 
-      icon: "📡", 
-      path: "nodes", 
+    {
+      name: "Nodes",
+      component: () => import("./lib/Nodes.svelte"),
+      icon: "📡",
+      path: "nodes",
       description: "Explore THORChain's Nodes"
     },
-    { 
-      name: "Earnings", 
-      component: () => import("./lib/Earnings.svelte"), 
-      icon: "💰", 
-      path: "earnings", 
-      description: "Check the THORChain protocol's earnings" 
+    {
+      name: "Earnings",
+      component: () => import("./lib/Earnings.svelte"),
+      icon: "💰",
+      path: "earnings",
+      description: "Check the THORChain protocol's earnings"
         },
-    { 
-      name: "Constants and Mimirs", 
-      component: () => import("./lib/Constants.svelte"), 
-      icon: "📚", 
-      path: "constants", 
-      description: "View THORChain's network parameters and settings" 
+    {
+      name: "Constants and Mimirs",
+      component: () => import("./lib/Constants.svelte"),
+      icon: "📚",
+      path: "constants",
+      description: "View THORChain's network parameters and settings"
     },
 
-    { 
-      name: "Incentive Pendulum", 
-      component: () => import("./lib/IncentivePendulum.svelte"), 
-      icon: "⚖️", 
-      path: "pendulum", 
-      description: "Check THORChain's incentive pendulum balance" 
+    {
+      name: "Incentive Pendulum",
+      component: () => import("./lib/IncentivePendulum.svelte"),
+      icon: "⚖️",
+      path: "pendulum",
+      description: "Check THORChain's incentive pendulum balance"
     },
-    { 
-      name: "Churn Countdown", 
-      component: () => import("./lib/ChurnCountdown.svelte"), 
-      icon: "⏳", 
-      path: "churn", 
-      description: "Countdown to the next validator churn" 
+    {
+      name: "Churn Countdown",
+      component: () => import("./lib/ChurnCountdown.svelte"),
+      icon: "⏳",
+      path: "churn",
+      description: "Countdown to the next validator churn"
     },
-    { 
-      name: "Supply Tracker", 
-      component: () => import("./lib/Supply.svelte"), 
-      icon: "🔥", 
-      path: "supply", 
-      description: "Track RUNE supply and burned tokens" 
+    {
+      name: "Supply Tracker",
+      component: () => import("./lib/Supply.svelte"),
+      icon: "🔥",
+      path: "supply",
+      description: "Track RUNE supply and burned tokens"
     },
-    { 
-      name: "Price Checker", 
-      component: () => import("./lib/PriceChecker.svelte"), 
-      icon: "🏷️", 
-      path: "prices", 
-      description: "Check pool prices and compare prices of similar assets" 
+    {
+      name: "Price Checker",
+      component: () => import("./lib/PriceChecker.svelte"),
+      icon: "🏷️",
+      path: "prices",
+      description: "Check pool prices and compare prices of similar assets"
     },
-    { 
-      name: "Oracle Prices", 
-      component: () => import("./lib/OraclePrice.svelte"), 
-      icon: "🔮", 
-      path: "oracle", 
-      description: "Compare THORChain oracle prices vs pool prices" 
+    {
+      name: "Oracle Prices",
+      component: () => import("./lib/OraclePrice.svelte"),
+      icon: "🔮",
+      path: "oracle",
+      description: "Compare THORChain oracle prices vs pool prices"
     },
-    { 
-      name: "Vaults", 
-      component: () => import("./lib/Vaults.svelte"), 
-      icon: "🔒", 
-      path: "vaults", 
-      description: "Inspect THORChain's native asset vaults" 
+    {
+      name: "Vaults",
+      component: () => import("./lib/Vaults.svelte"),
+      icon: "🔒",
+      path: "vaults",
+      description: "Inspect THORChain's native asset vaults"
     },
-    { 
-      name: "Liquidity Cap", 
-      component: () => import("./lib/LiquidityCap.svelte"), 
-      icon: "🧢", 
-      path: "liquidity-cap", 
+    {
+      name: "Liquidity Cap",
+      component: () => import("./lib/LiquidityCap.svelte"),
+      icon: "🧢",
+      path: "liquidity-cap",
                         description: "Check THORChain's liquidity cap"
     },
-    { 
-      name: "LP Checker", 
-      component: () => import("./lib/LiquidityProviders.svelte"), 
-      icon: "💧", 
-      path: "lp", 
-      description: "Check your THORChain LP positions" 
+    {
+      name: "LP Checker",
+      component: () => import("./lib/LiquidityProviders.svelte"),
+      icon: "💧",
+      path: "lp",
+      description: "Check your THORChain LP positions"
     },
-    { 
-      name: "Version", 
-      component: () => import("./lib/Version.svelte"), 
-      icon: "🔧", 
-      path: "version", 
-      description: "Check the current THORNode version adoption" 
+    {
+      name: "Version",
+      component: () => import("./lib/Version.svelte"),
+      icon: "🔧",
+      path: "version",
+      description: "Check the current THORNode version adoption"
     },
-    { 
-      name: "Inbound Addresses", 
-      component: () => import("./lib/InboundAddresses.svelte"), 
-      icon: "📍", 
-      path: "inbound", 
-      description: "Find THORChain's inbound vault addresses" 
+    {
+      name: "Inbound Addresses",
+      component: () => import("./lib/InboundAddresses.svelte"),
+      icon: "📍",
+      path: "inbound",
+      description: "Find THORChain's inbound vault addresses"
     },
-    { 
-      name: "Swapper Clout", 
-      component: () => import("./lib/SwapperClout.svelte"), 
-      icon: "🏆", 
-      path: "clout", 
-      description: "Check your Swapper Clout" 
+    {
+      name: "Swapper Clout",
+      component: () => import("./lib/SwapperClout.svelte"),
+      icon: "🏆",
+      path: "clout",
+      description: "Check your Swapper Clout"
     },
-    { 
-      name: "Affiliates", 
-      component: () => import("./lib/Affiliates.svelte"), 
-      icon: "🤝", 
-      path: "affiliate", 
-      description: "Track THORChain affiliate payout status" 
+    {
+      name: "Affiliates",
+      component: () => import("./lib/Affiliates.svelte"),
+      icon: "🤝",
+      path: "affiliate",
+      description: "Track THORChain affiliate payout status"
     },
-    { 
-      name: "Token Whitelist", 
-      component: () => import("./lib/TokenWhitelist.svelte"), 
-      icon: "📝", 
-      path: "whitelist", 
-      description: "View THORChain's whitelisted tokens and pools" 
+    {
+      name: "Token Whitelist",
+      component: () => import("./lib/TokenWhitelist.svelte"),
+      icon: "📝",
+      path: "whitelist",
+      description: "View THORChain's whitelisted tokens and pools"
     },
-    { 
-      name: "Treasury", 
-      component: () => import("./lib/Treasury.svelte"), 
-      icon: "🏦", 
-      path: "treasury", 
-      description: "Track THORChain's treasury balances and flows" 
+    {
+      name: "Treasury",
+      component: () => import("./lib/Treasury.svelte"),
+      icon: "🏦",
+      path: "treasury",
+      description: "Track THORChain's treasury balances and flows"
     },
-    { 
-      name: "Outbound Fees", 
-      component: () => import("./lib/OutboundFees.svelte"), 
-      icon: "📤", 
-      path: "outbound-fees", 
-      description: "View THORChain outbound fees and dynamic multipliers" 
+    {
+      name: "Outbound Fees",
+      component: () => import("./lib/OutboundFees.svelte"),
+      icon: "📤",
+      path: "outbound-fees",
+      description: "View THORChain outbound fees and dynamic multipliers"
     },
-        { 
+        {
       name: "THORChad",
-      component: () => import("./lib/Thorchad.svelte"), 
-      icon: "🧙‍♂️", 
-      path: "thorchad", 
-      description: "THORChad your profile picture" 
+      component: () => import("./lib/Thorchad.svelte"),
+      icon: "🧙‍♂️",
+      path: "thorchad",
+      description: "THORChad your profile picture"
     },
     {
       name: "POL Tracker",
@@ -211,19 +211,19 @@
       path: "pol",
       description: "Track THORChain's protocol-owned liquidity positions"
     },
-    { 
-      name: "Trade on THORSwap", 
+    {
+      name: "Trade on THORSwap",
       icon: "/assets/thorswap.png",
-      path: "thorswap", 
-      description: "Trade RUNE and other native assets on THORSwap.", 
+      path: "thorswap",
+      description: "Trade RUNE and other native assets on THORSwap.",
             externalUrl: "https://app.thorswap.finance/swap/BTC.BTC_THOR.RUNE?ref=-"
     },
-    { 
-      name: "TCY Claims", 
-      component: () => import("./lib/TCYClaims.svelte"), 
-      icon: "🪙", 
-      path: "tcy-claims", 
-      description: "Check TCY claims" 
+    {
+      name: "TCY Claims",
+      component: () => import("./lib/TCYClaims.svelte"),
+      icon: "🪙",
+      path: "tcy-claims",
+      description: "Check TCY claims"
     },
     {
       name: "TCY",
@@ -232,12 +232,12 @@
       path: "tcy",
       description: "Track your staked TCY and yield"
     },
-    { 
-      name: "Trade Assets", 
-      component: () => import("./lib/TradeAssets.svelte"), 
-      icon: "💼", 
-      path: "trade-assets", 
-      description: "Track THORChain's trade assets and vault balances" 
+    {
+      name: "Trade Assets",
+      component: () => import("./lib/TradeAssets.svelte"),
+      icon: "💼",
+      path: "trade-assets",
+      description: "Track THORChain's trade assets and vault balances"
     },
     {
       name: "Orderbooks",
@@ -260,12 +260,12 @@
       path: "dominance",
       description: "Compare THORChain's market dominance against competitors"
     },
-    { 
-      name: "Shop", 
-      icon: "🏪", 
-      path: "shop", 
-      description: "Browse THORChain merchandise", 
-      externalUrl: "https://shop.rune.tools" 
+    {
+      name: "Shop",
+      icon: "🏪",
+      path: "shop",
+      description: "Browse THORChain merchandise",
+      externalUrl: "https://shop.rune.tools"
     }
   ];
 
@@ -372,12 +372,12 @@
   function getAppParams(app) {
     const urlParams = new URLSearchParams(window.location.search);
     const params = new URLSearchParams();
-    
+
     // Always preserve the desktop app flag
     if (isDesktopApp) {
       params.set('source', 'desktop-app');
     }
-    
+
     // Add app-specific parameters
     if (app.name === "Bond Tracker") {
       const bondAddress = urlParams.get("bond_address");
@@ -402,7 +402,7 @@
       const key = urlParams.get("key");
       if (key) params.set("key", key);
     }
-    
+
     return params.toString() ? `?${params.toString()}` : "";
   }
 
@@ -577,18 +577,18 @@
     const minItemWidth = 120;
     const gap = 24;
     const maxColumns = Math.floor((containerWidth - 40) / (minItemWidth + gap));
-    
+
     // Try different numbers of columns to find one that gives us balanced rows
     for (let cols = maxColumns; cols >= 3; cols--) {
       const rows = Math.ceil(totalItems / cols);
       const lastRowItems = totalItems % cols;
-      
+
       // If the last row has 3 or more items, or if it's perfectly divided
       if (lastRowItems === 0 || lastRowItems >= 3) {
         return cols;
       }
     }
-    
+
     // If we couldn't find a perfect fit, default to 3 columns
     return 3;
   }
@@ -689,8 +689,8 @@
       {:else}
       <div class="logo-container desktop-mode">
         {#if selectedApp}
-          <button 
-            class="nav-button back-button" 
+          <button
+            class="nav-button back-button"
             on:click={goHome}
             title="Back to Home"
           >
@@ -704,13 +704,13 @@
           <h2 class="rune-tools-title">
             {selectedApp.name}
           </h2>
-          
+
         {/if}
       </div>
       <nav>
         {#if selectedApp}
-          <button 
-            class="nav-button menu-button" 
+          <button
+            class="nav-button menu-button"
             on:click={toggleMenu}
             in:fly={{ y: -20, duration: 300, delay: 200, easing: cubicInOut }}
             out:fly={{ y: -20, duration: 300, easing: cubicInOut }}
@@ -721,7 +721,7 @@
       </nav>
     </div>
   </header>
-  
+
   {#if SHOW_BANNER}
     <Banner />
   {/if}
@@ -758,8 +758,8 @@
             {/key}
           {/if}
         </div>
-        <div 
-          class="app-grid-container" 
+        <div
+          class="app-grid-container"
           bind:clientWidth={containerWidth}
         >
           {#each appRows as row}
@@ -769,7 +769,7 @@
                 {@const isStarred = $starredApps.has(app.path)}
                 <button
                   class="app-button"
-  
+
                   on:click={() => handleAppClick(app)}
                   on:mouseenter={() => handleMouseEnter(app)}
                   on:mouseleave={handleMouseLeave}
@@ -979,13 +979,13 @@
     font-size: 1.5rem;
     line-height: 1.3;
   }
-  
+
   .description-container :global(.terminal) {
     font-family: 'Exo', 'Courier New', monospace;
     font-size: 1.7rem;
     color: var(--text-color);
   }
-  
+
   .description-container :global(.scrambling) {
     color: #00ff88;
     font-weight: bold;

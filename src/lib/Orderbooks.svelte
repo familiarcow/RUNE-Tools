@@ -38,21 +38,21 @@
     try {
       const data = await thornode.getPools();
       pools = Array.isArray(data) ? data : [];
-      
+
       // Create a map of asset -> USD price for quick lookup
       // Store multiple formats for easy lookups
       poolPrices.clear();
       pools.forEach(pool => {
         if (pool.asset && pool.asset_tor_price) {
           const usdPrice = fromBaseUnit(pool.asset_tor_price);
-          
+
           // Store with original asset name (e.g., ETH.USDC-0X123...)
           poolPrices.set(pool.asset, usdPrice);
-          
-          // Store normalized version (e.g., ETH.USDC)  
+
+          // Store normalized version (e.g., ETH.USDC)
           const normalizedAsset = normalizeAsset(pool.asset);
           poolPrices.set(normalizedAsset, usdPrice);
-          
+
           // Create alternative format mappings for different asset types
           // If pool has ETH.USDC-0X123, also map ETH-USDC-0X123 and ETH~USDC-0X123
           if (pool.asset.includes('.') && pool.asset.includes('-0X')) {
@@ -60,20 +60,20 @@
             const dashVersion = pool.asset.replace('.', '-');
             poolPrices.set(dashVersion, usdPrice);
             poolPrices.set(normalizeAsset(dashVersion), usdPrice);
-            
-            // Trade asset format (tilde separator)  
+
+            // Trade asset format (tilde separator)
             const tildeVersion = pool.asset.replace('.', '~');
             poolPrices.set(tildeVersion, usdPrice);
             poolPrices.set(normalizeAsset(tildeVersion), usdPrice);
           }
         }
       });
-      
+
       // Add THOR.RUNE price if we have it
       if (runePrice > 0) {
         poolPrices.set('THOR.RUNE', runePrice);
       }
-      
+
       // Debug: Log all ETH-related pools
       console.log('All ETH pools from API:', pools.filter(p => p.asset.includes('ETH')).map(p => ({ asset: p.asset, balance: p.balance_asset, price: p.asset_tor_price })));
     } catch (err) {
@@ -142,14 +142,14 @@
   async function loadData() {
     loading = true;
     error = null;
-    
+
     await Promise.all([
       fetchLimitSwapsSummary(),
       fetchLimitSwaps(),
       fetchNetworkInfo(),
       fetchPools()
     ]);
-    
+
     loading = false;
   }
 
@@ -209,12 +209,12 @@
     // Normalize assets for price lookups
     const normalizedSource = normalizeAsset(sourceAsset);
     const normalizedTarget = normalizeAsset(targetAsset);
-    
+
     const sourcePrice = getAssetPriceUSD(normalizedSource);
     const targetPrice = getAssetPriceUSD(normalizedTarget);
-    
+
     if (!sourcePrice || !targetPrice) return null;
-    
+
     // Calculate how many target tokens you get per source token
     const ratio = sourcePrice / targetPrice;
     return ratio;
@@ -224,9 +224,9 @@
 
   function getPoolByAsset(asset) {
     if (!asset) return null;
-    
+
     const normalizedAsset = normalizeAsset(asset);
-    
+
     // Debug logging for ETH assets
     const isETH = asset.includes('ETH') && (asset.includes('USDC') || asset.includes('DAI'));
     if (isETH) {
@@ -234,40 +234,40 @@
       console.log('Looking for pool with asset:', asset);
       console.log('Normalized to:', normalizedAsset);
     }
-    
+
     // Convert secured/trade asset format to native pool format
     // ETH-USDC-0X123 -> ETH.USDC-0X123 (what pools API uses)
     function toPoolFormat(assetName) {
       if (!assetName) return assetName;
-      
+
       // Handle secured assets: ETH-USDC-0X123 -> ETH.USDC-0X123
       const parts = assetName.split('-');
       if (parts.length >= 3 && parts[parts.length - 1].toUpperCase().startsWith('0X')) {
         // Has contract address, convert first dash to dot
         return `${parts[0]}.${parts.slice(1).join('-')}`;
       }
-      
-      // Handle secured assets without contract: ETH-USDC -> ETH.USDC  
+
+      // Handle secured assets without contract: ETH-USDC -> ETH.USDC
       if (parts.length === 2 && !assetName.includes('.')) {
         return `${parts[0]}.${parts[1]}`;
       }
-      
+
       // Handle trade assets: ETH~USDC-0X123 -> ETH.USDC-0X123
       if (assetName.includes('~')) {
         return assetName.replace('~', '.');
       }
-      
+
       return assetName;
     }
-    
+
     const poolFormatAsset = toPoolFormat(asset);
     const poolFormatNormalized = toPoolFormat(normalizedAsset);
-    
+
     if (isETH) {
       console.log('Pool format asset:', poolFormatAsset);
       console.log('Pool format normalized:', poolFormatNormalized);
     }
-    
+
     // Try multiple formats to find the pool
     // 1. Try pool format of original asset (ETH.USDC-0X123)
     let pool = pools.find(p => p.asset === poolFormatAsset);
@@ -275,35 +275,35 @@
       if (isETH) console.log('Found pool by pool format:', pool.asset);
       return pool;
     }
-    
+
     // 2. Try normalized asset first (e.g., ETH.USDC)
     pool = pools.find(p => p.asset === normalizedAsset);
     if (pool) {
       if (isETH) console.log('Found pool by normalized asset:', pool.asset);
       return pool;
     }
-    
+
     // 3. Try pool format of normalized asset
     pool = pools.find(p => p.asset === poolFormatNormalized);
     if (pool) {
       if (isETH) console.log('Found pool by pool format normalized:', pool.asset);
       return pool;
     }
-    
+
     // 4. Try original asset format (fallback)
     pool = pools.find(p => p.asset === asset);
     if (pool) {
       if (isETH) console.log('Found pool by original asset:', pool.asset);
       return pool;
     }
-    
+
     // 5. Try finding any pool asset that when normalized matches our asset
     pool = pools.find(p => normalizeAsset(p.asset) === normalizedAsset);
     if (pool) {
       if (isETH) console.log('Found pool by normalized match:', pool.asset);
       return pool;
     }
-    
+
     if (isETH) {
       console.log('No pool found.');
       console.log('Tried formats:', [poolFormatAsset, normalizedAsset, poolFormatNormalized, asset]);
@@ -311,7 +311,7 @@
       console.log('Available USDC pools:', pools.filter(p => p.asset.includes('USDC')).map(p => p.asset));
       console.log('Available DAI pools:', pools.filter(p => p.asset.includes('DAI')).map(p => p.asset));
     }
-    
+
     return null;
   }
 
@@ -322,10 +322,10 @@
 
   function getAssetPriceUSD(asset) {
     if (!asset) return null;
-    
+
     // Normalize the asset for consistent lookups
     const normalizedAsset = normalizeAsset(asset);
-    
+
     // Debug logging for ETH assets
     if (asset.includes('ETH') && (asset.includes('USDC') || asset.includes('DAI'))) {
       console.log('=== PRICE LOOKUP DEBUG ===');
@@ -335,17 +335,17 @@
       console.log('Has normalized?', poolPrices.has(normalizedAsset));
       console.log('Has original?', poolPrices.has(asset));
     }
-    
+
     // Try normalized asset first
     if (poolPrices.has(normalizedAsset)) {
       return poolPrices.get(normalizedAsset);
     }
-    
+
     // Try original asset as fallback
     if (poolPrices.has(asset)) {
       return poolPrices.get(asset);
     }
-    
+
     // Fallback to pool data search with normalized asset
     const pool = getPoolByAsset(normalizedAsset);
     if (pool && pool.asset_tor_price) {
@@ -357,7 +357,7 @@
     if (originalPool && originalPool.asset_tor_price) {
       return fromBaseUnit(originalPool.asset_tor_price);
     }
-    
+
     return null;
   }
 
@@ -380,7 +380,7 @@
       const toAsset = swap.swap.target_asset;
       const amount = swap.swap.tx.coins[0].amount; // Already in 1e8 format
       const destination = swap.swap.destination;
-      
+
       // Use streaming parameters from the swap state
       const streamingInterval = swap.swap.state?.interval || "0";
       const streamingQuantity = swap.swap.state?.quantity || "4";
@@ -425,17 +425,17 @@
       filteredPairs = [];
       return;
     }
-    
+
     filteredPairs = limitSwapsSummary.asset_pairs.filter(pair => {
       if (summarySearchTerm === '') return true;
-      
+
       const searchLower = summarySearchTerm.toLowerCase();
       const sourceAsset = getAssetDisplay(pair.source_asset).toLowerCase();
       const targetAsset = getAssetDisplay(pair.target_asset).toLowerCase();
       const sourceChain = getChainFromAsset(pair.source_asset).toLowerCase();
       const targetChain = getChainFromAsset(pair.target_asset).toLowerCase();
-      
-      return sourceAsset.includes(searchLower) || 
+
+      return sourceAsset.includes(searchLower) ||
              targetAsset.includes(searchLower) ||
              sourceChain.includes(searchLower) ||
              targetChain.includes(searchLower) ||
@@ -450,29 +450,29 @@
       filteredSwaps = [];
       return;
     }
-    
+
     filteredSwaps = limitSwaps.filter(swap => {
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         swap.tx_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         swap.source?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         swap.target?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         swap.source_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         swap.target_address?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       if (selectedFilter === 'all') return matchesSearch;
-      
+
       // Add more filters as needed
       return matchesSearch;
     });
   }
-  
+
   // Reactive statements for filtering
   $: {
     limitSwapsSummary;
     summarySearchTerm;
     updateFilteredPairs();
   }
-  
+
   $: {
     limitSwaps;
     searchTerm;
@@ -532,17 +532,17 @@
             🔄
           </button>
         </div>
-        
+
         <!-- Search for pairs -->
         <div class="summary-search">
-          <input 
-            type="text" 
-            placeholder="Search pairs by asset name or chain..." 
+          <input
+            type="text"
+            placeholder="Search pairs by asset name or chain..."
             bind:value={summarySearchTerm}
             class="summary-search-input"
           />
         </div>
-        
+
         {#if filteredPairs.length > 0}
           <div class="pairs-table">
             <div class="table-header">
@@ -554,8 +554,8 @@
               <div class="header-cell">Action</div>
             </div>
             {#each filteredPairs as pair, i}
-              <div 
-                class="table-row" 
+              <div
+                class="table-row"
                 in:fly={{ y: 20, duration: 300, delay: i * 100 }}
               >
                 <div class="cell">
@@ -587,7 +587,7 @@
                 <div class="cell count">{pair.count}</div>
                 <div class="cell value">{formatUSD(pair.total_value_usd)}</div>
                 <div class="cell">
-                  <button 
+                  <button
                     class="view-details-btn"
                     on:click={() => selectPair(pair)}
                   >
@@ -704,9 +704,9 @@
         <!-- Controls Section -->
         <div class="controls">
           <div class="search-container">
-            <input 
-              type="text" 
-              placeholder="Search by transaction ID, asset, or address..." 
+            <input
+              type="text"
+              placeholder="Search by transaction ID, asset, or address..."
               bind:value={searchTerm}
               class="search-input"
             />
@@ -728,8 +728,8 @@
             <h3>Individual Swaps ({pairSwaps.length})</h3>
             <div class="swaps-grid">
               {#each pairSwaps as swap, i}
-                <div 
-                  class="swap-card" 
+                <div
+                  class="swap-card"
                   in:fly={{ y: 20, duration: 300, delay: i * 50 }}
                 >
                   <div class="swap-header">
@@ -764,8 +764,8 @@
                       <span class="label">From:</span>
                       <div class="address-container">
                         <span class="value address">{shortenAddress(swap.swap?.tx?.from_address)}</span>
-                        <button 
-                          class="address-copy-btn" 
+                        <button
+                          class="address-copy-btn"
                           on:click={() => copyToClipboard(swap.swap?.tx?.from_address)}
                           title="Copy full address"
                         >
@@ -780,8 +780,8 @@
                           {shortenAddress(swap.swap?.destination)}
                         </span>
                         {#if swap.swap?.destination}
-                          <button 
-                            class="address-copy-btn" 
+                          <button
+                            class="address-copy-btn"
                             on:click={() => copyToClipboard(swap.swap?.destination)}
                             title="Copy full address"
                           >
@@ -805,22 +805,22 @@
                       <span class="label">TX ID:</span>
                       <span class="value tx">{shortenAddress(swap.swap?.tx?.id)}</span>
                       <div class="tx-actions">
-                        <button 
-                          class="tx-btn copy-btn" 
+                        <button
+                          class="tx-btn copy-btn"
                           on:click={() => copyToClipboard(swap.swap?.tx?.id)}
                           title="Copy full transaction ID"
                         >
                           📋
                         </button>
-                        <button 
-                          class="tx-btn link-btn" 
+                        <button
+                          class="tx-btn link-btn"
                           on:click={() => openTxLink(swap.swap?.tx?.id)}
                           title="View on thorchain.net"
                         >
                           🔗
                         </button>
-                        <button 
-                          class="tx-btn test-quote-btn" 
+                        <button
+                          class="tx-btn test-quote-btn"
                           on:click={() => testQuote(swap)}
                           disabled={testingQuote.has(swap.swap?.tx?.id)}
                           title="Test current quote"
@@ -829,7 +829,7 @@
                         </button>
                       </div>
                     </div>
-                    
+
                     <!-- Quote Results -->
                     {#if quoteResults.has(swap.swap?.tx?.id)}
                       <div class="quote-results">
@@ -850,7 +850,7 @@
                             <div class="quote-row">
                               <span class="quote-label">Difference:</span>
                               <span class="quote-value {quoteResults.get(swap.swap.tx.id).difference >= 0 ? 'positive' : 'negative'}">
-                                {quoteResults.get(swap.swap.tx.id).difference >= 0 ? '+' : ''}{formatAmount(quoteResults.get(swap.swap.tx.id).difference * 1e8)} 
+                                {quoteResults.get(swap.swap.tx.id).difference >= 0 ? '+' : ''}{formatAmount(quoteResults.get(swap.swap.tx.id).difference * 1e8)}
                                 ({quoteResults.get(swap.swap.tx.id).percentage_diff >= 0 ? '+' : ''}{quoteResults.get(swap.swap.tx.id).percentage_diff.toFixed(2)}%)
                               </span>
                             </div>
@@ -1516,7 +1516,7 @@
       grid-template-columns: 1fr;
       gap: 1rem;
     }
-    
+
     .swap-card {
       padding: 1rem;
     }

@@ -1,9 +1,9 @@
 <script>
   import { slide } from 'svelte/transition';
   import { createEventDispatcher } from 'svelte';
-  
+
   const dispatch = createEventDispatcher();
-  
+
   // Props
   export let selectedAsset;
   export let assets;
@@ -144,19 +144,19 @@
 <div class="custom-select">
   <button class="selected" on:click={() => (isOpen = !isOpen)}>
     <div class="logo-container">
-      <img 
+      <img
         class="asset-logo"
-        src={assetLogos[selectedAsset]} 
-        alt={assetNames[selectedAsset]} 
+        src={assetLogos[selectedAsset]}
+        alt={assetNames[selectedAsset]}
         on:error={(e) => {
           e.target.onerror = null;
           e.target.src = 'assets/coins/fallback-logo.svg';
         }}
       />
       <div class="chain-logo-container">
-        <img 
+        <img
           class="chain-logo"
-          src={getChainLogo(selectedAsset)} 
+          src={getChainLogo(selectedAsset)}
           alt={selectedAsset.split('.')[0]}
           on:error={(e) => {
             e.target.onerror = null;
@@ -169,27 +169,27 @@
   </button>
 
   {#if isOpen}
-    <div 
-      class="options" 
-      in:slide|local={{ duration: 300 }} 
+    <div
+      class="options"
+      in:slide|local={{ duration: 300 }}
       out:slide|local={{ duration: 200 }}
     >
       {#each assets as asset}
         <button class="option-item" on:click={() => handleAssetSelect(asset)}>
           <div class="logo-container">
-            <img 
+            <img
               class="asset-logo"
-              src={assetLogos[asset]} 
-              alt={assetNames[asset]} 
+              src={assetLogos[asset]}
+              alt={assetNames[asset]}
               on:error={(e) => {
                 e.target.onerror = null;
                 e.target.src = 'assets/coins/fallback-logo.svg';
               }}
             />
             <div class="chain-logo-container">
-              <img 
+              <img
                 class="chain-logo"
-                src={getChainLogo(asset)} 
+                src={getChainLogo(asset)}
                 alt={asset.split('.')[0]}
                 on:error={(e) => {
                   e.target.onerror = null;

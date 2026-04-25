@@ -84,7 +84,7 @@
   const sortData = (data, field, direction) => {
     return [...data].sort((a, b) => {
       let comparison = 0;
-      
+
       switch (field) {
         case 'asset':
           comparison = getAssetShortName(a.asset).localeCompare(getAssetShortName(b.asset));
@@ -110,7 +110,7 @@
         default:
           return 0;
       }
-      
+
       return direction === 'asc' ? comparison : -comparison;
     });
   };
@@ -123,16 +123,16 @@
       sortField = field;
       sortDirection = 'desc';
     }
-    
+
     outboundFees = sortData(outboundFees, sortField, sortDirection);
   };
 
   // Filter data based on search query
   const filterData = (data, query) => {
     if (!query) return data;
-    
+
     const searchTerm = query.toLowerCase().trim();
-    return data.filter(fee => 
+    return data.filter(fee =>
       fee.asset.toLowerCase().includes(searchTerm) ||
       getAssetShortName(fee.asset).toLowerCase().includes(searchTerm)
     );
@@ -182,15 +182,15 @@
 <div class="outbound-fees-container">
   <div class="header-controls">
     <div class="search-container">
-      <input 
-        type="text" 
+      <input
+        type="text"
         bind:value={searchQuery}
         placeholder="Search by asset name..."
         class="search-input"
       />
       {#if searchQuery}
-        <button 
-          class="clear-search" 
+        <button
+          class="clear-search"
           on:click={() => searchQuery = ''}
           title="Clear search"
         >
@@ -252,8 +252,8 @@
         <thead>
           <tr>
             <th title="Asset">#</th>
-            <th 
-              class="sortable" 
+            <th
+              class="sortable"
               title="Asset name"
               on:click={() => handleSort('asset')}
             >
@@ -262,8 +262,8 @@
                 <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
               {/if}
             </th>
-            <th 
-              class="sortable" 
+            <th
+              class="sortable"
               title="Outbound fee amount"
               on:click={() => handleSort('outbound_fee')}
             >
@@ -272,8 +272,8 @@
                 <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
               {/if}
             </th>
-            <th 
-              class="sortable" 
+            <th
+              class="sortable"
               title="Outbound fee in USD"
               on:click={() => handleSort('outbound_fee_usd')}
             >
@@ -282,8 +282,8 @@
                 <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
               {/if}
             </th>
-            <th 
-              class="sortable" 
+            <th
+              class="sortable"
               title="Fee withheld in RUNE"
               on:click={() => handleSort('fee_withheld_rune')}
             >
@@ -292,8 +292,8 @@
                 <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
               {/if}
             </th>
-            <th 
-              class="sortable" 
+            <th
+              class="sortable"
               title="Fee spent in RUNE"
               on:click={() => handleSort('fee_spent_rune')}
             >
@@ -302,8 +302,8 @@
                 <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
               {/if}
             </th>
-            <th 
-              class="sortable" 
+            <th
+              class="sortable"
               title="Surplus in RUNE"
               on:click={() => handleSort('surplus_rune')}
             >
@@ -312,8 +312,8 @@
                 <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
               {/if}
             </th>
-            <th 
-              class="sortable" 
+            <th
+              class="sortable"
               title="Dynamic multiplier percentage"
               on:click={() => handleSort('dynamic_multiplier_basis_points')}
             >
@@ -331,8 +331,8 @@
               <td class="asset-cell">
                 <div class="asset-info">
                   {#if getAssetLogo(fee.asset)}
-                    <img 
-                      src={getAssetLogo(fee.asset)} 
+                    <img
+                      src={getAssetLogo(fee.asset)}
                       alt={getAssetShortName(fee.asset)}
                       class="asset-logo"
                       loading="lazy"
@@ -345,8 +345,8 @@
                 <span class="outbound-fee-amount">
                   {formatOutboundFee(fee.outbound_fee)}
                   {#if getAssetLogo(fee.asset)}
-                    <img 
-                      src={getAssetLogo(fee.asset)} 
+                    <img
+                      src={getAssetLogo(fee.asset)}
                       alt={getAssetShortName(fee.asset)}
                       class="fee-asset-icon"
                       loading="lazy"
@@ -836,9 +836,9 @@
   }
 
   /* Column width controls */
-  th:nth-child(1), td:nth-child(1) { 
-    width: 40px !important; 
-    min-width: 40px !important; 
+  th:nth-child(1), td:nth-child(1) {
+    width: 40px !important;
+    min-width: 40px !important;
     max-width: 40px !important;
     padding: 6px 0 !important;
     text-align: center !important;
@@ -1063,7 +1063,7 @@
       overflow-x: scroll;
       -webkit-overflow-scrolling: touch;
     }
-    
+
     table {
       transform: translateZ(0);
     }

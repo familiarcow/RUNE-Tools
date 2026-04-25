@@ -2,14 +2,14 @@
   import { onMount, onDestroy } from 'svelte';
   export let text = '';
   export let charSetName = 'tech'; // Default character set
-  
+
   let displayElement;
   let active = false;
   let frameRequest;
   let frame = 0;
   let queue = [];
   let resolve;
-  
+
   // Multiple character sets for variety
   const charSets = {
     tech: '!<>-_\\/[]{}—=+*^?#$%&()~01︎10︎101︎01︎',
@@ -17,10 +17,10 @@
     matrix: 'ラドクリフマラソンわたしワタシんょンョたばこタバコとうきょうトウキョウ日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ',
     crypto: '∞⬨⟡⟢⟣⟤⟥⟦⟧⟨⟩⟪⟫⦵'
   };
-  
+
   // Default values from the example code
   const changeFrequency = 0.28; // Change frequency (28/100)
-  const glowIntensity = 1; // Default glow intensity 
+  const glowIntensity = 1; // Default glow intensity
   const activeGlowIntensity = 12; // Slightly higher for active characters
   const highlightColor = '#ffffff'; // Default green color
 
@@ -40,7 +40,7 @@
   function startNewText(newText) {
     const oldText = displayElement ? displayElement.innerText : '';
     const length = Math.max(oldText.length, newText.length);
-    
+
     // Create new promise to track completion
     const promise = new Promise(res => resolve = res);
     queue = [];
@@ -49,7 +49,7 @@
       const from = oldText[i] || '';
       const to = newText[i] || '';
       // Stagger the start times for a more natural flow
-      const start = Math.floor(Math.random() * 20) + (i * 1.5); 
+      const start = Math.floor(Math.random() * 20) + (i * 1.5);
       const end = start + Math.floor(Math.random() * 20) + 10;
       queue.push({ from, to, start, end });
     }
@@ -103,12 +103,12 @@
       const r = parseInt(color.slice(1, 3), 16);
       const g = parseInt(color.slice(3, 5), 16);
       const b = parseInt(color.slice(5, 7), 16);
-      
+
       // Very slight adjustment to avoid drastic changes
       const rNew = Math.min(255, Math.max(0, r + (shift - 20)));
       const gNew = Math.min(255, Math.max(0, g + shift));
       const bNew = Math.min(255, Math.max(0, b));
-      
+
       return `#${rNew.toString(16).padStart(2, '0')}${gNew.toString(16).padStart(2, '0')}${bNew.toString(16).padStart(2, '0')}`;
     }
     return color;
@@ -158,9 +158,9 @@
     font-size: 1.5rem;
     font-weight: bold;
   }
-  
+
   :global(.scrambling) {
     font-weight: bold;
     transition: color 0.2s ease;
   }
-</style> 
+</style>

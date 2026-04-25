@@ -90,17 +90,17 @@
   // Fetch IP information for nodes in batches of 100 - only called once
   const fetchIpInfo = async (nodes) => {
     if (isLoadingIpInfo) return; // Prevent multiple concurrent fetches
-    
+
     const batchSize = 100;
     const batches = [];
-    
+
     // Get only IPs we haven't fetched before
     const newIps = nodes
       .filter(node => !ipInfoMap.has(node.ip_address))
       .map(node => node.ip_address);
-    
+
     if (newIps.length === 0) return;
-    
+
     isLoadingIpInfo = true;
 
     // First try to get info from the JSON file
@@ -108,7 +108,7 @@
       const ipInfo = ipInfoData[ip];
       if (ipInfo) {
         ipInfoMap.set(ip, ipInfo);
-        
+
         // Update any nodes with this IP immediately
         nodes = nodes.map(node => {
           if (node.ip_address === ip) {
@@ -116,7 +116,7 @@
           }
           return node;
         });
-        
+
         // Update active and standby nodes immediately
         activeNodes = activeNodes.map(node => {
           if (node.ip_address === ip) {
@@ -124,7 +124,7 @@
           }
           return node;
         });
-        
+
         standbyNodes = standbyNodes.map(node => {
           if (node.ip_address === ip) {
             return { ...node, ...ipInfo };
@@ -162,7 +162,7 @@
             }
 
             const data = await response.json();
-            
+
             // Log the data in the format we need for the JSON file
             const ipInfoForJson = {};
             data.forEach((result, index) => {
@@ -175,7 +175,7 @@
               }
             });
             console.log('IP Info for JSON:', JSON.stringify(ipInfoForJson, null, 2));
-            
+
             // Store results in the map and update nodes immediately
             data.forEach((result, index) => {
               if (result.status === 'success') {
@@ -185,7 +185,7 @@
                   countryCode: result.countryCode
                 };
                 ipInfoMap.set(ip, ipInfo);
-                
+
                 // Update any nodes with this IP immediately
                 nodes = nodes.map(node => {
                   if (node.ip_address === ip) {
@@ -193,7 +193,7 @@
                   }
                   return node;
                 });
-                
+
                 // Update active and standby nodes immediately
                 activeNodes = activeNodes.map(node => {
                   if (node.ip_address === ip) {
@@ -201,7 +201,7 @@
                   }
                   return node;
                 });
-                
+
                 standbyNodes = standbyNodes.map(node => {
                   if (node.ip_address === ip) {
                     return { ...node, ...ipInfo };
@@ -216,7 +216,7 @@
         }
       }
     }
-    
+
     // Force UI updates
     nodes = [...nodes];
     activeNodes = [...activeNodes];
@@ -336,7 +336,7 @@
   const sortNodes = (nodes, field, direction) => {
     return [...nodes].sort((a, b) => {
       let comparison = 0;
-      
+
       switch (field) {
         case 'status':
           // Count extra status indicators for each node
@@ -397,7 +397,7 @@
         default:
           return 0;
       }
-      
+
       return direction === 'asc' ? comparison : -comparison;
     });
   };
@@ -410,7 +410,7 @@
       sortField = field;
       sortDirection = 'desc';
     }
-    
+
     activeNodes = sortNodes(activeNodes, sortField, sortDirection);
     standbyNodes = sortNodes(standbyNodes, sortField, sortDirection);
   };
@@ -476,7 +476,7 @@
         activeNodes = sortNodes(activeNodes, sortField, sortDirection);
         standbyNodes = sortNodes(standbyNodes, sortField, sortDirection);
       }
-      
+
       isLoading = false;
     } catch (error) {
       console.error('Error fetching nodes:', error);
@@ -498,7 +498,7 @@
   onMount(async () => {
     // Load starred nodes from localStorage
     loadStarredNodes();
-    
+
     // Load IP info from JSON file
     ipInfoMap = new Map(Object.entries(ipInfoData));
 
@@ -577,8 +577,8 @@
     return isLikelyToJoin(node, standbyNodes, activeNodes.length, nodesLeavingCount, newNodesPerChurn, maxValidatorSet);
   };
 
-  $: eligibleStandbyNodes = standbyNodes.filter(node => 
-    node.preflight_status && 
+  $: eligibleStandbyNodes = standbyNodes.filter(node =>
+    node.preflight_status &&
     node.preflight_status.code === 0
   ).length;
 
@@ -593,15 +593,15 @@
 <div class="nodes-container">
   <div class="header-controls">
     <div class="search-container">
-      <input 
-        type="text" 
+      <input
+        type="text"
         bind:value={searchQuery}
         placeholder="Search by address, operator, bond provider, or vault membership..."
         class="search-input"
       />
       {#if searchQuery}
-        <button 
-          class="clear-search" 
+        <button
+          class="clear-search"
           on:click={() => searchQuery = ''}
           title="Clear search"
         >
@@ -646,7 +646,7 @@
         <tr>
           <th title="Node number">#</th>
           <th title="Star node to track it">★</th>
-          <th title="Current status of the node" 
+          <th title="Current status of the node"
             class="sortable"
             on:click={() => handleSort('status')}
           >
@@ -655,8 +655,8 @@
                 <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-      class="sortable" 
+          <th
+      class="sortable"
             title="Internet Service Provider"
             on:click={() => handleSort('isp')}
           >
@@ -665,8 +665,8 @@
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Node Country"
             on:click={() => handleSort('country')}
           >
@@ -676,8 +676,8 @@
             {/if}
           </th>
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Node operator's THORChain address (showing last 4 characters)"
             on:click={() => handleSort('operator')}
           >
@@ -686,8 +686,8 @@
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Total amount of RUNE bonded to this node"
             on:click={() => handleSort('total_bond')}
           >
@@ -696,8 +696,8 @@
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Current block reward for this node"
             on:click={() => handleSort('current_award')}
           >
@@ -706,8 +706,8 @@
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Estimated Annual Percentage Yield based on current rewards"
             on:click={() => handleSort('apy')}
           >
@@ -716,8 +716,8 @@
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="THORNode software version"
             on:click={() => handleSort('version')}
           >
@@ -726,8 +726,8 @@
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Age of the node in days"
             on:click={() => handleSort('active_since')}
           >
@@ -736,8 +736,8 @@
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Accumulated penalty points for node misbehavior"
             on:click={() => handleSort('slash')}
           >
@@ -746,8 +746,8 @@
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Current vault the node is a signer for (last 4 digits)"
             on:click={() => handleSort('vault')}
           >
@@ -775,8 +775,8 @@
           >
             <td class="number-cell">{i + 1}</td>
             <td>
-              <button 
-                class="star-btn" 
+              <button
+                class="star-btn"
                 on:click={() => toggleStar(node.node_address)}
                 title={starredNodes.has(node.node_address) ? "Unstar node" : "Star node"}
               >
@@ -790,18 +790,18 @@
             <td>
               <div class="status-container">
                 <div class="status-indicators">
-                  <span 
+                  <span
                     class:status-circle-ready={node.preflight_status?.code === 0}
                     class:status-circle-version={node.preflight_status?.reason?.startsWith('node account does not meet min version requirement')}
                     class:status-circle-bond={node.preflight_status?.reason?.startsWith('node account does not have minimum bond requirement')}
-                    class:status-circle-other={node.preflight_status?.code !== 0 && 
+                    class:status-circle-other={node.preflight_status?.code !== 0 &&
                       !node.preflight_status?.reason?.startsWith('node account does not meet min version requirement') &&
                       !node.preflight_status?.reason?.startsWith('node account does not have minimum bond requirement')}
                     class="status-circle"
-                    title={node.preflight_status ? 
+                    title={node.preflight_status ?
                       `Status: ${node.preflight_status.status}
 Code: ${node.preflight_status.code}${node.preflight_status.reason ? `
-Reason: ${node.preflight_status.reason}` : ''}` : 
+Reason: ${node.preflight_status.reason}` : ''}` :
                       "No preflight status available"}
                   ></span>
                   {#if node.requested_to_leave}
@@ -829,8 +829,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
               <td>
                 <span class="isp">
                   {#if ISP_LOGOS[node.isp]}
-                    <img 
-                      src={`assets/isp/${ISP_LOGOS[node.isp]}`} 
+                    <img
+                      src={`assets/isp/${ISP_LOGOS[node.isp]}`}
                       alt={node.isp}
                       class="isp-logo"
                       title={node.isp}
@@ -865,8 +865,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
               <span class="providers-count" title="Number of bond providers">
                 {(node.bond_providers?.providers || []).length}
               </span>
-              <button 
-                class="expand-btn" 
+              <button
+                class="expand-btn"
                 on:click={() => toggleRow(node.node_address)}
                 title={expandedRows.has(node.node_address) ? "Hide details" : "Show details"}
               >
@@ -952,8 +952,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                         <span class="label">IP Address:</span>
                         <span class="value monospace">
                           <span class="inline-value">{node.ip_address}</span>
-                          <button 
-                            class="copy-btn" 
+                          <button
+                            class="copy-btn"
                             title="Copy IP address"
                             on:click={() => copyToClipboard(node.ip_address)}
                           >
@@ -976,8 +976,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                         <span class="label">Status Since:</span>
                         <span class="value">
                           <span class="inline-value block-number">{formatNumber(node.status_since)}</span>
-                          <button 
-                            class="copy-btn" 
+                          <button
+                            class="copy-btn"
                             title="Copy status since block height"
                             on:click={() => copyToClipboard(node.status_since.toString())}
                           >
@@ -989,8 +989,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                         <span class="label">Node Address:</span>
                         <span class="value address">
                           {node.node_address}
-                          <button 
-                            class="copy-btn" 
+                          <button
+                            class="copy-btn"
                             title="Copy node address"
                             on:click={() => copyToClipboard(node.node_address)}
                           >
@@ -1012,8 +1012,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                         <span class="label">Node Operator:</span>
                         <span class="value address">
                           {node.node_operator_address}
-                          <button 
-                            class="copy-btn" 
+                          <button
+                            class="copy-btn"
                             title="Copy node operator address"
                             on:click={() => copyToClipboard(node.node_operator_address)}
                           >
@@ -1066,8 +1066,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                                   <div class="address-text-container">
                                     {provider.bond_address.slice(-4)}
                                   </div>
-                                  <button 
-                                    class="copy-btn" 
+                                  <button
+                                    class="copy-btn"
                                     title="Copy full address"
                                     on:click={() => copyToClipboard(provider.bond_address)}
                                   >
@@ -1086,9 +1086,9 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                               </td>
                               <td class="actions-cell">
                                 <div class="action-buttons">
-                                  <a href="{baseUrl}/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
+                                  <a href="{baseUrl}/bond?node_address={node.node_address}&bond_address={provider.bond_address}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     class="track-rewards-btn"
                                     title="Track bond rewards">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1096,9 +1096,9 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                                     </svg>
                                     Track
                                   </a>
-                                  <a href="https://viewblock.io/thorchain/address/{provider.bond_address}" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
+                                  <a href="https://viewblock.io/thorchain/address/{provider.bond_address}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     class="viewblock-btn"
                                     title="View in Viewblock">
                                     <LinkOutIcon size={14} />
@@ -1141,8 +1141,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
       </div>
       <div class="churn-info">
         <span class="churn-label">Available Spots:</span>
-        <span 
-          class="churn-value" 
+        <span
+          class="churn-value"
           class:limited={availableSpots < newNodesPerChurn}
           title={availableSpots < newNodesPerChurn ? `Limited by max validator set (${maxValidatorSet})` : `Up to ${newNodesPerChurn} new nodes can join`}
         >{availableSpots}</span>
@@ -1163,7 +1163,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
         <tr>
           <th title="Node number">#</th>
           <th title="Star node to track it">★</th>
-          <th title="Current status of the node" 
+          <th title="Current status of the node"
             class="sortable"
             on:click={() => handleSort('status')}
           >
@@ -1172,8 +1172,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                 <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Internet Service Provider"
             on:click={() => handleSort('isp')}
           >
@@ -1182,8 +1182,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Node Country"
             on:click={() => handleSort('country')}
           >
@@ -1193,8 +1193,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
             {/if}
           </th>
           <th title="Node's unique THORChain address (showing last 4 characters)">Address</th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Node operator's THORChain address (showing last 4 characters)"
             on:click={() => handleSort('operator')}
           >
@@ -1203,8 +1203,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Total amount of RUNE bonded to this node"
             on:click={() => handleSort('total_bond')}
           >
@@ -1213,8 +1213,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="THORNode software version"
             on:click={() => handleSort('version')}
           >
@@ -1223,8 +1223,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
               <span class="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
             {/if}
           </th>
-          <th 
-            class="sortable" 
+          <th
+            class="sortable"
             title="Accumulated penalty points for node misbehavior"
             on:click={() => handleSort('slash')}
           >
@@ -1247,8 +1247,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
           >
             <td class="number-cell">{i + 1}</td>
             <td>
-              <button 
-                class="star-btn" 
+              <button
+                class="star-btn"
                 on:click={() => toggleStar(node.node_address)}
                 title={starredNodes.has(node.node_address) ? "Unstar node" : "Star node"}
               >
@@ -1262,18 +1262,18 @@ Reason: ${node.preflight_status.reason}` : ''}` :
             <td>
               <div class="status-container">
                 <div class="status-indicators">
-                  <span 
+                  <span
                     class:status-circle-ready={node.preflight_status?.code === 0}
                     class:status-circle-version={node.preflight_status?.reason?.startsWith('node account does not meet min version requirement')}
                     class:status-circle-bond={node.preflight_status?.reason?.startsWith('node account does not have minimum bond requirement')}
-                    class:status-circle-other={node.preflight_status?.code !== 0 && 
+                    class:status-circle-other={node.preflight_status?.code !== 0 &&
                       !node.preflight_status?.reason?.startsWith('node account does not meet min version requirement') &&
                       !node.preflight_status?.reason?.startsWith('node account does not have minimum bond requirement')}
                     class="status-circle"
-                    title={node.preflight_status ? 
+                    title={node.preflight_status ?
                       `Status: ${node.preflight_status.status}
 Code: ${node.preflight_status.code}${node.preflight_status.reason ? `
-Reason: ${node.preflight_status.reason}` : ''}` : 
+Reason: ${node.preflight_status.reason}` : ''}` :
                       "No preflight status available"}
                   ></span>
                   {#if node.requested_to_leave}
@@ -1301,8 +1301,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
               <td>
                 <span class="isp">
                   {#if ISP_LOGOS[node.isp]}
-                    <img 
-                      src={`assets/isp/${ISP_LOGOS[node.isp]}`} 
+                    <img
+                      src={`assets/isp/${ISP_LOGOS[node.isp]}`}
                       alt={node.isp}
                       class="isp-logo"
                       title={node.isp}
@@ -1337,8 +1337,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
               <span class="providers-count" title="Number of bond providers">
                 {(node.bond_providers?.providers || []).length}
               </span>
-              <button 
-                class="expand-btn" 
+              <button
+                class="expand-btn"
                 on:click={() => toggleRow(node.node_address)}
                 title={expandedRows.has(node.node_address) ? "Hide details" : "Show details"}
               >
@@ -1384,8 +1384,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                         <span class="label">Status Since:</span>
                         <span class="value">
                           <span class="inline-value block-number">{formatNumber(node.status_since)}</span>
-                          <button 
-                            class="copy-btn" 
+                          <button
+                            class="copy-btn"
                             title="Copy status since block height"
                             on:click={() => copyToClipboard(node.status_since.toString())}
                           >
@@ -1397,8 +1397,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                         <span class="label">Node Address:</span>
                         <span class="value address">
                           {node.node_address}
-                          <button 
-                            class="copy-btn" 
+                          <button
+                            class="copy-btn"
                             title="Copy node address"
                             on:click={() => copyToClipboard(node.node_address)}
                           >
@@ -1420,8 +1420,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                         <span class="label">Node Operator:</span>
                         <span class="value address">
                           {node.node_operator_address}
-                          <button 
-                            class="copy-btn" 
+                          <button
+                            class="copy-btn"
                             title="Copy node operator address"
                             on:click={() => copyToClipboard(node.node_operator_address)}
                           >
@@ -1474,8 +1474,8 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                                   <div class="address-text-container">
                                     {provider.bond_address.slice(-4)}
                                   </div>
-                                  <button 
-                                    class="copy-btn" 
+                                  <button
+                                    class="copy-btn"
                                     title="Copy full address"
                                     on:click={() => copyToClipboard(provider.bond_address)}
                                   >
@@ -1494,9 +1494,9 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                               </td>
                               <td class="actions-cell">
                                 <div class="action-buttons">
-                                  <a href="{baseUrl}/bond?node_address={node.node_address}&bond_address={provider.bond_address}" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
+                                  <a href="{baseUrl}/bond?node_address={node.node_address}&bond_address={provider.bond_address}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     class="track-rewards-btn"
                                     title="Track bond rewards">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1504,9 +1504,9 @@ Reason: ${node.preflight_status.reason}` : ''}` :
                                     </svg>
                                     Track
                                   </a>
-                                  <a href="https://viewblock.io/thorchain/address/{provider.bond_address}" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
+                                  <a href="https://viewblock.io/thorchain/address/{provider.bond_address}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     class="viewblock-btn"
                                     title="View in Viewblock">
                                     <LinkOutIcon size={14} />
@@ -1636,7 +1636,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
       width: 4px;
       height: 4px;
     }
-    
+
     .table-container::-webkit-scrollbar-thumb {
       border-width: 1px;
     }
@@ -1699,16 +1699,16 @@ Reason: ${node.preflight_status.reason}` : ''}` :
   }
 
   /* Column width controls - make them more strict */
-  th:nth-child(1), td:nth-child(1) { 
-    width: 30px !important; 
-    min-width: 30px !important; 
+  th:nth-child(1), td:nth-child(1) {
+    width: 30px !important;
+    min-width: 30px !important;
     max-width: 30px !important;
     padding: 6px 0 !important;
     text-align: center !important;
   }  /* Number */
-  th:nth-child(2), td:nth-child(2) { 
-    width: 24px !important; 
-    min-width: 24px !important; 
+  th:nth-child(2), td:nth-child(2) {
+    width: 24px !important;
+    min-width: 24px !important;
     max-width: 24px !important;
     padding: 6px 0 !important;
     text-align: center !important;
@@ -1770,7 +1770,7 @@ Reason: ${node.preflight_status.reason}` : ''}` :
       overflow-x: scroll;
       -webkit-overflow-scrolling: touch;
     }
-    
+
     table {
       transform: translateZ(0);  /* Force GPU acceleration */
     }
@@ -1929,12 +1929,12 @@ Reason: ${node.preflight_status.reason}` : ''}` :
     .bond-table .address-cell {
       min-width: 120px;
     }
-    
+
     .bond-table td,
     .bond-table th {
       padding: 8px;
     }
-    
+
     .bond-table .actions-cell {
       width: 20%;
     }

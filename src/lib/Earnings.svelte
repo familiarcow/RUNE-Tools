@@ -76,13 +76,13 @@
 
   function calculateAnnualizedEarnings(data, days) {
     if (!data || data.length === 0) return 0;
-    
+
     const totalEarnings = data.reduce((sum, interval) => {
       const bondingEarnings = Number(interval.bondingEarnings) || 0;
       const liquidityEarnings = Number(interval.liquidityEarnings) || 0;
       return sum + bondingEarnings + liquidityEarnings;
     }, 0);
-    
+
     // Annualize the earnings
     const annualizedEarnings = (totalEarnings / days) * 365;
     return annualizedEarnings;
@@ -90,11 +90,11 @@
 
   function calculateAnnualizedLiquidityFees(data, days) {
     if (!data || data.length === 0) return 0;
-    
+
     const totalFees = data.reduce((sum, interval) => {
       return sum + (Number(interval.liquidityFees) || 0);
     }, 0);
-    
+
     // Annualize the fees
     const annualizedFees = (totalFees / days) * 365;
     return annualizedFees;
@@ -102,21 +102,21 @@
 
   function calculateAnnualizedBondingEarnings(data, days) {
     if (!data || data.length === 0) return 0;
-    
+
     const totalBondingEarnings = data.reduce((sum, interval) => {
       return sum + (Number(interval.bondingEarnings) || 0);
     }, 0);
-    
+
     return (totalBondingEarnings / days) * 365;
   }
 
   function calculateAnnualizedLiquidityEarnings(data, days) {
     if (!data || data.length === 0) return 0;
-    
+
     const totalLiquidityEarnings = data.reduce((sum, interval) => {
       return sum + (Number(interval.liquidityEarnings) || 0);
     }, 0);
-    
+
     return (totalLiquidityEarnings / days) * 365;
   }
 
@@ -127,12 +127,12 @@
 
   function initChart() {
     if (!chartCanvas) return;
-    
+
     const ctx = chartCanvas.getContext('2d');
     if (chartInstance) {
       chartInstance.destroy();
     }
-    
+
     chartInstance = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -227,12 +227,12 @@
 
   function initFeesChart() {
     if (!feesChartCanvas) return;
-    
+
     const ctx = feesChartCanvas.getContext('2d');
     if (feesChartInstance) {
       feesChartInstance.destroy();
     }
-    
+
     feesChartInstance = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -324,32 +324,32 @@
       // Update main earnings chart
       if (chartInstance) {
         const intervals = earningsData.slice(0, -1).concat(
-          earningsData.slice(-1).filter(interval => 
-            Number(interval.bondingEarnings) !== 0 || 
+          earningsData.slice(-1).filter(interval =>
+            Number(interval.bondingEarnings) !== 0 ||
             Number(interval.liquidityEarnings) !== 0
           )
         );
 
-        const labels = intervals.map(interval => 
+        const labels = intervals.map(interval =>
           new Date(interval.startTime * 1000).toLocaleDateString()
         );
-        
+
         const bondingData = intervals.map(interval => {
           if (showEarningsProportions) {
             const total = Number(interval.bondingEarnings) + Number(interval.liquidityEarnings);
             return total > 0 ? (Number(interval.bondingEarnings) / total) * 100 : 0;
           }
-          return showUSD ? 
+          return showUSD ?
             (Number(interval.bondingEarnings) / 1e8) * Number(interval.runePriceUSD) :
             Number(interval.bondingEarnings) / 1e8;
         });
-        
+
         const liquidityData = intervals.map(interval => {
           if (showEarningsProportions) {
             const total = Number(interval.bondingEarnings) + Number(interval.liquidityEarnings);
             return total > 0 ? (Number(interval.liquidityEarnings) / total) * 100 : 0;
           }
-          return showUSD ? 
+          return showUSD ?
             (Number(interval.liquidityEarnings) / 1e8) * Number(interval.runePriceUSD) :
             Number(interval.liquidityEarnings) / 1e8;
         });
@@ -363,13 +363,13 @@
       // Update fees chart
       if (feesChartInstance) {
         const intervals = earningsData.slice(0, -1).concat(
-          earningsData.slice(-1).filter(interval => 
-            Number(interval.blockRewards) !== 0 || 
+          earningsData.slice(-1).filter(interval =>
+            Number(interval.blockRewards) !== 0 ||
             Number(interval.liquidityFees) !== 0
           )
         );
 
-        const labels = intervals.map(interval => 
+        const labels = intervals.map(interval =>
           new Date(interval.startTime * 1000).toLocaleDateString()
         );
 
@@ -378,17 +378,17 @@
             const total = Number(interval.blockRewards) + Number(interval.liquidityFees);
             return (Number(interval.blockRewards) / total) * 100;
           }
-          return showUSD ? 
+          return showUSD ?
             (Number(interval.blockRewards) / 1e8) * Number(interval.runePriceUSD) :
             Number(interval.blockRewards) / 1e8;
         });
-        
+
         const liquidityFeesData = intervals.map(interval => {
           if (showProportions) {
             const total = Number(interval.blockRewards) + Number(interval.liquidityFees);
             return (Number(interval.liquidityFees) / total) * 100;
           }
-          return showUSD ? 
+          return showUSD ?
             (Number(interval.liquidityFees) / 1e8) * Number(interval.runePriceUSD) :
             Number(interval.liquidityFees) / 1e8;
         });
@@ -425,7 +425,7 @@
         const existingChart = Chart.getChart(canvas);
         if (existingChart) {
           const poolData = getPoolData(poolName);
-          
+
           existingChart.data.datasets[0].label = showUSD ? 'Earnings (USD)' : 'Earnings (RUNE)';
           existingChart.data.datasets[0].data = poolData.map(d => {
             const runeAmount = Number(d.earnings) / 1e8;
@@ -458,14 +458,14 @@
     try {
       // Wait for both data fetches to complete
       await Promise.all([fetchEarnings(), fetchPoolsData()]);
-      
+
       // Add a small delay to ensure DOM is ready
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       if (earningsData) {
         initChart();
         initFeesChart();
-        
+
         // Initialize pool charts sequentially
         const uniquePools = getUniquePools(earningsData);
         for (const poolName of uniquePools) {
@@ -488,7 +488,7 @@
     days = parseInt(event.target.value);
     isLoading = true;
     error = null;
-    
+
     // Clean up all charts
     if (chartInstance) {
       chartInstance.destroy();
@@ -504,19 +504,19 @@
       }
     });
     poolCharts.clear();
-    
+
     try {
       // Fetch new data
       await Promise.all([fetchEarnings(), fetchPoolsData()]);
-      
+
       // Wait a bit for DOM updates
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       if (earningsData) {
         // Initialize main charts
         initChart();
         initFeesChart();
-        
+
         // Initialize pool charts sequentially
         const uniquePools = getUniquePools(earningsData);
         for (const poolName of uniquePools) {
@@ -537,13 +537,13 @@
 
   function getUniquePools(data) {
     if (!data) return [];
-    
+
     const SPECIAL_POOLS = ['dev_fund_reward', 'income_burn'];
     const INACTIVE_DAYS_THRESHOLD = 7;
-    
+
     // Create a map to store the most recent non-zero earnings and last active day for each pool
     const poolInfo = new Map();
-    
+
     // Go through intervals from newest to oldest
     let daysFromLatest = 0;
     for (let i = data.length - 1; i >= 0; i--) {
@@ -558,12 +558,12 @@
       });
       daysFromLatest++;
     }
-    
+
     // Filter out pools that have been inactive for too long
     // and separate special pools from regular pools
     const specialPools = [];
     const regularPools = [];
-    
+
     poolInfo.forEach((info, poolName) => {
       // Check if pool has been inactive for too long
       if (info.daysInactive < INACTIVE_DAYS_THRESHOLD) {
@@ -574,7 +574,7 @@
         }
       }
     });
-    
+
     // Sort regular pools by earnings and combine with special pools
     return [
       ...regularPools
@@ -634,13 +634,13 @@
     if (assetColors[baseToken]) {
       return assetColors[baseToken];
     }
-    
+
     // If no base token color, try the chain
     const chain = poolName.split('.')[0];
     if (assetColors[chain]) {
       return assetColors[chain];
     }
-    
+
     // Default color if no match found
     return '#4A90E2';
   }
@@ -654,15 +654,15 @@
     }
 
     if (!node || !poolName || !earningsData) return;
-    
+
     const ctx = node.getContext('2d');
     if (!ctx) return;
-    
+
     const poolData = getPoolData(poolName);
     if (!poolData || poolData.length === 0) return;
-    
+
     const assetColor = getAssetColor(poolName);
-    
+
     const chart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -756,27 +756,27 @@
       'dev_fund_reward': 'Dev Fund',
       'income_burn': 'Income Burn'
     };
-    
+
     if (specialCases[poolName]) {
       return specialCases[poolName];
     }
 
     // Handle normal pool names
     const [chain, assetPart] = poolName.split('.');
-    
+
     // If there's no dot, return as-is
     if (!assetPart) {
       return poolName;
     }
-    
+
     // Split asset part into base asset and contract
     const [asset, contract] = assetPart.split('-');
-    
+
     // If there's a contract, show chain in parentheses
     if (contract) {
       return `${asset} (${chain})`;
     }
-    
+
     // For native assets without contract, just show the asset name
     return asset;
   }
@@ -784,10 +784,10 @@
   // Add this function near the other calculation functions
   function calculatePoolProfitToDepthRatios(earningsData, poolsData) {
     if (!earningsData || !poolsData) return [];
-    
+
     // Get the list of valid pools first
     const validPools = new Set(getUniquePools(earningsData));
-    
+
     // Calculate total earnings for each pool during the timeframe
     const poolEarnings = earningsData.reduce((acc, interval) => {
       interval.pools?.forEach(pool => {
@@ -805,13 +805,13 @@
       .map(([poolName, earnings]) => {
         const pool = poolsData[poolName];
         if (!pool || pool.runeDepth === 0) return null;
-        
+
         // Convert earnings to RUNE (from thor.cents)
         const earningsInRune = earnings / 1e8;
-        
+
         // Calculate APY: (earnings / depth) * (365 / days) * 100
         const apy = (earningsInRune / pool.runeDepth) * (365 / days) * 100;
-        
+
         return {
           poolName,
           apy,
@@ -871,55 +871,55 @@
   // Convert earnings data to CSV
   function getEarningsCSV() {
     if (!earningsData) return;
-    
+
     const headers = ["Date", "Bonding Earnings", "Liquidity Earnings"];
     const rows = earningsData.map(interval => {
       const date = new Date(interval.startTime * 1000).toLocaleDateString();
-      const bondingValue = showUSD ? 
+      const bondingValue = showUSD ?
         ((Number(interval.bondingEarnings) / 1e8) * Number(interval.runePriceUSD)).toFixed(2) :
         (Number(interval.bondingEarnings) / 1e8).toFixed(8);
-      const liquidityValue = showUSD ? 
+      const liquidityValue = showUSD ?
         ((Number(interval.liquidityEarnings) / 1e8) * Number(interval.runePriceUSD)).toFixed(2) :
         (Number(interval.liquidityEarnings) / 1e8).toFixed(8);
       return [date, bondingValue, liquidityValue].join(",");
     });
-    
+
     return [headers.join(","), ...rows].join("\n");
   }
 
   // Convert fees data to CSV
   function getFeesCSV() {
     if (!earningsData) return;
-    
+
     const headers = ["Date", "Block Rewards", "Liquidity Fees"];
     const rows = earningsData.map(interval => {
       const date = new Date(interval.startTime * 1000).toLocaleDateString();
-      const blockRewards = showUSD ? 
+      const blockRewards = showUSD ?
         ((Number(interval.blockRewards) / 1e8) * Number(interval.runePriceUSD)).toFixed(2) :
         (Number(interval.blockRewards) / 1e8).toFixed(8);
-      const liquidityFees = showUSD ? 
+      const liquidityFees = showUSD ?
         ((Number(interval.liquidityFees) / 1e8) * Number(interval.runePriceUSD)).toFixed(2) :
         (Number(interval.liquidityFees) / 1e8).toFixed(8);
       return [date, blockRewards, liquidityFees].join(",");
     });
-    
+
     return [headers.join(","), ...rows].join("\n");
   }
 
   // Convert pool data to CSV
   function getPoolCSV(poolName) {
     if (!earningsData) return;
-    
+
     const headers = ["Date", "Earnings"];
     const poolData = getPoolData(poolName);
     const rows = poolData.map(d => {
       const runeAmount = Number(d.earnings) / 1e8;
-      const value = showUSD ? 
+      const value = showUSD ?
         (runeAmount * Number(d.runePrice)).toFixed(2) :
         runeAmount.toFixed(8);
       return [d.date, value].join(",");
     });
-    
+
     return [headers.join(","), ...rows].join("\n");
   }
 </script>
@@ -938,8 +938,8 @@
       </div>
 
       <label class="toggle">
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           bind:checked={showUSD}
         >
         <span class="slider">
@@ -1047,16 +1047,16 @@
     <div class="section-header">
       <h2>Bond & Liquidity Earnings (Last {days} Days)</h2>
       <div class="chart-controls">
-        <button 
-          class="download-button" 
+        <button
+          class="download-button"
           on:click={() => downloadCSV(getEarningsCSV(), `thorchain_earnings_${days}days.csv`)}
           title="Download CSV"
         >
           <img src="/assets/icons/download.svg" alt="Download CSV" />
         </button>
         <label class="toggle">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             bind:checked={showEarningsProportions}
           >
           <span class="slider">
@@ -1077,16 +1077,16 @@
     <div class="section-header">
       <h2>Earnings Source (Last {days} Days)</h2>
       <div class="chart-controls">
-        <button 
-          class="download-button" 
+        <button
+          class="download-button"
           on:click={() => downloadCSV(getFeesCSV(), `thorchain_fees_${days}days.csv`)}
           title="Download CSV"
         >
           <img src="/assets/icons/download.svg" alt="Download CSV" />
         </button>
         <label class="toggle">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             bind:checked={showProportions}
           >
           <span class="slider">
@@ -1152,8 +1152,8 @@
                 </div>
               {/if}
             </div>
-            <button 
-              class="download-button" 
+            <button
+              class="download-button"
               on:click={() => downloadCSV(getPoolCSV(poolName), `thorchain_pool_${poolName}_${days}days.csv`)}
               title="Download CSV"
             >

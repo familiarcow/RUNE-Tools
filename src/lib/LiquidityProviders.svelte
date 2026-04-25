@@ -23,7 +23,7 @@
 
   // Add this store to track the active tab across components
   const activeTabStore = writable('checker');
-  
+
   // Subscribe to changes in the store
   activeTabStore.subscribe(value => {
     activeTab = value;
@@ -161,14 +161,14 @@
 <div class="liquidity-providers">
   <div class="container">
     <div class="tabs">
-      <button 
-        class:active={activeTab === 'checker'} 
+      <button
+        class:active={activeTab === 'checker'}
         on:click={() => handleTabClick('checker')}
       >
         LP Checker
       </button>
-      <button 
-        class:active={activeTab === 'detail'} 
+      <button
+        class:active={activeTab === 'detail'}
         on:click={() => handleTabClick('detail')}
       >
         LP Detail
@@ -182,7 +182,7 @@
     {:else}
       <div class="tab-content">
         {#if activeTab === 'checker'}
-          <LPChecker 
+          <LPChecker
             on:selectLP={handleSelectLP}
             {runePrice}
             {assetPrices}
@@ -190,7 +190,7 @@
           />
         {:else if activeTab === 'detail'}
           {#if selectedPool && selectedAddress}
-            <LPDetail 
+            <LPDetail
               address={selectedAddress}
               pool={selectedPool}
               height={selectedBlockHeight}
@@ -208,9 +208,9 @@
                   <option value={pool}>{pool}</option>
                 {/each}
               </select>
-              <input 
-                type="text" 
-                placeholder="Enter LP address" 
+              <input
+                type="text"
+                placeholder="Enter LP address"
                 bind:value={addressInput}
                 on:input={handleAddressInput}
               />
@@ -225,8 +225,8 @@
                   }
                 }}
               />
-              <button 
-                on:click={handleDetailSubmit} 
+              <button
+                on:click={handleDetailSubmit}
                 disabled={!selectedPool || !addressInput}
               >
                 View LP Details
@@ -373,17 +373,17 @@
     font-size: 18px;
   }
 
-  
+
   @media (max-width: 768px) {
     .liquidity-providers {
       padding: 10px;
     }
-    
+
     .tabs {
       flex-direction: column;
       padding: 10px;
     }
-    
+
     .tabs button {
       border-radius: 4px;
       margin-bottom: 5px;
