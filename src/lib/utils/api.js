@@ -22,7 +22,7 @@
  */
 export const THORNODE_ENDPOINTS = {
   primary: 'https://gateway.liquify.com/chain/thorchain_api',
-  fallback: 'https://thornode.ninerealms.com'
+  fallback: 'https://thornode.thorchain.network'
 };
 
 /**
@@ -30,8 +30,29 @@ export const THORNODE_ENDPOINTS = {
  */
 export const MIDGARD_ENDPOINTS = {
   primary: 'https://gateway.liquify.com/chain/thorchain_midgard',
-  fallback: 'https://midgard.ninerealms.com'
+  fallback: 'https://midgard.thorchain.network'
 };
+
+// ============================================
+// Timeouts
+// ============================================
+
+const THORNODE_TIMEOUT_MS = 5_000;
+const MIDGARD_TIMEOUT_MS = 8_000;
+
+/**
+ * fetch() wrapper that aborts after timeoutMs so a hung primary doesn't
+ * delay the fallback attempt.
+ */
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 // ============================================
 // Rate Limit Tracking
@@ -65,24 +86,20 @@ const RATE_LIMIT_COOLDOWN = 60000; // 60 seconds
 export async function fetchWithFallback(endpoint, options = {}, endpoints = THORNODE_ENDPOINTS) {
   const now = Date.now();
   const primaryRateLimited = (rateLimitedUntil.get(endpoints.primary) || 0) > now;
-  const fallbackRateLimited = (rateLimitedUntil.get(endpoints.fallback) || 0) > now;
 
   // Build ordered list: skip rate-limited endpoints, but keep as last resort
   const order = primaryRateLimited
     ? [endpoints.fallback, endpoints.primary]
     : [endpoints.primary, endpoints.fallback];
 
+  const timeoutMs = endpoints === MIDGARD_ENDPOINTS ? MIDGARD_TIMEOUT_MS : THORNODE_TIMEOUT_MS;
+
   let lastError = null;
 
   for (const base of order) {
     const url = `${base}${endpoint}`;
-    // Add x-client-id for ninerealms endpoints
-    const isNinerealms = base.includes('ninerealms.com');
-    const fetchOpts = isNinerealms
-      ? { ...options, headers: { 'x-client-id': 'RuneTools', ...options.headers } }
-      : options;
     try {
-      const response = await fetch(url, fetchOpts);
+      const response = await fetchWithTimeout(url, options, timeoutMs);
       if (response.ok) {
         // Clear rate limit and failure count on success
         rateLimitedUntil.delete(base);
@@ -96,7 +113,7 @@ export async function fetchWithFallback(endpoint, options = {}, endpoints = THOR
       lastError = new Error(`${base} failed: ${response.status}`);
       console.warn(`Endpoint failed for ${endpoint}: ${lastError.message}`);
     } catch (error) {
-      // CORS-blocked 429s show up as "Failed to fetch" here
+      // CORS-blocked 429s and timeouts (AbortError) land here
       const count = (failureCounts.get(base) || 0) + 1;
       failureCounts.set(base, count);
       if (count >= 2) {
@@ -104,7 +121,8 @@ export async function fetchWithFallback(endpoint, options = {}, endpoints = THOR
         console.warn(`${base} failed ${count} times, switching away for ${RATE_LIMIT_COOLDOWN / 1000}s`);
       }
       lastError = error;
-      console.warn(`Endpoint failed for ${endpoint}: ${error.message}`);
+      const reason = error.name === 'AbortError' ? `timeout after ${timeoutMs}ms` : error.message;
+      console.warn(`Endpoint failed for ${endpoint}: ${reason}`);
     }
   }
 

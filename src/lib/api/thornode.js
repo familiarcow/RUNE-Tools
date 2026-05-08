@@ -20,10 +20,40 @@ export const THORNODE_PROVIDERS = Object.freeze([
     // (unlike the deprecated Nine Realms endpoints)
     supportsBlockHeight: true,
   },
+  {
+    // Official thorchain.network thornode. Does not support historical
+    // (?height=N) queries — those are routed through Liquify only.
+    base: 'https://thornode.thorchain.network',
+  },
   // Additional fallback providers append here. Failover, rate-limit tracking,
   // and historical-query routing are all keyed off this array — no other
   // changes needed when a new backup thornode comes online.
 ]);
+
+// ============================================
+// Request timeout
+// ============================================
+
+/**
+ * Per-provider request timeout. A hung primary aborts at this deadline so the
+ * fallback gets attempted within the same call instead of users waiting on the
+ * browser's default fetch timeout (often 30s+).
+ */
+const REQUEST_TIMEOUT_MS = 5_000;
+
+/**
+ * fetch() wrapper that aborts after timeoutMs. Surfaces an AbortError that
+ * the caller's catch block can treat like any other failure.
+ */
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 // ============================================
 // Rate Limit Tracking
@@ -78,11 +108,18 @@ class ThorNodeClient {
       effectivePath += `${separator}height=${e_blockHeight}`;
     }
 
-    const available = THORNODE_PROVIDERS.filter(p => {
+    // Archive queries can only go to providers that support `?height=N`.
+    // Without this, a fallback that strips the height would silently return
+    // current data instead of historical.
+    const candidates = blockHeight != null
+      ? THORNODE_PROVIDERS.filter(p => p.supportsBlockHeight)
+      : THORNODE_PROVIDERS;
+
+    const available = candidates.filter(p => {
       const until = rateLimitedUntil.get(p.base) || 0;
       return until <= now;
     });
-    const rateLimited = THORNODE_PROVIDERS.filter(p => {
+    const rateLimited = candidates.filter(p => {
       const until = rateLimitedUntil.get(p.base) || 0;
       return until > now;
     });
@@ -104,7 +141,7 @@ class ThorNodeClient {
           }
         };
 
-        const response = await fetch(url, fetchOpts);
+        const response = await fetchWithTimeout(url, fetchOpts, REQUEST_TIMEOUT_MS);
         if (response.ok) {
           // Clear rate limit and failure count on success
           rateLimitedUntil.delete(provider.base);
@@ -118,7 +155,7 @@ class ThorNodeClient {
         lastError = new Error(`${provider.base} failed: ${response.status}`);
         console.warn(`Endpoint failed for ${path}: ${lastError.message}`);
       } catch (error) {
-        // CORS-blocked 429s show up as "Failed to fetch" here
+        // CORS-blocked 429s and timeouts (AbortError) land here
         const count = (failureCounts.get(provider.base) || 0) + 1;
         failureCounts.set(provider.base, count);
         if (count >= 2) {
@@ -126,7 +163,8 @@ class ThorNodeClient {
           console.warn(`${provider.base} failed ${count} times, switching away for ${RATE_LIMIT_COOLDOWN / 1000}s`);
         }
         lastError = error;
-        console.warn(`Endpoint failed for ${path}: ${error.message}`);
+        const reason = error.name === 'AbortError' ? `timeout after ${REQUEST_TIMEOUT_MS}ms` : error.message;
+        console.warn(`Endpoint failed for ${path}: ${reason}`);
       }
     }
 

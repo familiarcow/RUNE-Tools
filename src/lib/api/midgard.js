@@ -8,9 +8,29 @@
  * - Liquify (gateway.liquify.com/chain/thorchain_midgard): Primary provider
  *   Use for all midgard queries with automatic failover
  *
- * - Nine Realms (midgard.ninerealms.com): Fallback after Liquify failures
- *   NOTE: Nine Realms endpoints will eventually be deprecated
+ * - thorchain.network (midgard.thorchain.network): Fallback after Liquify failures
+ *
+ * Failover behavior:
+ * - Each request tries providers in order; if one fails the next is tried
+ *   within the same call so the caller sees a single promise.
+ * - Per-provider 8s timeout — a hung primary aborts and we move to the
+ *   fallback rather than hanging the user.
  */
+
+const REQUEST_TIMEOUT_MS = 8_000;
+
+/**
+ * fetch() wrapper that aborts after timeoutMs.
+ */
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 /**
  * Midgard API Provider configurations
@@ -21,11 +41,9 @@ export const MIDGARD_PROVIDERS = {
     base: 'https://gateway.liquify.com/chain/thorchain_midgard/v2',
     priority: 1
   },
-  ninerealms: {
-    name: 'ninerealms',
-    // NOTE: Nine Realms midgard will eventually be deprecated
-    base: 'https://midgard.ninerealms.com/v2',
-    headers: { 'x-client-id': 'RuneTools' },
+  'thorchain-network': {
+    name: 'thorchain-network',
+    base: 'https://midgard.thorchain.network/v2',
     priority: 2
   }
 };
@@ -44,12 +62,12 @@ class MidgardClient {
     this.cacheTTL = 30000; // 30 seconds (Midgard updates less frequently)
     this.failureCount = {
       liquify: 0,
-      ninerealms: 0
+      'thorchain-network': 0
     };
     this.maxFailures = 3;
     this.rateLimitedUntil = {
       liquify: 0,
-      ninerealms: 0
+      'thorchain-network': 0
     };
     this.rateLimitCooldown = 60000; // Skip rate-limited provider for 60s
   }
@@ -66,7 +84,7 @@ class MidgardClient {
    */
   resetFailures() {
     this.failureCount.liquify = 0;
-    this.failureCount.ninerealms = 0;
+    this.failureCount['thorchain-network'] = 0;
   }
 
   /**
@@ -91,7 +109,7 @@ class MidgardClient {
 
     // Determine providers to try (in order)
     const now = Date.now();
-    const allProviders = [MIDGARD_PROVIDERS.liquify, MIDGARD_PROVIDERS.ninerealms];
+    const allProviders = [MIDGARD_PROVIDERS.liquify, MIDGARD_PROVIDERS['thorchain-network']];
 
     // Skip rate-limited providers (but keep them as last resort)
     const available = allProviders.filter(p => {
@@ -106,10 +124,10 @@ class MidgardClient {
       try {
         const url = `${provider.base}${path}`;
 
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           headers: { ...(provider.headers || {}), ...fetchOptions.headers },
           ...fetchOptions
-        });
+        }, REQUEST_TIMEOUT_MS);
 
         if (!response.ok) {
           // Rate limited — set cooldown so we skip this provider immediately
@@ -136,10 +154,11 @@ class MidgardClient {
         return data;
       } catch (error) {
         lastError = error;
-        console.warn(`Midgard fetch failed for ${provider.name}${path}:`, error.message);
+        const reason = error.name === 'AbortError' ? `timeout after ${REQUEST_TIMEOUT_MS}ms` : error.message;
+        console.warn(`Midgard fetch failed for ${provider.name}${path}:`, reason);
 
         // Increment failure count and apply cooldown on repeated failures
-        // (CORS-blocked 429s show up as "Failed to fetch" in the catch block)
+        // (CORS-blocked 429s and timeouts land in the catch block)
         if (provider.name in this.failureCount) {
           this.failureCount[provider.name]++;
           if (this.failureCount[provider.name] >= this.maxFailures) {
@@ -312,5 +331,5 @@ export { MidgardClient };
 // Export provider endpoints for direct use if needed
 export const MIDGARD_ENDPOINTS = {
   liquify: MIDGARD_PROVIDERS.liquify.base,
-  ninerealms: MIDGARD_PROVIDERS.ninerealms.base
+  'thorchain-network': MIDGARD_PROVIDERS['thorchain-network'].base
 };
