@@ -221,13 +221,13 @@
   </div>
 
   <div class="button-group">
-    <button 
-      class="icon-button copy-button" 
+    <button
+      class="icon-button copy-button"
       on:touchstart={handleTouchStart}
       on:touchmove={handleTouchMove}
       on:touchend={(e) => handleTouchEnd(e, copyLink)}
-      on:click={copyLink} 
-      title="Copy link" 
+      on:click={copyLink}
+      title="Copy link"
       class:mobile={isMobile}
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -235,12 +235,12 @@
         <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
       </svg>
     </button>
-    <button 
-      class="icon-button help-button" 
+    <button
+      class="icon-button help-button"
       on:touchstart={handleTouchStart}
       on:touchmove={handleTouchMove}
       on:touchend={(e) => handleTouchEnd(e, toggleExplanation)}
-      on:click={toggleExplanation} 
+      on:click={toggleExplanation}
       class:mobile={isMobile}
     >
       {showExplanation ? '×' : '?'}

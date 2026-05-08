@@ -86,10 +86,10 @@
       'ETH.USDC': 'usd-coin-usdc-logo.svg',
       'ETH.USDT': 'tether-usdt-logo.svg',
     };
-    
+
     const [chain, baseAsset] = assetName.split('.');
     const lookupKey = `${chain}.${baseAsset}`.toUpperCase();
-    
+
     return `/assets/coins/${logoMap[lookupKey] || 'fallback-logo.svg'}`;
   }
 
@@ -133,7 +133,7 @@
 
 <div class="savers-position">
   <h2>Savers Position {address.slice(-5)}</h2>
-  
+
   {#if !isViewingPosition}
     <form on:submit={handleSubmit}>
       <label>

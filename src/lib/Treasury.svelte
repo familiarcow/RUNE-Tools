@@ -275,7 +275,7 @@
     onMount(async () => {
         // Fetch pools first since we need them for LP positions
         await fetchPools();
-        
+
         // Then fetch the rest
         await Promise.all([
             fetchThorBalances(),
@@ -293,7 +293,7 @@
                 <span class="total-label">Total Treasury Value</span>
                 <span class="total-value">{formatUSD(calculateTotalValue(balances))}</span>
             </div>
-            
+
             <div class="stats-container">
                 <div class="stat-box">
                     <span class="stat-label">Bonded Value</span>
@@ -387,7 +387,7 @@
                                                 <div class="pool-header">
                                                     <div class="asset-info">
                                                         <div class="logo-container">
-                                                            <img 
+                                                            <img
                                                                 src={getAssetLogo(position.fullPool) || '/assets/coins/fallback-logo.svg'}
                                                                 alt={position.pool}
                                                                 class="asset-icon"
@@ -397,8 +397,8 @@
                                                                 }}
                                                             />
                                                             <div class="chain-logo-container">
-                                                                <img 
-                                                                    src={getChainLogo(position.pool.split('.')[0]) || '/assets/chains/fallback-logo.svg'} 
+                                                                <img
+                                                                    src={getChainLogo(position.pool.split('.')[0]) || '/assets/chains/fallback-logo.svg'}
                                                                     alt={position.pool.split('.')[0]}
                                                                     class="chain-icon"
                                                                     on:error={(e) => {
@@ -414,7 +414,7 @@
                                                     </div>
                                                     <div class="total-value">
                                                         {formatUSD(
-                                                            (position.runeAmount * runePrice) + 
+                                                            (position.runeAmount * runePrice) +
                                                             (getAssetUSDValue(position.assetAmount, position.fullPool) || 0)
                                                         )}
                                                     </div>
@@ -423,7 +423,7 @@
                                                     <div class="amount-row">
                                                         <span class="amount">{formatAmount(position.assetAmount * 1e8)}</span>
                                                         <div class="logo-container small">
-                                                            <img 
+                                                            <img
                                                                 src={getAssetLogo(position.fullPool) || '/assets/coins/fallback-logo.svg'}
                                                                 alt={position.pool}
                                                                 class="asset-icon"
@@ -433,8 +433,8 @@
                                                                 }}
                                                             />
                                                             <div class="chain-logo-container">
-                                                                <img 
-                                                                    src={getChainLogo(position.pool.split('.')[0]) || '/assets/chains/fallback-logo.svg'} 
+                                                                <img
+                                                                    src={getChainLogo(position.pool.split('.')[0]) || '/assets/chains/fallback-logo.svg'}
                                                                     alt={position.pool.split('.')[0]}
                                                                     class="chain-icon"
                                                                     on:error={(e) => {
@@ -453,8 +453,8 @@
                                                     <div class="amount-row">
                                                         <span class="amount">{formatAmount(position.runeAmount * 1e8)}</span>
                                                         <div class="logo-container small">
-                                                            <img 
-                                                                src={getAssetLogo('THOR.RUNE') || '/assets/coins/fallback-logo.svg'} 
+                                                            <img
+                                                                src={getAssetLogo('THOR.RUNE') || '/assets/coins/fallback-logo.svg'}
                                                                 alt="RUNE"
                                                                 class="asset-icon"
                                                                 on:error={(e) => {
@@ -463,8 +463,8 @@
                                                                 }}
                                                             />
                                                             <div class="chain-logo-container">
-                                                                <img 
-                                                                    src={getChainLogo('THOR') || '/assets/chains/fallback-logo.svg'} 
+                                                                <img
+                                                                    src={getChainLogo('THOR') || '/assets/chains/fallback-logo.svg'}
                                                                     alt="THOR"
                                                                     class="chain-icon"
                                                                     on:error={(e) => {
@@ -494,8 +494,8 @@
                                                 <span class="node-address">{getAddressSuffix(bond.nodeAddress, 4)}</span>
                                                 <span class="amount">{formatRune(bond.amount)}</span>
                                                 <div class="logo-container small">
-                                                    <img 
-                                                        src={getAssetLogo('THOR.RUNE') || '/assets/coins/fallback-logo.svg'} 
+                                                    <img
+                                                        src={getAssetLogo('THOR.RUNE') || '/assets/coins/fallback-logo.svg'}
                                                         alt="RUNE"
                                                         class="asset-icon"
                                                         on:error={(e) => {
@@ -504,8 +504,8 @@
                                                         }}
                                                     />
                                                     <div class="chain-logo-container">
-                                                        <img 
-                                                            src={getChainLogo('THOR') || '/assets/chains/fallback-logo.svg'} 
+                                                        <img
+                                                            src={getChainLogo('THOR') || '/assets/chains/fallback-logo.svg'}
                                                             alt="THOR"
                                                             class="chain-icon"
                                                             on:error={(e) => {

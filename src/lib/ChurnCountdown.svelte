@@ -43,7 +43,7 @@
   let lastTickNowSec = 0;               // last time we updated display ETA
   const MAX_DROP_PER_TICK = 0.8;        // cap downward jump per tick (seconds)
 
-  
+
   async function copyNextChurn() {
     try {
       await navigator.clipboard.writeText(String(nextChurnHeight));
@@ -495,12 +495,12 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
   }
-  .cc-stat { 
-    background: #262626; 
-    border: 1px solid rgba(255,255,255,0.06); 
-    border-radius: 12px; 
-    padding: 12px; 
-    text-align: center; 
+  .cc-stat {
+    background: #262626;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
   }
   .cc-label { color: #97a0aa; font-size: 0.85rem; margin-bottom: 6px; }
   .cc-value { color: #e4e8ee; font-weight: 600; font-size: 1rem; }
