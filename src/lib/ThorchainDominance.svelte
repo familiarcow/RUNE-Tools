@@ -12,7 +12,7 @@
   let chartCanvas;
   let dominanceChartCanvas;
   let showPercentages = false;
-  
+
   // Custom date range variables
   let useCustomRange = false;
   let startDate = '';
@@ -21,17 +21,17 @@
 
   // Protocol configuration with their DefiLlama DEX slugs
   const protocols = {
-    'thorchain': { 
-      name: 'THORChain', 
+    'thorchain': {
+      name: 'THORChain',
       slug: 'thorchain', // DefiLlama DEX slug for THORChain
       color: '#33FF99' // THORChain's distinctive green
     },
-    'chainflip': { 
-      name: 'Chainflip', 
+    'chainflip': {
+      name: 'Chainflip',
       slug: 'chainflip', // DefiLlama DEX slug for Chainflip
       color: '#FF6B35' // Chainflip's orange/red brand color
     },
-    'near-intents': { 
+    'near-intents': {
       name: 'NEAR Intents', // Intent-based cross-chain system
       slug: 'near-intents', // DefiLlama DEX slug for NEAR Intents
       color: '#00C9FF' // NEAR's distinctive blue
@@ -68,24 +68,24 @@
         intervalsCount: data.intervals?.length,
         sampleInterval: data.intervals?.[0]
       });
-      
+
       // Convert Midgard data to DefiLlama-like format
       const totalDataChart = data.intervals?.map(interval => {
         // Use endTime to match when the trading day completed (like DefiLlama)
         const timestamp = parseInt(interval.endTime);
         // Convert totalVolumeUSD from 1e2 format to regular USD
         const volume = parseFloat(interval.totalVolumeUSD) / 1e2;
-        
+
         // Debug: Log timestamp conversion
         const dateFromTimestamp = new Date(timestamp * 1000).toISOString().split('T')[0];
         console.log(`🕐 THORChain interval: endTime=${timestamp}, date=${dateFromTimestamp}, volume=${volume}`);
-        
+
         return [timestamp, volume];
       }) || [];
-      
+
       console.log(`🔄 Processed ${totalDataChart.length} THORChain data points`);
       console.log(`📋 Sample processed data:`, totalDataChart.slice(-3));
-      
+
       return {
         protocol: 'thorchain',
         name: 'THORChain',
@@ -96,7 +96,7 @@
           total7d: totalDataChart.slice(-7).reduce((sum, [, volume]) => sum + volume, 0)
         }
       };
-      
+
     } catch (err) {
       console.error(`❌ Error fetching THORChain from Midgard:`, err);
       return null;
@@ -106,35 +106,35 @@
   async function fetchProtocolData() {
     isLoading = true;
     error = null;
-    
+
     try {
       console.log('🔍 Fetching DEX data for all protocols...');
-      
+
       // Fetch THORChain data from Midgard and other protocols from DefiLlama
       const protocolData = await Promise.all([
         // Fetch THORChain from Midgard
         fetchThorchainData(),
-        
+
         // Fetch other protocols from DefiLlama
         ...Object.entries(protocols)
           .filter(([key]) => key !== 'thorchain') // Exclude thorchain since we're using Midgard
           .map(async ([key, protocol]) => {
             try {
               // NEAR Intents uses a different API endpoint
-              const apiUrl = key === 'near-intents' 
+              const apiUrl = key === 'near-intents'
                 ? `https://api.llama.fi/summary/dexs/${protocol.slug}`
                 : `https://api.llama.fi/overview/dexs/${protocol.slug}`;
-              
+
               console.log(`📡 Fetching ${protocol.name} from:`, apiUrl);
-              
+
               const response = await fetch(apiUrl);
               console.log(`📊 ${protocol.name} response status:`, response.status);
-              
+
               if (!response.ok) {
                 console.warn(`⚠️  ${protocol.name} endpoint failed:`, response.status, response.statusText);
                 return null;
               }
-              
+
               const data = await response.json();
               console.log(`✅ ${protocol.name} data received:`, {
                 total24h: data.total24h,
@@ -142,7 +142,7 @@
                 totalDataChartLength: data.totalDataChart?.length,
                 sampleDataPoints: data.totalDataChart?.slice(-3)
               });
-              
+
               return {
                 protocol: key,
                 name: protocol.name,
@@ -155,18 +155,18 @@
             }
           })
       ]);
-      
+
       // Filter out failed requests
       const validData = protocolData.filter(p => p !== null);
       console.log(`📈 Successfully fetched ${validData.length}/${Object.keys(protocols).length} protocols`);
-      
+
       if (validData.length === 0) {
         console.warn('⚠️  No protocol data available, using demo data');
         volumeData = generateDemoData();
       } else {
         volumeData = processDefiLlamaData(validData);
       }
-      
+
     } catch (err) {
       console.error('❌ Error fetching protocol data, using demo data:', err);
       volumeData = generateDemoData();
@@ -177,11 +177,11 @@
 
   function processDefiLlamaData(protocolData) {
     console.log('🔄 Processing DefiLlama data for protocols:', protocolData.map(p => p.name));
-    
+
     // Create a date map for the specified date range
     const dateMap = new Map();
     let startDateObj, endDateObj, totalDays;
-    
+
     if (useCustomRange) {
       startDateObj = new Date(startDate + 'T00:00:00.000Z');
       endDateObj = new Date(endDate + 'T00:00:00.000Z');
@@ -194,13 +194,13 @@
       totalDays = days;
       console.log(`📅 Using preset range: last ${days} days from ${endDateObj.toISOString().split('T')[0]}`);
     }
-    
+
     // Initialize date map with the specified date range
     for (let i = 0; i < totalDays; i++) {
       const date = new Date(startDateObj);
       date.setUTCDate(startDateObj.getUTCDate() + i);
       const dateString = date.toISOString().split('T')[0];
-      
+
       dateMap.set(dateString, {
         date: dateString,
         thorchain: 0,
@@ -208,27 +208,27 @@
         'near-intents': 0,
         total: 0
       });
-      
+
       if (i < 3 || i >= totalDays - 3) {
         console.log(`📆 Added date to map: ${dateString}`);
       }
     }
-    
+
     console.log(`📊 Date map initialized with ${dateMap.size} dates`);
     console.log(`🗓️  Date range: ${Array.from(dateMap.keys())[0]} to ${Array.from(dateMap.keys()).slice(-1)[0]}`);
-    
-    
+
+
     // Process each protocol's data
     protocolData.forEach(({ protocol, name, data }) => {
       console.log(`📊 Processing ${name} data:`, data);
-      
+
       if (data && data.totalDataChart && Array.isArray(data.totalDataChart)) {
         console.log(`📈 ${name} has ${data.totalDataChart.length} data points`);
         console.log(`📋 Sample data points for ${name}:`, data.totalDataChart.slice(-3));
-        
+
         // Get the last N days of data
         const recentData = data.totalDataChart.slice(-days);
-        
+
         // Extra debug logging for NEAR Intents
         if (protocol === 'near-intents') {
           console.log(`🔍 NEAR Intents DEBUG:`);
@@ -238,14 +238,14 @@
           console.log(`  - Last 5 raw data points:`, data.totalDataChart.slice(-5));
           console.log(`  - DateMap date range:`, Array.from(dateMap.keys()));
         }
-        
+
         recentData.forEach(([timestamp, volume], index) => {
           const date = new Date(timestamp * 1000).toISOString().split('T')[0];
-          
+
           if (protocol === 'near-intents') {
             console.log(`🔍 NEAR Intents data point ${index}: timestamp=${timestamp}, date=${date}, volume=${volume}`);
           }
-          
+
           if (dateMap.has(date)) {
             const dayData = dateMap.get(date);
             dayData[protocol] = volume || 0;
@@ -254,16 +254,16 @@
             console.warn(`❌ Date ${date} not found in dateMap for ${name} (timestamp: ${timestamp})`);
           }
         });
-        
+
         console.log(`✅ Successfully processed ${recentData.length} data points for ${name}`);
       } else {
         console.warn(`⚠️  ${name} has no totalDataChart data, using current volumes`);
         console.log(`📊 Available data fields for ${name}:`, Object.keys(data || {}));
-        
+
         // Use current volume data if available
         const currentVolume = data?.total24h || data?.total7d || 0;
         console.log(`💰 Using current volume for ${name}: $${currentVolume.toLocaleString()}`);
-        
+
         if (currentVolume > 0) {
           // Distribute the volume across recent days with realistic variation
           const baseDaily = currentVolume / 7; // Weekly average
@@ -278,11 +278,11 @@
         }
       }
     });
-    
+
     // Calculate totals for each day
     Array.from(dateMap.values()).forEach(dayData => {
       dayData.total = dayData.thorchain + dayData.chainflip + dayData['near-intents'];
-      
+
       console.log(`💰 ${dayData.date} volumes:`, {
         thor: `$${dayData.thorchain.toLocaleString()}`,
         chainflip: `$${dayData.chainflip.toLocaleString()}`,
@@ -290,19 +290,19 @@
         total: `$${dayData.total.toLocaleString()}`
       });
     });
-    
+
     const finalData = {
       protocols: Object.fromEntries(
         Object.entries(protocols).map(([key, protocol]) => [
-          key, 
+          key,
           { name: protocol.name, color: protocol.color }
         ])
       ),
       data: Array.from(dateMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date))
     };
-    
+
     console.log('✅ Final DefiLlama processed data:', finalData);
-    
+
     return finalData;
   }
 
@@ -310,7 +310,7 @@
     // Generate demo data for the specified date range
     const data = [];
     let startDateObj, endDateObj, totalDays;
-    
+
     if (useCustomRange) {
       startDateObj = new Date(startDate + 'T00:00:00.000Z');
       endDateObj = new Date(endDate + 'T00:00:00.000Z');
@@ -321,17 +321,17 @@
       startDateObj.setUTCDate(endDateObj.getUTCDate() - (days - 1));
       totalDays = days;
     }
-    
+
     for (let i = 0; i < totalDays; i++) {
       const date = new Date(startDateObj);
       date.setDate(startDateObj.getDate() + i);
       const dateString = date.toISOString().split('T')[0];
-      
+
       // Generate realistic volume data
       const thorchainBase = 50000000 + Math.random() * 30000000; // 50-80M
       const chainflipBase = 8000000 + Math.random() * 12000000; // 8-20M
       const nearBase = 2000000 + Math.random() * 8000000; // 2-10M
-      
+
       const dayData = {
         date: dateString,
         thorchain: thorchainBase,
@@ -339,14 +339,14 @@
         'near-intents': nearBase,
         total: thorchainBase + chainflipBase + nearBase
       };
-      
+
       data.push(dayData);
     }
-    
+
     return {
       protocols: Object.fromEntries(
         Object.entries(protocols).map(([key, protocol]) => [
-          key, 
+          key,
           { name: protocol.name, color: protocol.color }
         ])
       ),
@@ -357,28 +357,28 @@
   function processVolumeData(protocolData) {
     // Create a unified dataset by date
     const dateMap = new Map();
-    
+
     protocolData.forEach(({ protocol, name, color, data }) => {
       if (data && data.totalDataChart) {
         data.totalDataChart.forEach(([timestamp, value]) => {
           const date = new Date(timestamp * 1000).toISOString().split('T')[0];
-          
+
           if (!dateMap.has(date)) {
             dateMap.set(date, { date, total: 0 });
           }
-          
+
           const dayData = dateMap.get(date);
           dayData[protocol] = value || 0;
           dayData.total += value || 0;
         });
       }
     });
-    
+
     // Convert to array and sort by date
     const processedData = Array.from(dateMap.values())
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(-days); // Get last N days
-    
+
     return {
       protocols: protocolData.reduce((acc, p) => {
         acc[p.protocol] = { name: p.name, color: p.color };
@@ -390,15 +390,15 @@
 
   function initVolumeChart() {
     if (!chartCanvas || !volumeData) return;
-    
+
     const ctx = chartCanvas.getContext('2d');
     if (chartInstance) {
       chartInstance.destroy();
     }
-    
+
     const { protocols: protoConfig, data } = volumeData;
     const labels = data.map(d => new Date(d.date + 'T12:00:00.000Z').toLocaleDateString());
-    
+
     const datasets = Object.keys(protoConfig).map(protocolKey => {
       const protocol = protoConfig[protocolKey];
       return {
@@ -415,7 +415,7 @@
         borderWidth: 1
       };
     });
-    
+
     chartInstance = new Chart(ctx, {
       type: 'bar',
       data: { labels, datasets },
@@ -485,21 +485,21 @@
 
   function initDominanceChart() {
     if (!dominanceChartCanvas || !volumeData) return;
-    
+
     const ctx = dominanceChartCanvas.getContext('2d');
     if (dominanceChartInstance) {
       dominanceChartInstance.destroy();
     }
-    
+
     const { data } = volumeData;
     const labels = data.map(d => new Date(d.date + 'T12:00:00.000Z').toLocaleDateString());
-    
+
     // Calculate THORChain dominance percentage
     const dominanceData = data.map(d => {
       const thorchainVolume = d['thorchain'] || 0;
       return d.total > 0 ? (thorchainVolume / d.total) * 100 : 0;
     });
-    
+
     dominanceChartInstance = new Chart(ctx, {
       type: 'line',
       data: {
@@ -568,7 +568,7 @@
     days = parseInt(event.target.value);
     useCustomRange = false;
     await fetchProtocolData();
-    
+
     // Re-initialize charts with new data
     if (volumeData) {
       initVolumeChart();
@@ -580,7 +580,7 @@
     const today = new Date();
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 30);
-    
+
     endDate = today.toISOString().split('T')[0];
     startDate = thirtyDaysAgo.toISOString().split('T')[0];
   }
@@ -590,26 +590,26 @@
       alert('Please select both start and end dates');
       return;
     }
-    
+
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     if (start >= end) {
       alert('Start date must be before end date');
       return;
     }
-    
+
     const diffTime = Math.abs(end - start);
     customRangeDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    
+
     if (customRangeDays > 365) {
       alert('Date range cannot exceed 365 days');
       return;
     }
-    
+
     useCustomRange = true;
     await fetchProtocolData();
-    
+
     // Re-initialize charts with new data
     if (volumeData) {
       initVolumeChart();
@@ -654,17 +654,17 @@
 
   function getVolumeCSV() {
     if (!volumeData) return;
-    
+
     const { protocols: protoConfig, data } = volumeData;
     const protocolNames = Object.keys(protoConfig);
     const headers = ["Date", ...protocolNames.map(p => protoConfig[p].name), "Total", ...protocolNames.map(p => `${protoConfig[p].name} %`)];
-    
+
     const rows = data.map(d => {
       const percentages = protocolNames.map(p => {
         const value = d[p] || 0;
         return d.total > 0 ? ((value / d.total) * 100).toFixed(2) : '0.00';
       });
-      
+
       const row = [
         d.date,
         ...protocolNames.map(p => (d[p] || 0).toFixed(2)),
@@ -673,24 +673,24 @@
       ];
       return row.join(",");
     });
-    
+
     return [headers.join(","), ...rows].join("\n");
   }
 
   function getDominanceCSV() {
     if (!volumeData) return;
-    
+
     const { protocols: protoConfig, data } = volumeData;
     const protocolNames = Object.keys(protoConfig);
     const headers = ["Date", ...protocolNames.map(p => `${protoConfig[p].name} Volume`), "Total Volume", ...protocolNames.map(p => `${protoConfig[p].name} Dominance %`)];
-    
+
     const rows = data.map(d => {
       const volumes = protocolNames.map(p => (d[p] || 0).toFixed(2));
       const dominances = protocolNames.map(p => {
         const volume = d[p] || 0;
         return d.total > 0 ? ((volume / d.total) * 100).toFixed(2) : '0.00';
       });
-      
+
       return [
         d.date,
         ...volumes,
@@ -698,7 +698,7 @@
         ...dominances
       ].join(",");
     });
-    
+
     return [headers.join(","), ...rows].join("\n");
   }
 
@@ -712,7 +712,7 @@
 
   function calculateStats() {
     if (!volumeData || !volumeData.data.length) return null;
-    
+
     const { data } = volumeData;
     const thorchainVolumes = data.map(d => d['thorchain'] || 0);
     const totalVolumes = data.map(d => d.total);
@@ -720,11 +720,11 @@
       const thorVolume = d['thorchain'] || 0;
       return d.total > 0 ? (thorVolume / d.total) * 100 : 0;
     });
-    
+
     const avgDominance = dominancePercentages.reduce((sum, d) => sum + d, 0) / dominancePercentages.length;
     const totalThorVolume = thorchainVolumes.reduce((sum, v) => sum + v, 0);
     const totalAllVolume = totalVolumes.reduce((sum, v) => sum + v, 0);
-    
+
     return {
       avgDominance: avgDominance.toFixed(1),
       totalThorVolume: totalThorVolume,
@@ -738,7 +738,7 @@
   onMount(async () => {
     initializeDateInputs();
     await fetchProtocolData();
-    
+
     if (volumeData) {
       // Add small delay to ensure DOM is ready
       setTimeout(() => {
@@ -761,13 +761,13 @@
             {/each}
           </select>
         </div>
-        
+
         <div class="custom-range-controls">
           <label class="custom-range-toggle">
             <input type="checkbox" bind:checked={useCustomRange}>
             Custom Date Range
           </label>
-          
+
           {#if useCustomRange}
             <div class="date-inputs">
               <div class="date-input">
@@ -797,23 +797,23 @@
         <h3>Average Dominance</h3>
         <p class="stat-value">{stats.avgDominance}%</p>
       </div>
-      
+
       <div class="stat-box">
         <h3>Period Dominance</h3>
         <p class="stat-value">{stats.periodDominance}%</p>
       </div>
-      
+
       <div class="stat-box">
         <h3>THORChain Volume</h3>
         <p class="stat-value">${(stats.totalThorVolume / 1000000).toFixed(1)}M</p>
       </div>
-      
+
       <div class="stat-box">
         <h3>Total Market Volume</h3>
         <p class="stat-value">${(stats.totalAllVolume / 1000000).toFixed(1)}M</p>
       </div>
     </div>
-    
+
     <div class="data-source-note">
       <p><strong>Data Sources:</strong> THORChain volume data fetched from Midgard API (gateway.liquify.com). Other protocol data from DefiLlama's free DEX endpoints. Note: Some endpoints may require Pro API for historical data, fallback demo data will be used if API limits are reached.</p>
     </div>
@@ -823,16 +823,16 @@
     <div class="section-header">
       <h2>Daily Volume Comparison ({useCustomRange ? `${startDate} to ${endDate}` : `Last ${days} Days`})</h2>
       <div class="chart-controls">
-        <button 
-          class="download-button" 
+        <button
+          class="download-button"
           on:click={() => downloadCSV(getVolumeCSV(), getCustomRangeFileName('thorchain_dominance_volume'))}
           title="Download Volume CSV"
         >
           <img src="/assets/icons/download.svg" alt="Download CSV" />
         </button>
         <label class="toggle">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             bind:checked={showPercentages}
           >
           <span class="slider">
@@ -852,8 +852,8 @@
   <div class="chart-section">
     <div class="section-header">
       <h2>THORChain Market Dominance ({useCustomRange ? `${startDate} to ${endDate}` : `Last ${days} Days`})</h2>
-      <button 
-        class="download-button" 
+      <button
+        class="download-button"
         on:click={() => downloadCSV(getDominanceCSV(), getCustomRangeFileName('thorchain_dominance'))}
         title="Download Dominance CSV"
       >

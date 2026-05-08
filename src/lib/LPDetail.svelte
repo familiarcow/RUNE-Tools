@@ -53,11 +53,11 @@
       const usdValue = value * price;
       return {
         native: value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        usd: usdValue.toLocaleString('en-US', { 
-          style: 'currency', 
+        usd: usdValue.toLocaleString('en-US', {
+          style: 'currency',
           currency: 'USD',
           minimumFractionDigits: 0,
-          maximumFractionDigits: 0 
+          maximumFractionDigits: 0
         })
       };
     }
@@ -128,7 +128,7 @@
         <p class="error">{error}</p>
       {:else if lpData}
         {@const netChange = calculateNetChange(lpData.rune_deposit_value, lpData.rune_redeem_value, lpData.asset_deposit_value, lpData.asset_redeem_value)}
-        
+
         <!-- Total Value Card -->
         <div class="total-value">
           {#if height}
@@ -152,7 +152,7 @@
               </span>
             </span>
           </div>
-          
+
           <div class="stat-box">
             <span class="stat-label">RUNE Balance</span>
             <span class="stat-value">
@@ -171,13 +171,13 @@
             <span class="stat-value">
               {formatValue(lpData.asset_redeem_value, pool).native}
               <div class="logo-container small">
-                <img 
-                  src={getAssetLogo(pool) || '/assets/runetools-logo.svg'} 
+                <img
+                  src={getAssetLogo(pool) || '/assets/runetools-logo.svg'}
                   alt={pool}
                   class="asset-icon"
                 />
                 <div class="chain-logo-container">
-                  <img 
+                  <img
                     src={`/assets/chains/${pool.split('.')[0]}.svg`}
                     alt={pool.split('.')[0]}
                     class="chain-icon"
@@ -230,13 +230,13 @@
                 <span class="amount">
                   {formatValue(lpData.asset_deposit_value, pool).native}
                   <div class="logo-container small">
-                    <img 
-                      src={getAssetLogo(pool) || '/assets/runetools-logo.svg'} 
+                    <img
+                      src={getAssetLogo(pool) || '/assets/runetools-logo.svg'}
                       alt={pool}
                       class="asset-icon"
                     />
                     <div class="chain-logo-container">
-                      <img 
+                      <img
                         src={`/assets/chains/${pool.split('.')[0]}.svg`}
                         alt={pool.split('.')[0]}
                         class="chain-icon"
@@ -251,13 +251,13 @@
                 <span class="amount {netChange.asset >= 0 ? 'positive' : 'negative'}">
                   {netChange.asset.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   <div class="logo-container small">
-                    <img 
-                      src={getAssetLogo(pool) || '/assets/runetools-logo.svg'} 
+                    <img
+                      src={getAssetLogo(pool) || '/assets/runetools-logo.svg'}
                       alt={pool}
                       class="asset-icon"
                     />
                     <div class="chain-logo-container">
-                      <img 
+                      <img
                         src={`/assets/chains/${pool.split('.')[0]}.svg`}
                         alt={pool.split('.')[0]}
                         class="chain-icon"

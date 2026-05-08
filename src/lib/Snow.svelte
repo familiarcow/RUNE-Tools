@@ -40,21 +40,21 @@
 
     draw() {
       ctx.save(); // Save the current context state
-      
+
       if (this.isIcon) {
         // Draw THORChain icon
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
         ctx.globalAlpha = this.opacity;
-        
+
         // Apply white filter before drawing the icon
         setupWhiteFilter(ctx);
         const iconSize = this.size;
         ctx.drawImage(
-          thorchainIcon, 
-          -iconSize/2, 
-          -iconSize/2, 
-          iconSize, 
+          thorchainIcon,
+          -iconSize/2,
+          -iconSize/2,
+          iconSize,
           iconSize
         );
         ctx.filter = 'none'; // Reset filter after drawing
@@ -65,7 +65,7 @@
         ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
         ctx.fill();
       }
-      
+
       ctx.restore(); // Restore the context state
     }
   }
@@ -73,7 +73,7 @@
   function createParticles() {
     const totalParticles = Math.floor((canvas.width * canvas.height) / 10000);
     const thorchainParticles = Math.floor(totalParticles * 0.04);
-    
+
     // Create regular snowflakes
     for (let i = 0; i < totalParticles - thorchainParticles; i++) {
       particles.push(
@@ -84,7 +84,7 @@
         )
       );
     }
-    
+
     // Create THORChain icon particles
     for (let i = 0; i < thorchainParticles; i++) {
       particles.push(
@@ -115,13 +115,13 @@
 
   onMount(() => {
     ctx = canvas.getContext('2d');
-    
+
     // Wait for the icon to load before starting
     thorchainIcon.onload = () => {
       handleResize();
       animate();
     };
-    
+
     window.addEventListener('resize', handleResize);
   });
 

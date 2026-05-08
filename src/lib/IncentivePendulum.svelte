@@ -179,10 +179,10 @@
 
     // Calculate shares using the correct formula: poolShare = (b - p) / b
     poolShare = (effectiveBond - totalAdjustedSecuredValue) / effectiveBond;
-    
+
     // Clamp poolShare between 0 and 1
     poolShare = Math.min(Math.max(poolShare, 0), 1);
-    
+
     nodeShare = 1 - poolShare;
 
     // Convert to percentages for display
@@ -208,7 +208,7 @@
     // Calculate relative difference between node and pool share
     // This gives us a value between -1 and 1 representing how far from equilibrium we are
     const tiltPercentage = (nodeShare - poolShare) / 100;
-    
+
     // Apply the tilt, capped at maxTilt
     scalePosition = -Math.max(Math.min(tiltPercentage * maxTilt, maxTilt), -maxTilt);
   };

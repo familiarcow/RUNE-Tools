@@ -98,9 +98,9 @@
                     <button class="icon-button" on:click={() => copyToClipboard(address.address, `${address.chain} inbound address`)}>
                       {@html clipboardIcon}
                     </button>
-                    <a 
-                      href={CHAIN_EXPLORERS[address.chain] + address.address} 
-                      target="_blank" 
+                    <a
+                      href={CHAIN_EXPLORERS[address.chain] + address.address}
+                      target="_blank"
                       rel="noopener noreferrer"
                       class="icon-button"
                       title="View on block explorer"
@@ -119,9 +119,9 @@
                       <button class="icon-button" on:click={() => copyToClipboard(address.router, `${address.chain} router address`)}>
                         {@html clipboardIcon}
                       </button>
-                      <a 
-                        href={CHAIN_EXPLORERS[address.chain] + address.router} 
-                        target="_blank" 
+                      <a
+                        href={CHAIN_EXPLORERS[address.chain] + address.router}
+                        target="_blank"
                         rel="noopener noreferrer"
                         class="icon-button"
                         title="View on block explorer"

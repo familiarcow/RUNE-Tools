@@ -15,11 +15,11 @@
   // Function to map any asset to oracle symbol
   function getOracleSymbolForAsset(asset) {
     const upperAsset = asset.toUpperCase();
-    
+
     // Direct matches for native assets - these SHOULD be compared to oracle
     const nativeAssetMappings = {
       'BTC.BTC': 'BTC',
-      'ETH.ETH': 'ETH', 
+      'ETH.ETH': 'ETH',
       'BSC.BNB': 'BNB',
       'BCH.BCH': 'BCH',
       'LTC.LTC': 'LTC',
@@ -30,30 +30,30 @@
       'SOL.SOL': 'SOL',
       'TRX.TRX': 'TRX'
     };
-    
+
     // First check exact native asset matches
     if (nativeAssetMappings[upperAsset]) {
       return nativeAssetMappings[upperAsset];
     }
-    
+
     // Special case: RUNE is handled separately with network price
     if (upperAsset === 'THOR.RUNE') {
       return null; // RUNE handled separately
     }
-    
+
     // Check for WRAPPED/TOKENIZED versions on OTHER chains
     // BTC wrapped tokens (not native BTC.BTC)
-    if (upperAsset.includes('WBTC') || upperAsset.includes('BTCB') || 
+    if (upperAsset.includes('WBTC') || upperAsset.includes('BTCB') ||
         (upperAsset.includes('BTC') && !upperAsset.startsWith('BTC.'))) {
       return 'BTC';
     }
-    
-    // ETH wrapped tokens (not native ETH.ETH) 
-    if (upperAsset.includes('WETH') || 
+
+    // ETH wrapped tokens (not native ETH.ETH)
+    if (upperAsset.includes('WETH') ||
         (upperAsset.includes('ETH') && !upperAsset.startsWith('ETH.'))) {
       return 'ETH';
     }
-    
+
     // Stablecoins on any chain
     if (upperAsset.includes('USDC')) {
       return 'USDC';
@@ -61,7 +61,7 @@
     if (upperAsset.includes('USDT')) {
       return 'USDT';
     }
-    
+
     // Cross-chain wrapped tokens
     if (upperAsset.includes('SOL') && !upperAsset.startsWith('SOL.')) {
       return 'SOL';
@@ -90,14 +90,14 @@
     if (upperAsset.includes('TRX') && !upperAsset.startsWith('TRX.')) {
       return 'TRX';
     }
-    
+
     return null;
   }
 
   // Function to get appropriate logo for any asset
   function getAssetLogo(asset, oracleSymbol) {
     const upperAsset = asset.toUpperCase();
-    
+
     // First try exact asset match
     const exactLogos = {
       'BTC.BTC': 'assets/coins/bitcoin-btc-logo.svg',
@@ -117,7 +117,7 @@
     if (exactLogos[upperAsset]) {
       return exactLogos[upperAsset];
     }
-    
+
     // Use oracle symbol to determine logo for wrapped/tokenized assets
     const symbolLogos = {
       'BTC': 'assets/coins/bitcoin-btc-logo.svg',
@@ -135,7 +135,7 @@
       'USDT': 'assets/coins/tether-usdt-logo.svg',
       'TRX': 'assets/coins/fallback-logo.svg'
     };
-    
+
     return symbolLogos[oracleSymbol] || 'assets/coins/fallback-logo.svg';
   }
 
@@ -244,20 +244,20 @@
     const parts = asset.split('.');
     const chain = parts[0];
     const token = parts[1];
-    
+
     if (!token) return asset; // Simple case like BTC, ETH
-    
+
     // Extract token name from contract address format
     if (token.includes('-0X')) {
       const tokenName = token.split('-')[0];
       return `${tokenName} (${chain})`;
     }
-    
+
     // For simple token format
     if (token === chain) {
       return token; // BTC.BTC -> BTC
     }
-    
+
     return `${token} (${chain})`;
   }
 
@@ -282,16 +282,16 @@
   // Compute comparison data - show ALL matching pool assets for each oracle symbol
   $: comparisonData = (() => {
     const poolComparisons = [];
-    
+
     // For each pool asset, check if we can map it to an oracle symbol
     Object.keys($poolPrices).forEach(asset => {
       const oracleSymbol = getOracleSymbolForAsset(asset);
       const oraclePrice = $oraclePrices[oracleSymbol];
       const poolPrice = $poolPrices[asset];
-      
+
       if (oracleSymbol && oraclePrice && poolPrice) {
         const delta = ((poolPrice - oraclePrice) / oraclePrice) * 100;
-        
+
         poolComparisons.push({
           symbol: oracleSymbol,
           asset,
@@ -310,7 +310,7 @@
       const oraclePrice = $oraclePrices.RUNE;
       const networkPrice = $runePrice;
       const delta = ((networkPrice - oraclePrice) / oraclePrice) * 100;
-      
+
       runeComparisons.push({
         symbol: 'RUNE',
         asset: 'THOR.RUNE',
@@ -415,13 +415,13 @@
                   <td class="asset-cell">
                     <div class="asset-info">
                       <div class="logo-container">
-                        <img 
-                          src={getAssetLogo(item.asset, item.symbol)} 
+                        <img
+                          src={getAssetLogo(item.asset, item.symbol)}
                           alt={item.symbol}
                           class="asset-icon"
                         />
                         <div class="chain-logo-container">
-                          <img 
+                          <img
                             src={chainLogos[item.asset?.split('.')[0]] || chainLogos[item.symbol] || 'assets/chains/THOR.svg'}
                             alt="chain"
                             class="chain-icon"
@@ -441,7 +441,7 @@
                     {formatPrice(item.poolPrice)}
                   </td>
                   <td class="delta-cell">
-                    <div 
+                    <div
                       class="delta-value"
                       style="color: {getColorForPercentage(item.delta)}"
                     >
@@ -827,11 +827,11 @@
     .stats-grid {
       grid-template-columns: 1fr;
     }
-    
+
     .table-wrapper {
       font-size: 0.7rem;
     }
-    
+
     .asset-path {
       display: none;
     }

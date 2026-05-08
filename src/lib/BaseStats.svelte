@@ -174,7 +174,7 @@
     // Get the latest cumulative volumes for each affiliate
     const affiliateVolumes = new Map();
     statsData.forEach(entry => {
-      if (!affiliateVolumes.has(entry.Affiliates) || 
+      if (!affiliateVolumes.has(entry.Affiliates) ||
           new Date(entry.DAY) > new Date(affiliateVolumes.get(entry.Affiliates).date)) {
         affiliateVolumes.set(entry.Affiliates, {
           volume: entry.CUMU_USD_VOLUME,
@@ -237,7 +237,7 @@
     // Get the latest cumulative volumes for each affiliate
     const affiliateVolumes = new Map();
     statsData.forEach(entry => {
-      if (!affiliateVolumes.has(entry.Affiliates) || 
+      if (!affiliateVolumes.has(entry.Affiliates) ||
           new Date(entry.DAY) > new Date(affiliateVolumes.get(entry.Affiliates).date)) {
         affiliateVolumes.set(entry.Affiliates, {
           volume: entry.CUMU_USD_VOLUME,
@@ -420,4 +420,4 @@
       padding: 15px;
     }
   }
-</style> 
+</style>
