@@ -455,6 +455,10 @@
     "isp": "Hetzner Online GmbH",
     "countryCode": "FI"
   },
+  "65.108.123.148": {
+    "isp": "Hetzner Online GmbH",
+    "countryCode": "FI"
+  },
   "65.109.64.54": {
     "isp": "Hetzner Online GmbH",
     "countryCode": "FI"
@@ -486,6 +490,10 @@
   "74.50.69.70": {
     "isp": "Interserver, Inc",
     "countryCode": "US"
+  },
+  "77.42.120.224": {
+    "isp": "Hetzner Online GmbH",
+    "countryCode": "FI"
   },
   "78.13.78.31": {
     "isp": "Amazon.com",
@@ -1014,6 +1022,10 @@
   "193.34.212.188": {
     "isp": "MEVSPACE sp. z o.o",
     "countryCode": "PL"
+  },
+  "193.149.180.192": {
+    "isp": "BL Networks",
+    "countryCode": "GB"
   },
   "195.3.220.21": {
     "isp": "MEVSPACE sp. z o.o.",
