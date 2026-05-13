@@ -431,6 +431,10 @@
     "isp": "BL Networks",
     "countryCode": "US"
   },
+  "64.111.92.201": {
+    "isp": "BL Networks",
+    "countryCode": "NL"
+  },
   "64.176.34.103": {
     "isp": "The Constant Company",
     "countryCode": "JP"
@@ -970,6 +974,10 @@
   "178.162.165.144": {
     "isp": "LeaseWeb Netherlands B.V.",
     "countryCode": "NL"
+  },
+  "178.211.139.77": {
+    "isp": "MEVSPACE sp. z o.o.",
+    "countryCode": "PL"
   },
   "185.16.38.159": {
     "isp": "MEVSPACE sp. z o.o.",
