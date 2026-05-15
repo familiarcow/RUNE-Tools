@@ -339,6 +339,10 @@
     "isp": "DigitalOcean, LLC",
     "countryCode": "US"
   },
+  "45.61.137.168": {
+    "isp": "BL Networks NL",
+    "countryCode": "NL"
+  },
   "45.61.138.186": {
     "isp": "BL Networks GB",
     "countryCode": "GB"
@@ -378,6 +382,10 @@
   "46.105.223.178": {
     "isp": "OVH SAS",
     "countryCode": "FR"
+  },
+  "46.225.37.189": {
+    "isp": "Hetzner Online GmbH",
+    "countryCode": "DE"
   },
   "50.172.56.1": {
     "isp": "Comcast Cable Communications, LLC",
@@ -548,6 +556,10 @@
     "countryCode": "NL"
   },
   "95.214.52.139": {
+    "isp": "MEVSPACE sp. z o.o.",
+    "countryCode": "PL"
+  },
+  "95.214.53.29": {
     "isp": "MEVSPACE sp. z o.o.",
     "countryCode": "PL"
   },
