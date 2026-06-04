@@ -17,7 +17,9 @@
     'thor1egxvam70a86jafa8gcg3kqfmfax3s0m2g3m754', // Treasury 1
     'thor1wfe7hsuvup27lx04p5al4zlcnx6elsnyft7dzm', // Treasury 2
     'thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt', // Reserve
-    'thor10qh5272ktq4wes8ex343ky9rsuehcypddjh08k'  // Treasury Vultisig
+    'thor19phfqh3ce3nnjhh0cssn433nydq9shx7wfmk7k', // Treasury Test
+    'thor10qh5272ktq4wes8ex343ky9rsuehcypddjh08k', // Treasury Vultisig 1
+    'thor1lhufh0mwasa0lk9udppdegmvnkgqt08f0m9p5g', // Treasury Vultisig 2
   ];
 
   let sortBy = 'poolTotalLiquidityUSD';
