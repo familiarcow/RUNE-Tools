@@ -349,6 +349,9 @@ export async function getAllPools(options = {}) {
 /**
  * Get pool information with status
  *
+ * Returns data from thornode.getPools() (values are usually strings),
+ * combined with some additional user-friendly attributes.
+ *
  * @param {Object} [options={}] - Fetch options
  * @returns {Promise<Array<Object>>} Array of pool info objects
  *
@@ -362,10 +365,10 @@ export async function getPoolsWithStatus(options = {}) {
   return pools.map((pool) => {
     const parsed = parseAsset(pool.asset);
     return {
-      asset: pool.asset,
+      ...pool,
+      // Additional attributes unique to getPoolsWithStatus() are below
       shortName: parsed.symbol,
       chain: parsed.chain,
-      status: pool.status,
       runeDepth: fromBaseUnit(pool.balance_rune),
       assetDepth: fromBaseUnit(pool.balance_asset),
       assetPrice: fromBaseUnit(pool.asset_tor_price)

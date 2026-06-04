@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
   import { getRunePrice } from '$lib/utils/network';
-  import { getAllPools } from '$lib/utils/liquidity';
+  import { getPoolsWithStatus } from '$lib/utils/liquidity';
   import { fromBaseUnit } from '$lib/utils/blockchain';
   import { midgard } from '$lib/api/midgard';
 
@@ -45,7 +45,7 @@
   async function fetchPoolsData() {
     try {
       // Use shared utility with caching and fallback support
-      const data = await getAllPools();
+      const data = await getPoolsWithStatus();
       return data.filter(pool => pool.status === 'Available');
     } catch (error) {
       console.error('Failed to fetch pools data:', error);
