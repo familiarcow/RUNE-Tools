@@ -177,8 +177,8 @@
               <h4>Chain Addresses</h4>
               {#each vault.addresses as address}
                 <div class="address-row">
-                  <img 
-                    src={chainIcons[address.chain.split('.')[0]]} 
+                  <img
+                    src={chainIcons[address.chain.split('.')[0]]}
                     alt={address.chain}
                     class="chain-icon"
                     on:error={(e) => {
@@ -192,19 +192,19 @@
                     on:click={() => copyToClipboard(address.address, `${address.chain} address`)}
                   >{shortenAddress(address.address)}</button>
                   {#if chainExplorers[address.chain]}
-                    <button 
-                      class="explorer-link" 
+                    <button
+                      class="explorer-link"
                       on:click={() => openExplorer(address.chain, address.address)}
                       title="View on explorer"
                     >
-                      <svg 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        stroke-width="2" 
-                        stroke-linecap="round" 
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
                         stroke-linejoin="round"
                       >
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -266,8 +266,8 @@
               </div>
 
               <div class="expand-section">
-                <button 
-                  class="expand-button" 
+                <button
+                  class="expand-button"
                   class:expanded={showAssetBalances}
                   on:click={toggleAllVaults}
                 >

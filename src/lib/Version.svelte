@@ -7,7 +7,7 @@
   import { BLOCK_TIME_SECONDS } from '$lib/utils/blockchain';
 
   const REFRESH_INTERVAL = 6000; // 6 seconds
-  
+
   let nodes = [];
   let versions = {};
   let upgradeProposal = null;
@@ -16,7 +16,7 @@
   let error = null;
   let timeRemaining = '';
   let targetDate = null;
-  
+
   // For periodic updates
   let blockUpdateInterval;
   let countdownInterval;
@@ -35,7 +35,7 @@
         fetchUpgradeProposal(),
         fetchCurrentBlock()
       ]);
-      
+
       // Refresh all data every 6 seconds
       blockUpdateInterval = setInterval(async () => {
         await Promise.all([
@@ -44,7 +44,7 @@
           fetchUpgradeProposal()
         ]);
       }, REFRESH_INTERVAL);
-      
+
       // Update countdown display every minute since we don't show seconds
       countdownInterval = setInterval(() => {
         if (targetDate) {
@@ -52,7 +52,7 @@
           targetDate = targetDate;
         }
       }, 60000);
-      
+
     } catch (e) {
       error = 'Failed to fetch data';
     } finally {
@@ -84,19 +84,19 @@
   async function fetchUpgradeProposal() {
     try {
       const data = await thornode.getUpgradeProposals({ cache: false });
-      
+
       // Add debugging
       if (data && data[0]) {
         console.log('Upgrade proposal info:', data[0].info);
       }
-      
+
       // Handle null response
       if (!data) {
         upgradeProposal = null;
         upgradeProposalDetails = null;
         return;
       }
-      
+
       upgradeProposal = data[0];
       if (upgradeProposal) {
         await fetchUpgradeProposalDetails(upgradeProposal.name);
@@ -158,7 +158,7 @@
   function calculateTimeRemaining(target) {
     const now = new Date();
     const diff = target - now;
-    
+
     if (diff <= 0) {
       return 'Upgrade time reached!';
     }
@@ -173,10 +173,10 @@
   function getReleaseNotesUrl(proposal) {
     try {
       let info = proposal.info;
-      
+
       // Replace double backslashes with single backslashes
       info = info.replace(/\\\\/g, '\\');
-      
+
       // Now parse the cleaned string
       info = JSON.parse(info);
       return info.tag || 'https://gitlab.com/thorchain/thornode/-/tags/v' + proposal.name;

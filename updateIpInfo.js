@@ -18,7 +18,7 @@ const makeRequest = (url, options = {}) => {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
     const client = urlObj.protocol === 'https:' ? https : http;
-    
+
     const requestOptions = {
       hostname: urlObj.hostname,
       port: urlObj.port,
@@ -29,11 +29,11 @@ const makeRequest = (url, options = {}) => {
 
     const req = client.request(requestOptions, (res) => {
       let data = '';
-      
+
       res.on('data', (chunk) => {
         data += chunk;
       });
-      
+
       res.on('end', () => {
         resolve({
           ok: res.statusCode >= 200 && res.statusCode < 300,
@@ -50,7 +50,7 @@ const makeRequest = (url, options = {}) => {
     if (options.body) {
       req.write(options.body);
     }
-    
+
     req.end();
   });
 };
@@ -59,7 +59,7 @@ const makeRequest = (url, options = {}) => {
 const fetchWithFallback = async (endpoint) => {
   const primaryUrl = `${API_ENDPOINTS.primary}${endpoint}`;
   const fallbackUrl = `${API_ENDPOINTS.fallback}${endpoint}`;
-  
+
   try {
     console.log(`Trying primary endpoint: ${primaryUrl}`);
     const response = await makeRequest(primaryUrl);
@@ -69,7 +69,7 @@ const fetchWithFallback = async (endpoint) => {
     throw new Error(`Primary endpoint failed: ${response.status}`);
   } catch (error) {
     console.warn(`Primary endpoint failed, trying fallback: ${error.message}`);
-    
+
     try {
       console.log(`Trying fallback endpoint: ${fallbackUrl}`);
       const fallbackResponse = await makeRequest(fallbackUrl);
@@ -89,13 +89,13 @@ const fetchWithFallback = async (endpoint) => {
 const fetchIpInfo = async (ips) => {
   const batchSize = 100; // ip-api.com allows up to 100 IPs per batch
   const results = {};
-  
+
   // Split IPs into batches
   for (let i = 0; i < ips.length; i += batchSize) {
     const batch = ips.slice(i, i + batchSize).map(ip => ({ query: ip }));
-    
+
     console.log(`Fetching IP info for batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(ips.length/batchSize)} (${batch.length} IPs)`);
-    
+
     try {
       const response = await makeRequest('http://ip-api.com/batch', {
         method: 'POST',
@@ -111,7 +111,7 @@ const fetchIpInfo = async (ips) => {
       }
 
       const data = await response.json();
-      
+
       // Process results
       data.forEach((result, index) => {
         if (result.status === 'success') {
@@ -126,7 +126,7 @@ const fetchIpInfo = async (ips) => {
           console.log(`❌ ${ip}: ${result.message || 'Failed to get info'}`);
         }
       });
-      
+
       // Be nice to the API - add a small delay between batches
       if (i + batchSize < ips.length) {
         console.log('Waiting 1 second before next batch...');
@@ -136,7 +136,7 @@ const fetchIpInfo = async (ips) => {
       console.error('Error fetching IP info batch:', error);
     }
   }
-  
+
   return results;
 };
 
@@ -144,21 +144,21 @@ const fetchIpInfo = async (ips) => {
 const updateIpInfo = async () => {
   try {
     console.log('🚀 Starting IP info update...\n');
-    
+
     // 1. Fetch current nodes from THORChain
     console.log('📡 Fetching nodes from THORChain...');
     const nodesResponse = await fetchWithFallback('/thorchain/nodes');
     const nodes = await nodesResponse.json();
     console.log(`Found ${nodes.length} nodes\n`);
-    
+
     // 2. Extract unique IP addresses
     const allIps = [...new Set(nodes.map(node => node.ip_address).filter(ip => ip))];
     console.log(`Found ${allIps.length} unique IP addresses\n`);
-    
+
     // 3. Load current ip-info.json
     const ipInfoPath = path.join(__dirname, 'public', 'ip-info.json');
     let currentIpInfo = {};
-    
+
     if (fs.existsSync(ipInfoPath)) {
       console.log('📂 Loading existing ip-info.json...');
       const fileContent = fs.readFileSync(ipInfoPath, 'utf8');
@@ -167,25 +167,25 @@ const updateIpInfo = async () => {
     } else {
       console.log('📂 No existing ip-info.json found, creating new file\n');
     }
-    
+
     // 4. Find missing IPs
     const missingIps = allIps.filter(ip => !currentIpInfo[ip]);
     console.log(`Found ${missingIps.length} missing IP addresses:`);
     missingIps.forEach(ip => console.log(`  - ${ip}`));
     console.log('');
-    
+
     if (missingIps.length === 0) {
       console.log('✅ All IP addresses are already in the database!');
       return;
     }
-    
+
     // 5. Fetch IP info for missing IPs
     console.log('🔍 Fetching IP information from ip-api.com...\n');
     const newIpInfo = await fetchIpInfo(missingIps);
-    
+
     // 6. Merge with existing data
     const updatedIpInfo = { ...currentIpInfo, ...newIpInfo };
-    
+
     // 7. Sort the data by IP for better organization
     const sortedIpInfo = {};
     Object.keys(updatedIpInfo)
@@ -198,17 +198,17 @@ const updateIpInfo = async () => {
       .forEach(ip => {
         sortedIpInfo[ip] = updatedIpInfo[ip];
       });
-    
+
     // 8. Write updated data to file
     console.log('\n💾 Updating ip-info.json...');
     fs.writeFileSync(ipInfoPath, JSON.stringify(sortedIpInfo, null, 2));
-    
+
     console.log(`\n✅ Successfully updated ip-info.json!`);
     console.log(`📊 Statistics:`);
     console.log(`  - Total IPs in database: ${Object.keys(sortedIpInfo).length}`);
     console.log(`  - New IPs added: ${Object.keys(newIpInfo).length}`);
     console.log(`  - Successfully fetched: ${Object.keys(newIpInfo).filter(ip => newIpInfo[ip]).length}`);
-    
+
   } catch (error) {
     console.error('❌ Error updating IP info:', error);
     process.exit(1);
@@ -216,4 +216,4 @@ const updateIpInfo = async () => {
 };
 
 // Run the script
-updateIpInfo(); 
+updateIpInfo();

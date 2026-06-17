@@ -96,10 +96,10 @@
   function startTimer() {
     progress = 0;
     if (timerInterval) clearInterval(timerInterval);
-    
+
     // Calculate increment to complete progress in REFRESH_INTERVAL
     const INCREMENT = (100 / (REFRESH_INTERVAL / 100));
-    
+
     timerInterval = setInterval(() => {
       progress = (progress + INCREMENT) % 100;
     }, 100); // Update every 100ms for smooth animation
@@ -167,12 +167,12 @@
 
   const processMaxSupplyData = async (data) => {
     const newMaxSupply = fromBaseUnit(data);
-    
+
     // Log if MaxSupply is unchanged
     if (previousMaxSupply === newMaxSupply) {
       console.log('MaxSupply unchanged:', newMaxSupply);
     }
-    
+
     // Only show burn notification if it's not the first fetch and we detect a burn
     if (!isFirstFetch && previousMaxSupply > newMaxSupply) {
       const newBurn = previousMaxSupply - newMaxSupply;
@@ -182,7 +182,7 @@
         showLatestBurn = false;
       }, 3000);
     }
-    
+
     previousMaxSupply = newMaxSupply;
     tweenedMaxSupply.set(newMaxSupply);
     maxSupply = newMaxSupply;
@@ -295,7 +295,7 @@
   function createChart() {
     const ctx = document.getElementById("supplyDistributionChart");
     if (!ctx) return;
-    
+
     if (chart) {
       chart.destroy();
     }
@@ -309,9 +309,9 @@
         labels: ['Bonded RUNE', 'Pooled RUNE', 'Uncirculating (Reserve)', 'RUNE in Wallets', 'Binance', 'Kraken', 'Treasury', 'Bybit'],
         datasets: [{
           data: [
-            bondedRune, 
-            pooledRune, 
-            reserveRune, 
+            bondedRune,
+            pooledRune,
+            reserveRune,
             adjustedWalletRune,
             exchangeBalances.binance,
             exchangeBalances.kraken,
@@ -480,9 +480,9 @@
           {/if}
         </div>
         <div class="sub-values">
-          <a href="https://runescan.io/address/thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt" 
-             target="_blank" 
-             rel="noopener noreferrer" 
+          <a href="https://runescan.io/address/thor1dheycdevq39qlkxs2a6wuuzyn4aqxhve4qxtxt"
+             target="_blank"
+             rel="noopener noreferrer"
              class="percentage-link"
           >
             {(reserveRune / currentSupply * 100).toFixed(2)}% of total supply in the Reserve

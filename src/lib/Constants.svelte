@@ -74,7 +74,7 @@
     if (constants) {
       for (const category in constants) {
         for (const [key, value] of Object.entries(constants[category])) {
-          if (!processedKeys.has(key.toUpperCase()) && 
+          if (!processedKeys.has(key.toUpperCase()) &&
               (key.toLowerCase().includes(lowercaseSearch) || String(value).toLowerCase().includes(lowercaseSearch))) {
             filteredEntries.push([key, value, false]);
           }
@@ -132,8 +132,8 @@
               <td class="key-cell" on:click={() => copyToClipboard(key)}>
                 <div class="key-name">{key}</div>
               </td>
-              <td 
-                class="value-cell" 
+              <td
+                class="value-cell"
                 on:click={() => copyToClipboard(String(renderValue(key, value).value))}
               >
                 <div class="value-content">

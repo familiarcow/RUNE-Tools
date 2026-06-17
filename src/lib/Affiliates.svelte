@@ -160,13 +160,13 @@
 
   async function handleSubmit() {
     await Promise.all([
-      queryThorName(thorname), 
-      queryInboundAddresses(), 
-      queryPools(), 
+      queryThorName(thorname),
+      queryInboundAddresses(),
+      queryPools(),
       queryNetworkData(),
       queryPreferredAssetFeeMultiplier()
     ]);
-    
+
     // Check for potential setup issues
     noPreferredAsset = !$thorNameInfo?.preferred_asset;
     noThorChainAlias = !$thorNameInfo?.aliases.some(alias => alias.chain === 'THOR');
@@ -174,7 +174,7 @@
     noPreferredAssetChainAlias = !$thorNameInfo?.aliases.some(alias => alias.chain === preferredAssetChain);
 
     showData = true;
-    
+
     const preferredAsset = $thorNameInfo?.preferred_asset || '';
     await queryOutboundFee(preferredAsset);
 
@@ -215,7 +215,7 @@
     return getExplorerUrl(chain, address) || '';
   }
 
-  $: blockExplorerUrl = $thorNameInfo 
+  $: blockExplorerUrl = $thorNameInfo
     ? getBlockExplorerUrl(
         $thorNameInfo.preferred_asset.split('.')[0],
         $thorNameInfo.aliases.find(alias => alias.chain === $thorNameInfo.preferred_asset.split('.')[0])?.address || ''
@@ -236,7 +236,7 @@
   {:else}
     <div class="container">
       <h2>Affiliates Tracker - {$thorNameInfo?.name}</h2>
-      
+
       <!-- Warning messages -->
       {#if noPreferredAsset || noThorChainAlias || noPreferredAssetChainAlias}
         <div class="error-messages">

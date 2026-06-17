@@ -2,12 +2,12 @@
   <title>Buy RUNE | Purchase THORChain RUNE with ETH or Stablecoins</title>
   <meta name="description" content="Buy THORChain RUNE directly with Ethereum (ETH), USDC, or USDT using MetaMask or any Web3 wallet. The easiest way to purchase RUNE on THORChain." />
   <meta name="keywords" content="Buy RUNE, Buy THORChain, Buy RUNE with MetaMask, Buy RUNE with Ethereum, Where to buy THORChain, THORChain RUNE, Purchase RUNE, RUNE token, Buy crypto with MetaMask" />
-  
+
   <!-- Open Graph / Social Media Meta Tags -->
   <meta property="og:title" content="Buy RUNE | Purchase THORChain RUNE with ETH or Stablecoins" />
   <meta property="og:description" content="Buy THORChain RUNE directly with Ethereum (ETH), USDC, or USDT using MetaMask or any Web3 wallet." />
   <meta property="og:type" content="website" />
-  
+
   <!-- Twitter Card data -->
   <meta name="twitter:title" content="Buy RUNE with ETH or Stablecoins" />
   <meta name="twitter:description" content="Buy THORChain RUNE directly with Ethereum (ETH), USDC, or USDT using MetaMask." />
@@ -18,7 +18,7 @@
   import { ethers } from 'ethers';
   import { fade } from 'svelte/transition';
   import { thornode } from '$lib/api';
-  
+
   let account = '';
   let selectedAsset = 'ETH';
   let inputAmount = '';
@@ -57,14 +57,14 @@
   let routerAddress = '';
   let vaultAddress = '';
   let isLoading = false;
-  
+
   // Memo configuration
   const MEMO_CONFIG = {
     ASSET: 'THOR.RUNE',
-    LIM: '0',           
-    INTERVAL: '1',      
-    QUANTITY: '0',      
-    AFFILIATE: '-',     
+    LIM: '0',
+    INTERVAL: '1',
+    QUANTITY: '0',
+    AFFILIATE: '-',
     FEE: '10'
   };
 
@@ -76,7 +76,7 @@
     try {
       const data = await thornode.getInboundAddresses();
       const ethChain = data.find(chain => chain.chain === 'ETH');
-      
+
       if (!ethChain) {
         throw new Error('ETH chain info not found');
       }
@@ -102,7 +102,7 @@
   async function fetchPoolPrices() {
     try {
       const pools = await thornode.getPools();
-      
+
       const ethPool = pools.find(p => p.asset === 'ETH.ETH');
       const usdcPool = pools.find(p => p.asset === 'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48');
       const usdtPool = pools.find(p => p.asset === 'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7');
@@ -146,7 +146,7 @@
   async function getBalance(asset) {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
-      
+
       if (asset === 'ETH') {
         const balance = await provider.getBalance(account);
         return ethers.formatEther(balance);
@@ -169,7 +169,7 @@
 
   async function updateAllBalances() {
     if (!isWalletConnected) return;
-    
+
     for (const asset of supportedAssets) {
       balances[asset.symbol] = await getBalance(asset.symbol);
     }
@@ -181,7 +181,7 @@
       try {
         // Remove any existing listeners first to prevent duplicates
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        
+
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         account = accounts[0];
         isWalletConnected = true;
@@ -219,7 +219,7 @@
 
   function handleAmountInput(event) {
     const value = event.target.value;
-    
+
     // Only allow numbers and one decimal point
     if (/^[0-9]*\.?[0-9]*$/.test(value)) {
       inputAmount = value;
@@ -255,10 +255,10 @@
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      
+
       const checksummedAddress = ensureChecksumAddress(tokenAddress);
       const checksummedRouter = ensureChecksumAddress(routerAddress);
-      
+
       const tokenContract = new ethers.Contract(
         checksummedAddress,
         APPROVAL_ABI,
@@ -267,10 +267,10 @@
 
       // Get token decimals
       const decimals = await tokenContract.decimals();
-      
+
       // Approve maximum amount
       const maxAmount = ethers.MaxUint256;
-      
+
       console.log('Sending approval transaction:', {
         token: checksummedAddress,
         spender: checksummedRouter,
@@ -331,7 +331,7 @@
         APPROVAL_ABI,
         provider
       );
-      
+
       const allowance = await tokenContract.allowance(ownerAddress, spenderAddress);
       console.log('Current allowance:', allowance.toString());
       return allowance;
@@ -402,7 +402,7 @@
       }
 
       expectedAmountOut = result.expected_amount_out / 1e8;
-      
+
       // Extract fee information
       outboundFee = result.fees.outbound / 1e8;
       liquidityFee = result.fees.liquidity / 1e8;
@@ -413,7 +413,7 @@
       // Additional validation for reasonable output
       const inputValue = parseFloat(inputAmount);
       const outputValue = expectedAmountOut;
-      
+
 
       return true;
     } catch (error) {
@@ -441,14 +441,14 @@
   // Update the handleSubmit function
   async function handleSubmit() {
     if (!isWalletConnected || !inputAmount || !runeAddress || !vaultAddress || !routerAddress) return;
-    
+
     // Validate RUNE address
     if (!isValidRuneAddress(runeAddress)) {
       alert(`Invalid RUNE address. Address must start with 'thor'.\n\nNeed a RUNE wallet? Create one securely with Vultisig`);
       window.open('https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a', '_blank');
       return;
     }
-    
+
     isLoading = true;
     const quoteSuccess = await fetchQuote();
     isLoading = false;
@@ -460,13 +460,13 @@
 
   // Add these constants
   const ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
-  
+
   // Add this helper function to verify addresses
   async function verifyThorchainAddresses() {
     try {
       const data = await thornode.getInboundAddresses({ cache: false });
       const ethChain = data.find(chain => chain.chain === 'ETH');
-      
+
       if (!ethChain) {
         throw new Error('ETH chain info not found');
       }
@@ -488,7 +488,7 @@
       });
 
       // Check for case-sensitivity issues
-      const isValid = ethChain.address.toLowerCase() === vaultAddress.toLowerCase() && 
+      const isValid = ethChain.address.toLowerCase() === vaultAddress.toLowerCase() &&
                      ethChain.router.toLowerCase() === routerAddress.toLowerCase();
 
       return {
@@ -505,20 +505,20 @@
   // Update the executeTransaction function to handle approval more gracefully
   async function executeTransaction() {
     if (!isWalletConnected || !inputAmount || !runeAddress || !vaultAddress || !routerAddress) return;
-    
+
     try {
       isLoading = true;
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      
+
       const asset = supportedAssets.find(a => a.symbol === selectedAsset);
       const amount = ethers.parseUnits(inputAmount, asset.decimals);
-      
+
       // Handle ERC20 tokens (USDC & USDT)
       if (selectedAsset !== 'ETH') {
         const tokenAddress = TOKEN_ADDRESSES[selectedAsset];
         const currentAllowance = await checkAllowance(tokenAddress, account, routerAddress);
-        
+
         if (currentAllowance < amount) {
           const approved = await approveToken(tokenAddress, amount);
           if (!approved) {
@@ -533,14 +533,14 @@
 
       // Construct the router contract
       const router = new ethers.Contract(routerAddress, ROUTER_ABI, signer);
-      
+
       // Prepare transaction parameters
       const expiry = Math.floor(Date.now() / 1000) + 3600;
       const memo = constructMemo(runeAddress);
-      
+
       // Prepare base transaction options
       let txOptions = {};
-      
+
       // Add value only for ETH transactions
       if (selectedAsset === 'ETH') {
         txOptions = { value: amount };
@@ -556,7 +556,7 @@
           expiry,
           txOptions
         );
-        
+
         // Calculate gas limit with 2% buffer
         const gasBuffer = estimatedGas * BigInt(2) / BigInt(100);
         const finalGasLimit = estimatedGas + gasBuffer;
@@ -596,7 +596,7 @@
         const txHash = txResponse.hash || txResponse.transactionHash;
         console.log('Transaction sent:', txHash);
         showReviewModal = false;
-        
+
         // Open tracker in new tab
         window.open(`https://track.ninerealms.com/${txHash}`, '_blank');
       }
@@ -653,11 +653,11 @@
     <div class="card-header">
       <h2>Buy RUNE</h2>
     </div>
-    
+
     <div class="card-body">
       <div class="wallet-section" in:fade={{ duration: 200 }}>
         {#if !isWalletConnected}
-          <button 
+          <button
             class="btn btn-primary connect-button"
             on:click={connectWallet}
           >
@@ -680,13 +680,13 @@
             Select Asset
             <div class="asset-grid">
               {#each supportedAssets as asset}
-                <button 
-                  class="asset-button" 
+                <button
+                  class="asset-button"
                   class:selected={selectedAsset === asset.symbol}
                   on:click={() => selectedAsset = asset.symbol}
                 >
-                  <img 
-                    src="/assets/coins/{getAssetLogo(asset.symbol)}" 
+                  <img
+                    src="/assets/coins/{getAssetLogo(asset.symbol)}"
                     alt={asset.name}
                     class="asset-logo"
                   />
@@ -708,7 +708,7 @@
           <div class="input-row">
             <span class="input-label">{selectedAsset} Amount</span>
             <div class="input-container">
-              <input 
+              <input
                 type="text"
                 class="form-control"
                 placeholder="Enter {selectedAsset} amount"
@@ -721,8 +721,8 @@
           <div class="input-row">
             <span class="input-label">
               RUNE Address
-              <button 
-                class="info-button" 
+              <button
+                class="info-button"
                 on:click={() => showWalletHelper = !showWalletHelper}
                 title="Toggle wallet info"
               >
@@ -732,17 +732,17 @@
               </button>
             </span>
             <div class="input-container">
-              <input 
-                type="text" 
-                bind:value={runeAddress} 
+              <input
+                type="text"
+                bind:value={runeAddress}
                 placeholder="Enter RUNE address"
                 class="form-control"
               />
               {#if showWalletHelper}
                 <div class="input-helper" transition:fade={{ duration: 200 }}>
-                  Your THORChain address. Starts with "thor..." Need a RUNE wallet? 
-                  <a 
-                    href="https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a" 
+                  Your THORChain address. Starts with "thor..." Need a RUNE wallet?
+                  <a
+                    href="https://t.me/vultirefbot/app?startapp=ref_3a5c3bba-9c5f-47ed-a2fc-6f659476404a"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -762,7 +762,7 @@
 
       <div class="submit-container" in:fade={{ duration: 200 }}>
         {#if isWalletConnected}
-          <button 
+          <button
             class="btn btn-primary"
             on:click={handleSubmit}
             disabled={!inputAmount || !runeAddress}
@@ -787,13 +787,13 @@
           </svg>
         </button>
       </div>
-      
+
       <div class="review-details">
         <div class="review-row">
           <span>You Pay</span>
           <div class="asset-amount">
-            <img 
-              src="/assets/coins/{getAssetLogo(selectedAsset)}" 
+            <img
+              src="/assets/coins/{getAssetLogo(selectedAsset)}"
               alt={selectedAsset}
               class="review-asset-logo"
             />
@@ -804,8 +804,8 @@
         <div class="review-row highlight">
           <span>You Receive</span>
           <div class="asset-amount">
-            <img 
-              src="/assets/coins/RUNE-ICON.svg" 
+            <img
+              src="/assets/coins/RUNE-ICON.svg"
               alt="RUNE"
               class="review-asset-logo"
             />
@@ -817,7 +817,7 @@
           <span>Destination</span>
           <div class="address-container">
             <span class="address">{formatAddress(runeAddress)}</span>
-            <a 
+            <a
               href={`https://runescan.io/address/${runeAddress}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -850,7 +850,7 @@
       </div>
 
       <div class="modal-actions">
-        <button 
+        <button
           class="btn btn-primary"
           on:click={executeTransaction}
           disabled={!disclaimer1 || !disclaimer2 || !disclaimer3}
@@ -861,7 +861,7 @@
             Confirm Swap
           {/if}
         </button>
-        <button 
+        <button
           class="btn btn-secondary"
           on:click={() => showReviewModal = false}
         >
