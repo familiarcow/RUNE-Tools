@@ -1118,5 +1118,9 @@
   "212.95.53.167": {
     "isp": "Leaseweb DE",
     "countryCode": "DE"
+  },
+  "216.245.184.241": {
+    "isp": "BL Networks",
+    "countryCode": "US"
   }
 }
