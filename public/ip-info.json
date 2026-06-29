@@ -491,6 +491,10 @@
     "isp": "SGP VULTR",
     "countryCode": "SG"
   },
+  "67.217.228.82": {
+    "isp": "BL Networks",
+    "countryCode": "US"
+  },
   "67.219.110.109": {
     "isp": "The Constant Company, LLC",
     "countryCode": "AU"
@@ -506,6 +510,10 @@
   "70.34.247.166": {
     "isp": "The Constant Company, LLC",
     "countryCode": "PL"
+  },
+  "72.5.43.63": {
+    "isp": "BL Networks",
+    "countryCode": "RO"
   },
   "74.50.69.70": {
     "isp": "Interserver, Inc",
