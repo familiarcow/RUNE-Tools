@@ -799,6 +799,10 @@
     "isp": "DigitalOcean, LLC",
     "countryCode": "CA"
   },
+  "149.28.68.81": {
+    "isp": "The Constant Company",
+    "countryCode": "US"
+  },
   "149.28.129.80": {
     "isp": "The Constant Company",
     "countryCode": "SG"
@@ -1054,6 +1058,10 @@
   "188.166.197.52": {
     "isp": "DigitalOcean, LLC",
     "countryCode": "SG"
+  },
+  "188.241.54.10": {
+    "isp": "FlokiNET ehf",
+    "countryCode": "RO"
   },
   "193.34.212.188": {
     "isp": "MEVSPACE sp. z o.o",
