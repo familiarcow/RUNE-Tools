@@ -25,10 +25,6 @@ export const MIDGARD_PROVIDERS = Object.freeze([
     // Liquify doesn't accept x-client-id through their CORS configuration
     // (unlike the deprecated Nine Realms endpoints)
   },
-  {
-    // Official thorchain.network midgard.
-    base: 'https://midgard.thorchain.network/v2',
-  },
   // Additional fallback providers append here. Failover and rate-limit
   // tracking are all keyed off this array — no other changes needed when
   // a new backup midgard comes online.

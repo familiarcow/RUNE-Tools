@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 // THORChain API endpoints
 const API_ENDPOINTS = {
   primary: 'https://gateway.liquify.com/chain/thorchain_api',
-  fallback: 'https://thornode.thorchain.network'
+  fallback: 'https://public-thornode.nativeswap.io'
 };
 
 // Helper function to make HTTP requests
@@ -216,4 +216,4 @@ const updateIpInfo = async () => {
 };
 
 // Run the script
-updateIpInfo(); 
+updateIpInfo();

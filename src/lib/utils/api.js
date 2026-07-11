@@ -22,7 +22,7 @@
  */
 export const THORNODE_ENDPOINTS = {
   primary: 'https://gateway.liquify.com/chain/thorchain_api',
-  fallback: 'https://thornode.thorchain.network'
+  fallback: 'https://public-thornode.nativeswap.io'
 };
 
 /**
@@ -30,7 +30,8 @@ export const THORNODE_ENDPOINTS = {
  */
 export const MIDGARD_ENDPOINTS = {
   primary: 'https://gateway.liquify.com/chain/thorchain_midgard',
-  fallback: 'https://midgard.thorchain.network'
+  // We currently have no Midgard fallback, so try Liquify again
+  fallback: 'https://gateway.liquify.com/chain/thorchain_midgard'
 };
 
 // ============================================

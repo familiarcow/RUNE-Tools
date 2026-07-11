@@ -21,9 +21,9 @@ export const THORNODE_PROVIDERS = Object.freeze([
     supportsBlockHeight: true,
   },
   {
-    // Official thorchain.network thornode. Does not support historical
+    // Official NativeSwap public THORNode. Does not support historical
     // (?height=N) queries — those are routed through Liquify only.
-    base: 'https://thornode.thorchain.network',
+    base: 'https://public-thornode.nativeswap.io',
   },
   // Additional fallback providers append here. Failover, rate-limit tracking,
   // and historical-query routing are all keyed off this array — no other
