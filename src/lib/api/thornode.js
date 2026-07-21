@@ -387,6 +387,19 @@ class ThorNodeClient {
   }
 
   /**
+   * Get mimir admin data (change history with block heights)
+   *
+   * Returns an array of { key, value, height } for each mimir key,
+   * where `height` is the block at which the value was last changed.
+   *
+   * @param {Object} [options={}] - Same options as #fetch
+   * @returns {Promise<Array<{key: string, value: string, height: number}>>}
+   */
+  async getMimirAdmin(options = {}) {
+    return this.#fetchJSON('/thorchain/mimir/admin', options);
+  }
+
+  /**
    * Get all current node Mimir votes
    *
    * @param {Object} [options={}] - Same options as #fetch

@@ -64,6 +64,13 @@
       description: "Check THORChain's active mimir votes"
     },
     {
+      name: "Missing Votes",
+      component: () => import("./lib/MissingVotes.svelte"),
+      icon: "🔍",
+      path: "missing-votes",
+      description: "Check which mimir votes a node or operator has missed"
+    },
+    {
       name: "Solana Providers",
       component: () => import("./lib/SolanaProviders.svelte"),
       icon: "/assets/chains/SOL.svg",
@@ -401,6 +408,11 @@
     } else if (app.name === "Voting") {
       const key = urlParams.get("key");
       if (key) params.set("key", key);
+    } else if (app.name === "Missing Votes") {
+      const node = urlParams.get("node");
+      const operator = urlParams.get("operator");
+      if (node) params.set("node", node);
+      if (operator) params.set("operator", operator);
     }
     
     return params.toString() ? `?${params.toString()}` : "";

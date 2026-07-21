@@ -353,3 +353,263 @@ export function groupVotesByValue(votes, activeNodeAddresses = []) {
 
   return grouped;
 }
+
+// ============================================
+// Missing Votes (Reverse Voting Lookup)
+// ============================================
+
+/**
+ * Find mimir keys that a specific node has NOT voted on
+ *
+ * Scans all mimir votes and returns keys where the given node address
+ * has not cast any vote, along with the current voting status for context.
+ *
+ * @param {string} nodeAddress - THORChain node address to check
+ * @param {Object} options - Required data payloads
+ * @param {Array} options.mimirData - Raw mimir vote array from API
+ * @param {Object} options.currentMimirValues - Current mimir key-value map
+ * @param {Array<string>} options.activeNodeAddresses - All active node addresses
+ * @param {Array<string>} [options.keyBlacklist=[]] - Mimir keys to exclude
+ * @param {Array} [options.mimirAdmin=[]] - Mimir admin data for recency sorting
+ * @returns {Array<Object>} Array of { key, currentValue, values: [{value, count, ...}] }
+ *
+ * @example
+ * const missing = getMissingVotesForNode('thor1abc...', {
+ *   mimirData, currentMimirValues, activeNodeAddresses, keyBlacklist: MIMIR_KEY_BLACKLIST
+ * });
+ * console.log(`Node has not voted on ${missing.length} mimir keys`);
+ */
+export function getMissingVotesForNode(nodeAddress, options = {}) {
+  const {
+    mimirData = [],
+    currentMimirValues = {},
+    activeNodeAddresses = [],
+    keyBlacklist = []
+  } = options;
+
+  if (!nodeAddress || !activeNodeAddresses.length) {
+    return [];
+  }
+
+  // Step 1: Build full vote map from ALL mimirData (do NOT filter by
+  //         active nodes yet — identical to Voting.svelte's processData).
+  const fullMap = {}; // { key: { value: [signer, ...] } }
+
+  for (const mimir of mimirData) {
+    if (keyBlacklist.includes(mimir.key)) continue;
+
+    if (!fullMap[mimir.key]) fullMap[mimir.key] = {};
+    if (!fullMap[mimir.key][mimir.value]) fullMap[mimir.key][mimir.value] = [];
+    fullMap[mimir.key][mimir.value].push(mimir.signer);
+  }
+
+  // Step 2: Filter to only active signers and remove empty groups
+  //         (identical to Voting.svelte's filterActiveVotes).
+  const activeLowerSet = new Set(activeNodeAddresses.map(a => a.toLowerCase()));
+  const nodeLower = nodeAddress.toLowerCase();
+
+  const voteMap = {}; // { key: { value: [activeSigner, ...] } }
+
+  for (const key of Object.keys(fullMap)) {
+    for (const value of Object.keys(fullMap[key])) {
+      const activeSigners = fullMap[key][value].filter(
+        s => activeLowerSet.has(s.toLowerCase())
+      );
+      if (activeSigners.length === 0) continue;
+
+      if (!voteMap[key]) voteMap[key] = {};
+      voteMap[key][value] = activeSigners;
+    }
+  }
+
+  // Step 3: Gather every known mimir key. Use voteMap (filtered, from
+  //         mimir node votes) plus currentMimirValues (the canonical
+  //         list from /thorchain/mimir, minus blacklisted keys) so
+  //         that keys with zero current votes still show up.
+  const allKeys = new Set([
+    ...Object.keys(voteMap),
+    ...Object.keys(currentMimirValues).filter(k => !keyBlacklist.includes(k))
+  ]);
+
+  // Step 4: For each key, check whether the target node has voted.
+  //         We do this the SAME WAY as Voting.svelte's "Not Voted"
+  //         calculation: the node hasn't voted if its address is
+  //         NOT in the flat list of all voters for that key.
+  const missing = [];
+
+  for (const key of allKeys) {
+    const valueMap = voteMap[key] || {};
+    const allVoters = Object.values(valueMap).flat();
+
+    // Same check as Voting.svelte line 139-141
+    const nodeHasVoted = allVoters.some(
+      v => v.toLowerCase() === nodeLower
+    );
+
+    if (nodeHasVoted) continue;
+
+    const totalVotes = allVoters.length;
+    const currentValue = currentMimirValues[key];
+
+    const values = Object.entries(valueMap).map(([value, signers]) => ({
+      value: value === 'undefined' || value === '' ? 'No Vote' : value,
+      count: signers.length,
+      signers: signers.map(s => getAddressSuffix(s, 4)),
+      isPassed: currentValue !== undefined && currentValue === parseInt(value)
+    }));
+
+    const notVotedCount = activeNodeAddresses.filter(
+      addr => !allVoters.some(v => v.toLowerCase() === addr.toLowerCase())
+    ).length;
+
+    missing.push({
+      key,
+      currentValue,
+      totalVotes: totalVotes + notVotedCount,
+      values: values.sort((a, b) => b.count - a.count),
+      notVotedCount
+    });
+  }
+
+  missing.sort((a, b) => a.key.localeCompare(b.key));
+
+  return missing;
+}
+
+/**
+ * Find mimir keys that ANY of an operator's nodes have NOT voted on
+ *
+ * For operators running multiple nodes, checks each node individually.
+ * Returns keys where at least one node is missing, with per-node
+ * labeling so the operator can see exactly which node needs attention.
+ *
+ * @param {string} operatorAddress - THORChain operator address
+ * @param {Object} options - Required data payloads
+ * @param {Array} options.mimirData - Raw mimir vote array from API
+ * @param {Object} options.currentMimirValues - Current mimir key-value map
+ * @param {Array<string>} options.activeNodeAddresses - All active node addresses
+ * @param {Object} options.nodeOperators - Map of operator address -> array of node addresses
+ * @param {Array<string>} [options.keyBlacklist=[]] - Mimir keys to exclude
+ * @returns {{ operatorNodes: Array<string>, missingVotes: Array<Object> }}
+ *
+ * @example
+ * const { operatorNodes, missingVotes } = getMissingVotesForOperator('thor1op...', {
+ *   mimirData, currentMimirValues, activeNodeAddresses,
+ *   nodeOperators, keyBlacklist: MIMIR_KEY_BLACKLIST
+ * });
+ * // missingVotes[0].missingNodes => [{ suffix: 'r304', address: 'thor1...' }]
+ * console.log(`Operator's ${operatorNodes.length} nodes, ${missingVotes.length} keys with gaps`);
+ */
+export function getMissingVotesForOperator(operatorAddress, options = {}) {
+  const {
+    mimirData = [],
+    currentMimirValues = {},
+    activeNodeAddresses = [],
+    nodeOperators = {},
+    keyBlacklist = []
+  } = options;
+
+  if (!operatorAddress || !activeNodeAddresses.length) {
+    return { operatorNodes: [], missingVotes: [] };
+  }
+
+  // Find nodes for this operator (case-insensitive)
+  const lowerOp = operatorAddress.toLowerCase();
+  const matchingOp = Object.keys(nodeOperators).find(
+    op => op.toLowerCase() === lowerOp
+  );
+  const allOpNodes = matchingOp ? nodeOperators[matchingOp] : (nodeOperators[operatorAddress] || []);
+
+  if (!allOpNodes.length) {
+    return { operatorNodes: [], missingVotes: [] };
+  }
+
+  // Filter to only active nodes operated by this operator
+  const activeLowerSet = new Set(activeNodeAddresses.map(a => a.toLowerCase()));
+  const activeOperatorNodes = allOpNodes.filter(n => activeLowerSet.has(n.toLowerCase()));
+  if (!activeOperatorNodes.length) {
+    return { operatorNodes: [], missingVotes: [] };
+  }
+
+  // Step 1: Build full vote map from ALL mimirData (no active filter yet —
+  //         identical to Voting.svelte's processData).
+  const fullMap = {};
+
+  for (const mimir of mimirData) {
+    if (keyBlacklist.includes(mimir.key)) continue;
+
+    if (!fullMap[mimir.key]) fullMap[mimir.key] = {};
+    if (!fullMap[mimir.key][mimir.value]) fullMap[mimir.key][mimir.value] = [];
+    fullMap[mimir.key][mimir.value].push(mimir.signer);
+  }
+
+  // Step 2: Filter to only active signers (identical to filterActiveVotes).
+  const voteMap = {};
+
+  for (const key of Object.keys(fullMap)) {
+    for (const value of Object.keys(fullMap[key])) {
+      const activeSigners = fullMap[key][value].filter(
+        s => activeLowerSet.has(s.toLowerCase())
+      );
+      if (activeSigners.length === 0) continue;
+
+      if (!voteMap[key]) voteMap[key] = {};
+      voteMap[key][value] = activeSigners;
+    }
+  }
+
+  // Step 3: Gather all known mimir keys (voteMap + currentMimirValues).
+  const allKeys = new Set([
+    ...Object.keys(voteMap),
+    ...Object.keys(currentMimirValues).filter(k => !keyBlacklist.includes(k))
+  ]);
+
+  const missing = [];
+
+  for (const key of allKeys) {
+    const valueMap = voteMap[key] || {};
+    const allVoters = Object.values(valueMap).flat();
+    const allVotersLower = allVoters.map(v => v.toLowerCase());
+
+    // Which of the operator's nodes haven't voted on this key?
+    const missingNodes = activeOperatorNodes
+      .filter(n => !allVotersLower.includes(n.toLowerCase()))
+      .map(n => ({
+        suffix: getAddressSuffix(n, 4),
+        address: n
+      }));
+
+    // Skip keys where ALL operator nodes have voted
+    if (missingNodes.length === 0) continue;
+
+    const totalVotes = allVoters.length;
+    const currentValue = currentMimirValues[key];
+
+    const values = Object.entries(valueMap).map(([value, signers]) => ({
+      value: value === 'undefined' || value === '' ? 'No Vote' : value,
+      count: signers.length,
+      signers: signers.map(s => getAddressSuffix(s, 4)),
+      isPassed: currentValue !== undefined && currentValue === parseInt(value)
+    }));
+
+    const notVotedCount = activeNodeAddresses.filter(
+      addr => !allVotersLower.includes(addr.toLowerCase())
+    ).length;
+
+    missing.push({
+      key,
+      currentValue,
+      totalVotes: totalVotes + notVotedCount,
+      values: values.sort((a, b) => b.count - a.count),
+      notVotedCount,
+      missingNodes
+    });
+  }
+
+  missing.sort((a, b) => a.key.localeCompare(b.key));
+
+  return {
+    operatorNodes: activeOperatorNodes,
+    missingVotes: missing
+  };
+}
