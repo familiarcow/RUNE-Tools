@@ -401,6 +401,8 @@
     } else if (app.name === "Voting") {
       const key = urlParams.get("key");
       if (key) params.set("key", key);
+      const missing = urlParams.get("missing");
+      if (missing) params.set("missing", missing);
     }
     
     return params.toString() ? `?${params.toString()}` : "";
