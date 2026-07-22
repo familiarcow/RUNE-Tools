@@ -43,6 +43,12 @@
 
   let showMimirExplanation = false;
 
+  let missingMode = false;
+  let matchedNodes = [];
+  let matchedOperators = [];
+  let matchedOpOwnsAll = false;
+  let missingNodesByKey = {};
+
   let signersContainerRef;
 
   let signersContainerWidth = 0;
@@ -197,7 +203,91 @@
     return groupedOperators;
   }
 
+  // Address searches need >= 3 chars, and a term matching more than a
+  // handful of nodes is a coincidental fragment (e.g. a single "r" is in
+  // every thor1 address), not a deliberate address search.
+  const ADDRESS_SEARCH_MIN_CHARS = 3;
+  const ADDRESS_SEARCH_MAX_MATCHES = 10;
+
+  // Active nodes matching the search term, by node address or by
+  // operator address (an operator match includes all its active nodes).
+  // Deliberately narrower than utils/nodes.js searchNodes(), which also
+  // matches bond providers and vault membership — those must not trigger
+  // the voting mode toggle.
+  function getSearchMatches(term) {
+    const lower = (term || '').toLowerCase().trim();
+    if (lower.length < ADDRESS_SEARCH_MIN_CHARS) return { nodes: [], operators: [] };
+
+    const matched = new Set(
+      activeNodeAddresses.filter(addr => addr.toLowerCase().includes(lower))
+    );
+    const operators = [];
+    for (const [operator, nodes] of Object.entries(nodeOperators)) {
+      if (operator.toLowerCase().includes(lower)) {
+        const activeNodes = nodes.filter(node => activeNodeAddresses.includes(node));
+        if (activeNodes.length > 0) {
+          operators.push(operator);
+          activeNodes.forEach(node => matched.add(node));
+        }
+      }
+    }
+    if (matched.size > ADDRESS_SEARCH_MAX_MATCHES) return { nodes: [], operators: [] };
+    return { nodes: [...matched], operators };
+  }
+
+  function getOperatorForNode(nodeAddress) {
+    return nodeData.find(n => n.node_address === nodeAddress)?.node_operator_address || null;
+  }
+
+  function getMatchTitle(nodes, operators) {
+    return [
+      ...operators.map(op => `Operator: ${op}`),
+      ...nodes.map(node => `Node: ${node}`)
+    ].join('\n');
+  }
+
   function filterKeys() {
+    const matches = getSearchMatches(searchTerm);
+    matchedNodes = matches.nodes;
+    matchedOperators = matches.operators;
+    matchedOpOwnsAll = matchedOperators.length === 1 &&
+      matchedNodes.every(node => (nodeOperators[matchedOperators[0]] || []).includes(node));
+    missingNodesByKey = {};
+
+    // missingMode is a sticky preference; it only takes effect while the
+    // search actually matches a node or operator (the toggle is hidden
+    // otherwise), so a transient no-match while typing doesn't discard it.
+    if (missingMode && matchedNodes.length > 0) {
+      // Keys where at least one matched node has NOT voted, sorted by
+      // total active votes descending — the most-voted keys are the ones
+      // an operator will most want to catch up on.
+      const entries = [];
+      for (const [key, values] of Object.entries(activeKeys)) {
+        if (keyBlacklist.includes(key)) continue;
+        // Empty/'undefined' ballots are "No Vote" placeholders (see
+        // getGroupedValues) — they don't count as having voted.
+        const voters = new Set(
+          Object.entries(values)
+            .filter(([value]) => value !== 'undefined' && value !== '')
+            .flatMap(([, signers]) => signers)
+            .map(addr => addr.toLowerCase())
+        );
+        const missing = matchedNodes.filter(addr => !voters.has(addr.toLowerCase()));
+        if (missing.length === 0) continue;
+        entries.push({ key, values, voteCount: voters.size, missing });
+      }
+      entries.sort((a, b) => b.voteCount - a.voteCount || a.key.localeCompare(b.key));
+
+      filteredKeys = {};
+      for (const { key, values, missing } of entries) {
+        filteredKeys[key] = values;
+        missingNodesByKey[key] = missing.length > 5
+          ? `${missing.length} nodes`
+          : missing.map(addr => getAddressSuffix(addr, 4)).join(', ');
+      }
+      return;
+    }
+
     if (!searchTerm) {
       filteredKeys = Object.entries(activeKeys).reduce((acc, [key, values]) => {
         if (!keyBlacklist.includes(key)) {
@@ -208,11 +298,18 @@
       return;
     }
 
+    // Matched nodes include those found via operator address, so an
+    // operator search shows keys where any of its nodes voted.
+    const matchedLower = new Set(matchedNodes.map(addr => addr.toLowerCase()));
+
     filteredKeys = Object.entries(activeKeys).reduce((acc, [key, values]) => {
       if (!keyBlacklist.includes(key)) {
         const matchesKey = key.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesNode = Object.values(values).some(signers => 
-          signers.some(signer => signer.toLowerCase().includes(searchTerm.toLowerCase()))
+        const matchesNode = Object.values(values).some(signers =>
+          signers.some(signer =>
+            signer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            matchedLower.has(signer.toLowerCase())
+          )
         );
 
         if (matchesKey || matchesNode) {
@@ -221,6 +318,12 @@
       }
       return acc;
     }, {});
+  }
+
+  function setMissingMode(value) {
+    missingMode = value;
+    filterKeys();
+    updateURL();
   }
 
   function toggleExpand(key) {
@@ -246,11 +349,9 @@
 
   function updateSearchFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
-    const urlKey = urlParams.get("key");
-    if (urlKey) {
-      searchTerm = urlKey;
-      filterKeys();
-    }
+    searchTerm = urlParams.get("key") || "";
+    missingMode = urlParams.get("missing") === "1";
+    filterKeys();
   }
 
   function updateURL() {
@@ -259,6 +360,11 @@
       url.searchParams.set("key", searchTerm);
     } else {
       url.searchParams.delete("key");
+    }
+    if (missingMode && matchedNodes.length > 0) {
+      url.searchParams.set("missing", "1");
+    } else {
+      url.searchParams.delete("missing");
     }
     window.history.pushState({}, '', url);
   }
@@ -305,6 +411,9 @@
   }
 
   function handleSignerClick(signer) {
+    // Bubbles mean "show this node's votes" — always land in Voted mode
+    // so the clicked context doesn't invert.
+    missingMode = false;
     searchTerm = signer;
     filterKeys();
     updateURL();
@@ -348,13 +457,51 @@
     {/if}
 
     <div class="search-container">
-      <input 
-        type="text" 
-        bind:value={searchTerm} 
-        placeholder="Search by mimir key or node address"
+      <input
+        type="text"
+        bind:value={searchTerm}
+        placeholder="Search by mimir key, node, or operator address"
         on:input={handleSearch}
       />
+      {#if !searchTerm}
+        <p class="search-hint">
+          Tip: search a node or operator address (or its last few characters) to see which mimir keys it hasn't voted on.
+        </p>
+      {/if}
+      {#if matchedNodes.length > 0}
+        <div class="mode-toggle-row">
+          <span class="mode-toggle-label" title={getMatchTitle(matchedNodes, matchedOperators)}>
+            {#if matchedOpOwnsAll}
+              Operator {getAddressSuffix(matchedOperators[0], 4)} · {matchedNodes.length} node{matchedNodes.length > 1 ? 's' : ''}
+            {:else if matchedNodes.length === 1}
+              {@const nodeOp = getOperatorForNode(matchedNodes[0])}
+              Node {getAddressSuffix(matchedNodes[0], 4)}{nodeOp ? ` · operator ${getAddressSuffix(nodeOp, 4)}` : ''}
+            {:else}
+              {matchedNodes.length} matched nodes
+            {/if}
+          </span>
+          <div class="mode-toggle">
+            <button class:active={!missingMode} on:click={() => setMissingMode(false)}>
+              Voted
+            </button>
+            <button class:active={missingMode} on:click={() => setMissingMode(true)}>
+              Not Voted
+            </button>
+          </div>
+        </div>
+      {/if}
     </div>
+
+    {#if missingMode && matchedNodes.length > 0}
+      <div class="missing-summary">
+        {#if Object.keys(filteredKeys).length === 0}
+          ✓ Voted on all {Object.keys(activeKeys).length} active mimir keys — no missing votes.
+        {:else}
+          Missing votes on <strong>{Object.keys(filteredKeys).length}</strong> of
+          {Object.keys(activeKeys).length} active mimir keys, sorted by most votes first.
+        {/if}
+      </div>
+    {/if}
     {#if !isMobile}
       <!-- Desktop table layout -->
       <table>
@@ -371,6 +518,9 @@
                 <div class="key-name">{key}</div>
                 {#if currentMimirValues[key] !== undefined}
                   <div class="current-value">Current: {currentMimirValues[key]}</div>
+                {/if}
+                {#if missingMode && matchedNodes.length > 1 && missingNodesByKey[key]}
+                  <div class="missing-nodes-label">Missing: {missingNodesByKey[key]}</div>
                 {/if}
               </td>
               <td class="votes-cell">
@@ -493,6 +643,9 @@
               <h3 class="mobile-key">{key}</h3>
               {#if currentMimirValues[key] !== undefined}
                 <div class="mobile-current-value">Current: {currentMimirValues[key]}</div>
+              {/if}
+              {#if missingMode && matchedNodes.length > 1 && missingNodesByKey[key]}
+                <div class="missing-nodes-label">Missing: {missingNodesByKey[key]}</div>
               {/if}
             </div>
 
@@ -762,6 +915,83 @@
     color: #fff;
     font-size: 16px;
     transition: all 0.3s ease;
+  }
+
+  .search-hint {
+    color: #666;
+    font-size: 12px;
+    margin: 8px 0 0;
+    text-align: center;
+  }
+
+  .mode-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .mode-toggle-label {
+    color: #a0a0a0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .mode-toggle {
+    display: flex;
+    background-color: #2c2c2c;
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .mode-toggle button {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #a0a0a0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .mode-toggle button:hover {
+    color: #ffffff;
+  }
+
+  .mode-toggle button.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  }
+
+  .missing-summary {
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    color: #c0c0c0;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .missing-summary strong {
+    color: #667eea;
+  }
+
+  .missing-nodes-label {
+    font-size: 11px;
+    color: #ff9800;
+    margin-top: 4px;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
   }
 
   .search-container input:focus {
