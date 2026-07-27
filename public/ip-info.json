@@ -707,6 +707,10 @@
     "isp": "The Constant Company",
     "countryCode": "IN"
   },
+  "139.84.141.122": {
+    "isp": "The Constant Company",
+    "countryCode": "IN"
+  },
   "139.84.196.2": {
     "isp": "The Constant Company, LLC",
     "countryCode": "AU"
@@ -958,6 +962,10 @@
   "167.235.195.244": {
     "isp": "Hetzner Online GmbH",
     "countryCode": "DE"
+  },
+  "168.144.25.70": {
+    "isp": "DigitalOcean, LLC",
+    "countryCode": "IN"
   },
   "172.232.142.134": {
     "isp": "Akamai Technologies, Inc.",
