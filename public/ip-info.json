@@ -479,6 +479,10 @@
     "isp": "The Constant Company, LLC",
     "countryCode": "PL"
   },
+  "64.227.134.25": {
+    "isp": "DigitalOcean, LLC",
+    "countryCode": "IN"
+  },
   "65.108.43.178": {
     "isp": "Hetzner Online GmbH",
     "countryCode": "FI"
