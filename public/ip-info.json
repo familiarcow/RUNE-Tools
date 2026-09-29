@@ -979,6 +979,10 @@
     "isp": "Hetzner Online GmbH",
     "countryCode": "DE"
   },
+  "168.100.11.62": {
+    "isp": "BL Networks",
+    "countryCode": "NL"
+  },
   "168.144.25.70": {
     "isp": "DigitalOcean, LLC",
     "countryCode": "IN"
@@ -1138,6 +1142,10 @@
   "198.244.203.248": {
     "isp": "OVH SAS",
     "countryCode": "GB"
+  },
+  "199.217.99.9": {
+    "isp": "BL Networks",
+    "countryCode": "US"
   },
   "207.121.63.204": {
     "isp": "Level 3 Communications, Inc.",
